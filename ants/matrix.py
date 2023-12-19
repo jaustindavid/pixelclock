@@ -20,9 +20,6 @@ class Matrix:
     for row in self.matrix:
       print(" ".join(row))
 
-
-
-
   def set(self, point, color):
     # translates Point to a pixel location
     def _pixel() -> int:

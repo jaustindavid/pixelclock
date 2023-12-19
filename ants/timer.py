@@ -15,5 +15,6 @@ class Timer:
   def wait(self):
     if not self.expired():
       remaining = (self.start + self.interval - datetime.now()).total_seconds()
-      sleep(remaining)
+      if remaining > 0:
+        sleep(remaining)
       self.start = datetime.now()

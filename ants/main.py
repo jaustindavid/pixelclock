@@ -52,13 +52,6 @@ returns the nearest pheromone (x,y) to ant
 def nearish(ant, pheromones):
   dists = {}
   for p in pheromones:
-    # print(f"{ant} <=> {p} = {distance(ant.point, p)}")
-    # 80% of staying on top of a pheromone
-    if distance(ant.point, p) == 0:
-      print("0!")
-      if random.random() < 0.9:
-        print("90%!")
-        return p
     dists[distance(ant.point, p)] = p
   if dists.keys():
     d = choose_weighted_random(list(dists.keys()))
@@ -106,6 +99,7 @@ while True:
       ant = ants.pop()
     elif len(ants) < len(pheromones):
       ants.append(Ant(m, 'o', point=Point(SIDE//2,SIDE-1)))
+    m.show()
    
   for p in pheromones:
     if p not in old_pheromones and not m.get(p):
@@ -113,7 +107,7 @@ while True:
   for ant in ants:
     # 90% chance to do nothing if on food
     if ant.point in pheromones \
-        and random.random() < 0.9:
+        and random.random() < 0.95:
       continue
     # op = open_cells(pheromones, ants)
     # adj = adjacent_cells(ant.point, open_cells(pheromones, ants))
@@ -143,7 +137,6 @@ while True:
   #   else:
   #     pass
   #     # m.set(p, '.')
-  m.show()
   loop.wait()
   # for p in pheromones:
   #   if not m.get(p):
