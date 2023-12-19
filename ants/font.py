@@ -108,8 +108,8 @@ def get_time() -> List[Point]:
   h2 = hh % 10
   m1 = mm // 10
   m2 = mm % 10
-  p.extend(decode(FONT[h1], 3, 3))
-  p.extend(decode(FONT[h2], 9, 3))
+  p.extend(decode(FONT[h1], 3, 2))
+  p.extend(decode(FONT[h2], 9, 2))
   p.extend(decode(FONT[m1], 3, 9))
   p.extend(decode(FONT[m2], 9, 9))
   return p

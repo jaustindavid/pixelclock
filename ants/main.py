@@ -105,27 +105,28 @@ while True:
     if len(ants) > len(pheromones):
       ant = ants.pop()
     elif len(ants) < len(pheromones):
-      ants.append(Ant(m, 'o', point=Point(SIDE//2,SIDE//2)))
+      ants.append(Ant(m, 'o', point=Point(SIDE//2,SIDE-1)))
    
   for p in pheromones:
     if p not in old_pheromones and not m.get(p):
      m.set(p, '.')
   for ant in ants:
+    # 90% chance to do nothing if on food
     if ant.point in pheromones \
         and random.random() < 0.9:
       continue
-    op = open_cells(pheromones, ants)
-    adj = adjacent_cells(ant.point, open_cells(pheromones, ants))
-    if ant.color == 'D':
-      print(f"open cells: {pstr(op)}")
-      print(f"adjacent cells: {pstr(adj)}")
-    if not adj:
-      noc = nearish(ant, open_cells(pheromones, ants))
-      if ant.color == 'D':
-        if noc:
-          print(f"nearish open cells: {pstr(noc)}")
-        else:
-          print(f"no nearish open cells")
+    # op = open_cells(pheromones, ants)
+    # adj = adjacent_cells(ant.point, open_cells(pheromones, ants))
+    # if ant.color == 'D':
+    #   print(f"open cells: {pstr(op)}")
+    #   print(f"adjacent cells: {pstr(adj)}")
+    # if not adj:
+    #   noc = nearish(ant, open_cells(pheromones, ants))
+    #   if ant.color == 'D':
+    #     if noc:
+    #       print(f"nearish open cells: {pstr(noc)}")
+    #     else:
+    #       print(f"no nearish open cells")
     pt = any_of(adjacent_cells(ant.point, open_cells(pheromones, ants))) \
          or nearish(ant, open_cells(pheromones, ants))
     if pt:
