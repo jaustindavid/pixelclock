@@ -4,70 +4,70 @@ from point import Point
 from wobblytime import WobblyTime
 
 FONT = {
-  0: '''
+  0: '''\
  XX 
 X  X
 X  X
 X  X
  XX 
 ''',
-  1: '''
+  1: '''\
   X
   X
   X
   X
   X
 ''',
-  2: '''
+  2: '''\
 XXX
    X
  XX
 X
 XXXX
 ''',
-  3: '''
+  3: '''\
 XXX
    X
 XXX
    X
 XXX
 ''',
-  4: '''
+  4: '''\
 X  X
 X  X
 XXXX
    X
    X
 ''',
-  5: '''
+  5: '''\
 XXXX
 X
 XXX
    X
 XXX
 ''',
-  6: '''
+  6: '''\
  XX
 X
 XXX
 X  X
  XX
 ''',
-  7: '''
+  7: '''\
 XXXX
    X
   X
  X
  X
 ''',
-  8: '''
+  8: '''\
  XX 
 X  X
  XX 
 X  X
  XX 
 ''',
-  9: '''
+  9: '''\
  XX
 X  X
  XXX
@@ -84,7 +84,7 @@ def pstr(points: List[Point]):
 def decode(symbol: str, dx: int = 0, dy: int = 0) -> List[Point]:
   points = []
   y = 0
-  lines = symbol.splitlines()[1:]
+  lines = symbol.splitlines()
   for line in lines:
     x = 0
     for c in line:
@@ -113,3 +113,13 @@ def get_time() -> List[Point]:
   p.extend(decode(FONT[m1], 3, 9))
   p.extend(decode(FONT[m2], 9, 9))
   return p
+
+
+# returns a vertical line of Points starting at origin
+def bar_graph(origin: Point, height: int, direction:int = -1) -> List[Point]:
+  graph = []
+  i = 0
+  while i < height:
+    graph.append(Point(origin.x, origin.y + direction * i))
+    i += 1
+  return graph

@@ -1,9 +1,13 @@
+from typing import List, Tuple
 import subprocess
+from time import sleep
 from timer import Timer
-from datetime import timedelta
+from datetime import datetime, timedelta
+import json
+import mproc
+
 
 ''' asked bard to estimate internet latency, gave me this '''
-
 def ping_latency(server_address):
   """
   Measures the latency to a server using ping and returns an estimated score.
@@ -19,35 +23,74 @@ def ping_latency(server_address):
   if error:
     return 1  # Assume worst case if ping fails
   lines = output.decode().splitlines()
+  rtt = 999
   for line in lines:
     if "time=" in line:
       rtt = float(line.split("time=")[1].split("ms")[0])
       break
   if rtt < 50:
-    return 8
+    score = 8
   elif rtt < 100:
-    return 7
+    score = 7
   elif rtt < 150:
-    return 6
+    score = 6
   elif rtt < 200:
-    return 5
+    score = 5
   elif rtt < 250:
-    return 4
+    score = 4
   elif rtt < 300:
-    return 3
+    score = 3
   elif rtt < 400:
-    return 2
+    score = 2
   else:
-    return 1
+    score = 1
+
+  return (rtt, score)
+
+
+def read(filename: str) -> List[Tuple]:
+  try:
+    data = list()
+    with open(filename, "rt") as f:
+      data = json.load(f)
+    if isinstance(data, list):
+      return data
+  except:
+    pass
+  return []
+
+
+# returns the newest (first) tuple in data
+def get_score():
+  data = read("ping.txt")
+  if len(data) > 1:
+    return data[0]
+  return (1, 999, 0)
+
+
+def write(filename: str, data: List[Tuple]):
+  with open(filename, "wt") as txt:
+    txt.write(json.dumps(data))
+
+
+def ping_forever():
+  minute = Timer(timedelta(seconds=60))
+  outfile = "ping.txt"
+  data = read(outfile)
+  while True:
+    rtt, score = ping_latency("google.com")
+    timestamp = int(datetime.now().timestamp())
+    datum = (rtt, score, timestamp)
+    data.insert(0, datum)
+    if len(data) > 8:
+      data.pop()
+    print(f"Latency score: {score}")
+    write(outfile, data)
+    if score >= 7:
+      minute.wait()
+    else:
+      sleep(5) # simple ratelimit
 
 
 if __name__ == "__main__":
-  minute = Timer(timedelta(seconds=60))
-  outfile = "ping.txt"
-  while True:
-    latency_score = ping_latency("google.com")
-    print(f"Latency score: {latency_score}")
-    with open(outfile, "wt") as txt:
-      txt.write(f"{latency_score}")
-    if latency_score >= 7:
-      minute.wait()
+  ping_forever()

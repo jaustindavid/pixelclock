@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from typing import List
 import sys
+from typing import List
+from math import sqrt
 
 from time import sleep
 from datetime import datetime, timedelta
@@ -10,10 +11,12 @@ import random
 from point import Point
 from matrix import Matrix, SIDE
 from ant import Ant
+import font
 from font import FONT, pstr, decode, get_time
 from timer import Timer
-
-from math import sqrt
+import ping
+from ping import ping_forever
+from mproc import ForeverProcess
 
 
 
@@ -47,11 +50,11 @@ def distance(p1, p2):
 
 
 '''
-returns the nearest pheromone (x,y) to ant
+returns the nearest food (x,y) to ant
 '''
-def nearish(ant, pheromones):
+def nearish(ant, food):
   dists = {}
-  for p in pheromones:
+  for p in food:
     dists[distance(ant.point, p)] = p
   if dists.keys():
     d = choose_weighted_random(list(dists.keys()))
@@ -83,61 +86,51 @@ def open_cells(points: List[Point], ants: List[Ant]):
   return [ point for point in points if open_cell(point, ants) ]
 
 
-  
+if __name__ == "__main__":
+  pinger = ForeverProcess(ping_forever)
+  pinger.start()
 
-
-m = Matrix()
-ants = []
-pheromones = []
-sec = Timer(timedelta(seconds=2))
-loop = Timer(timedelta(seconds=0.25))
-while True:
-  old_pheromones = pheromones
-  pheromones = get_time()
-  if sec.expired():
-    if len(ants) > len(pheromones):
-      ant = ants.pop()
-    elif len(ants) < len(pheromones):
-      ants.append(Ant(m, 'o', point=Point(SIDE//2,SIDE-1)))
-    m.show()
-   
-  for p in pheromones:
-    if p not in old_pheromones and not m.get(p):
-     m.set(p, '.')
-  for ant in ants:
-    # 90% chance to do nothing if on food
-    if ant.point in pheromones \
-        and random.random() < 0.95:
-      continue
-    # op = open_cells(pheromones, ants)
-    # adj = adjacent_cells(ant.point, open_cells(pheromones, ants))
-    # if ant.color == 'D':
-    #   print(f"open cells: {pstr(op)}")
-    #   print(f"adjacent cells: {pstr(adj)}")
-    # if not adj:
-    #   noc = nearish(ant, open_cells(pheromones, ants))
-    #   if ant.color == 'D':
-    #     if noc:
-    #       print(f"nearish open cells: {pstr(noc)}")
-    #     else:
-    #       print(f"no nearish open cells")
-    pt = any_of(adjacent_cells(ant.point, open_cells(pheromones, ants))) \
-         or nearish(ant, open_cells(pheromones, ants))
-    if pt:
-      if ant.color == 'D':
-        print(f"{ant} -> {pt}")
-      ant.walkTo(targetPoint=pt, wobble=0.00)
-    else:
-      ant.wander()
-    if ant.point in pheromones:
-      m.set(ant.point, m.get(ant.point).upper())
-  # for p in pheromones:
-  #   if m.get(p):
-  #     m.set(p, m.get(p).upper())
-  #   else:
-  #     pass
-  #     # m.set(p, '.')
-  loop.wait()
-  # for p in pheromones:
-  #   if not m.get(p):
-  #     m.unset(p)
+  m = Matrix()
+  ants = []
+  food = []
+  sec = Timer(timedelta(seconds=1))
+  loop = Timer(timedelta(seconds=0.25))
+  latency_score = 0
+  latency_age = 0
+  while True:
+    old_food = food
+    food = get_time()
+    if sec.expired():
+      if len(ants) > len(food):
+        ant = ants.pop()
+      elif len(ants) < len(food):
+        ants.append(Ant(m, 'o', point=Point(SIDE//2,SIDE-1)))
+      (rtt, latency_score, latency_timestamp) = ping.get_score()
+      latency_secs = datetime.now().timestamp() - latency_timestamp
+      latency_age = Matrix.map_basic(latency_secs, 0, 60, 1, 8)
+      print(f"ping data: score={latency_score}, rtt={rtt}, age: {latency_secs:1.0f}->{latency_age}")
+      m.show()
+    # food.extend(font.bar_graph(Point(SIDE-1,SIDE//2-1), latency_score))
+    # food.extend(font.bar_graph(Point(SIDE-1,SIDE//2), 8-latency_age,
+    #                            direction=+1))
+    m.bar_graph(Point(SIDE-1,SIDE//2-1), 8, latency_score, 'G')
+    m.bar_graph(Point(SIDE-1,SIDE//2), 8, 9-latency_age, 'B', +1)
+    for p in food:
+      if p not in old_food and not m.get(p):
+       m.set(p, '.')
+    for ant in ants:
+      # 90% chance to do nothing if on food
+      if ant.point in food \
+          and random.random() < 0.95:
+        continue
+      pt = any_of(adjacent_cells(ant.point, open_cells(food, ants))) \
+             or nearish(ant, open_cells(food, ants))
+      if pt:
+        if ant.color == 'D':
+          print(f"{ant} -> {pt}")
+        ant.walkTo(targetPoint=pt, wobble=0.00)
+      else:
+        ant.wander()
+      if ant.point in food:
+        m.set(ant.point, m.get(ant.point).upper())
+    loop.wait()
