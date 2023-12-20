@@ -154,7 +154,7 @@ if __name__ == "__main__":
   pinger.start()
 
   m = Matrix()
-  iq = InternetQuality(m, timedelta(seconds=5))
+  iq = InternetQuality(m, timedelta(seconds=15))
   # iq.test_pattern()
   ants = []
   food = []
