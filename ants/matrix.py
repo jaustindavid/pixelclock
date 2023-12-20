@@ -2,7 +2,6 @@
 
 from time import sleep
 import random
-from point import Point
 
 CLI_MODE = False
 try:
@@ -12,9 +11,9 @@ except ModuleNotFoundError as e:
   print("Failed to import board OR neopixel; running CLI-only")
   CLI_MODE = True
 
-  
-
 from colors import COLOR
+from point import Point
+
 
 SIDE = 16
 class Matrix:
@@ -48,7 +47,8 @@ class Matrix:
       print(f"WARNING: color '{color}' not defined")
       rgb = (0,0,0)
     if not CLI_MODE:
-      self.pixels[_pixel()] = rgb
+      if self.pixels[_pixel()] != rgb:
+        self.pixels[_pixel()] = rgb
 
 
   def unset(self, point):
@@ -56,8 +56,7 @@ class Matrix:
 
 
   def get(self, point):
-    if self.matrix[point.y][point.x] != ' ' \
-       and self.matrix[point.y][point.x] != '.':
+    if self.matrix[point.y][point.x] != ' ':
       return self.matrix[point.y][point.x]
     return None
 

@@ -86,11 +86,76 @@ def open_cells(points: List[Point], ants: List[Ant]):
   return [ point for point in points if open_cell(point, ants) ]
 
 
+# displays a graph showing internet quality
+# can be run FREQUENTLY without hosing everything up
+class InternetQuality: 
+  def __init__(self, matrix: Matrix, interval: timedelta):
+    self.matrix = matrix
+    self.timer = Timer(interval)
+    self.graph = []
+    self.age = 999
+    self.rtt = 999
+    self._read_ping_data()
+
+
+  # returns 1..4 stars
+  def _rtt_score(self):
+    return 5 - int(Matrix.map_basic(self.rtt, 1, 500, 1, 4))
+
+
+  # returns 1..4 stars
+  def _age_score(self):
+    return 5 - int(Matrix.map_basic(self.age, 0, 60, 1, 4))
+
+
+  def _read_ping_data(self):
+    (rtt, latency_score, latency_timestamp) = ping.get_score()
+    self.age = datetime.now().timestamp() - latency_timestamp
+    self.rtt = rtt
+    print(f"ping data: score={latency_score}, rtt={rtt}, age: {self.age}")
+
+
+  def run(self): 
+    c = {
+      1: 'R',
+      2: 'Y',
+      3: 'L',
+      4: 'G'
+    }
+    if self.timer.expired():
+      self._read_ping_data()
+      for ant in self.graph:
+        if ant.point.x == 0:
+          self.graph.remove(ant)
+          ant.immolate()
+        else:
+          ant.step(-1, 0)
+      if not self.matrix.get(Point(SIDE-1, SIDE-1)):
+        self.graph.append(Ant(matrix=self.matrix, 
+                              color=c[self._rtt_score()],
+                              point=Point(SIDE-1, SIDE-1)))
+      print(f"Graph: {len(self.graph)} ants")
+
+
+  def test_pattern(self):
+    self.matrix.set(Point(0,0), 'G')
+    self.matrix.set(Point(0,1), 'L')
+    self.matrix.set(Point(0,2), 'Y')
+    self.matrix.set(Point(0,3), 'R')
+    sleep(5)
+    self.matrix.unset(Point(0,0))
+    self.matrix.unset(Point(0,1))
+    self.matrix.unset(Point(0,2))
+    self.matrix.unset(Point(0,3))
+
+
 if __name__ == "__main__":
   pinger = ForeverProcess(ping_forever)
   pinger.start()
 
   m = Matrix()
+  iq = InternetQuality(m, timedelta(seconds=5))
+  # iq.test_pattern()
   ants = []
   food = []
   sec = Timer(timedelta(seconds=1))
@@ -98,6 +163,7 @@ if __name__ == "__main__":
   latency_score = 0
   latency_age = 0
   while True:
+    iq.run()
     old_food = food
     food = get_time()
     if sec.expired():
@@ -105,16 +171,7 @@ if __name__ == "__main__":
         ant = ants.pop()
       elif len(ants) < len(food):
         ants.append(Ant(m, 'o', point=Point(SIDE//2,SIDE-1)))
-      (rtt, latency_score, latency_timestamp) = ping.get_score()
-      latency_secs = datetime.now().timestamp() - latency_timestamp
-      latency_age = Matrix.map_basic(latency_secs, 0, 60, 1, 8)
-      print(f"ping data: score={latency_score}, rtt={rtt}, age: {latency_secs:1.0f}->{latency_age}")
       m.show()
-    # food.extend(font.bar_graph(Point(SIDE-1,SIDE//2-1), latency_score))
-    # food.extend(font.bar_graph(Point(SIDE-1,SIDE//2), 8-latency_age,
-    #                            direction=+1))
-    m.bar_graph(Point(SIDE-1,SIDE//2-1), 8, latency_score, 'G')
-    m.bar_graph(Point(SIDE-1,SIDE//2), 8, 9-latency_age, 'B', +1)
     for p in food:
       if p not in old_food and not m.get(p):
        m.set(p, '.')

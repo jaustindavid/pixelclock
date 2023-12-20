@@ -74,7 +74,7 @@ def write(filename: str, data: List[Tuple]):
 
 
 def ping_forever():
-  minute = Timer(timedelta(seconds=60))
+  minute = Timer(timedelta(seconds=15))
   outfile = "ping.txt"
   data = read(outfile)
   while True:
@@ -84,7 +84,8 @@ def ping_forever():
     data.insert(0, datum)
     if len(data) > 8:
       data.pop()
-    print(f"Latency score: {score}")
+    # print(f"Latency score: {score}")
+    print(get_score())
     write(outfile, data)
     if score >= 7:
       minute.wait()

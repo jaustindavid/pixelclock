@@ -10,8 +10,16 @@ class Ant:
     self.color = color
     if point:
       self.point = Point(point=point)
+    self.matrix.set(self.point, self.color)
+
 
   def __del__(self):
+    if self.matrix.get(self.point) == self.color:
+      self.matrix.unset(self.point)
+
+
+  def immolate(self): 
+    self.matrix.set(self.point, 'R')
     self.matrix.unset(self.point)
 
 
@@ -28,10 +36,11 @@ class Ant:
     return f"{self.color}@{self.point}"
 
 
-  def step(self, dx, dy):
+  def step(self, dx: int, dy: int):
     newPoint = Point(point=self.point)
     newPoint.translate(dx, dy)
-    if not self.matrix.get(newPoint):
+    if not self.matrix.get(newPoint) \
+        or self.matrix.get(newPoint) == '.':
       self.matrix.unset(self.point)
       self.point = newPoint
       self.matrix.set(self.point, self.color)
@@ -39,7 +48,7 @@ class Ant:
     return False
 
 
-  def jumpTo(self, x=0, y=0, newPoint: Point = None):
+  def jumpTo(self, x: int = 0, y: int = 0, newPoint: Point = None):
     self.matrix.unset(self.point)
     self.point = newPoint
     self.matrix.set(self.point, self.color)
@@ -87,4 +96,3 @@ class Ant:
         return True
       ntries += 1
     return False
-
