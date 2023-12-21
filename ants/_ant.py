@@ -1,61 +1,60 @@
 import random
 
-from point import Point
+from pixel import Pixel
 from matrix import Matrix
 
 
-class Ant:
-  def __init__(self, matrix, color, point=Point(0,0)):
+class Ant(Pixel):
+  def __init__(self, matrix, color, pixel=Pixel(0,0)):
     self.matrix = matrix
     self.color = color
-    if point:
-      self.point = Point(point=point)
-    self.matrix.set(self.point, self.color)
+    super().__init__(x=pixel.x, y=pixel.y)
+    self.matrix.set(self)
 
 
   def __del__(self):
-    if self.matrix.get(self.point) == self.color:
-      self.matrix.unset(self.point)
+    if self.matrix.get(self.pixel) == self.color:
+      self.matrix.unset(self.pixel)
 
 
   def immolate(self): 
-    self.matrix.set(self.point, 'R')
-    self.matrix.unset(self.point)
+    self.matrix.set(self.pixel, 'R')
+    self.matrix.unset(self.pixel)
 
 
   def randomize(self):
     while True:
-      p = Point(random.randint(0,15), random.randint(0,15))
+      p = Pixel(random.randint(0,15), random.randint(0,15))
       if not self.matrix.get(p) or self.matrix.get(p) == 'X':
         break
-    self.point = p
-    self.matrix.set(self.point, self.color)
+    self.pixel = p
+    self.matrix.set(self.pixel, self.color)
 
 
   def __str__(self):
-    return f"{self.color}@{self.point}"
+    return f"{self.color}@{self.pixel}"
 
 
   def step(self, dx: int, dy: int):
-    newPoint = Point(point=self.point)
-    newPoint.translate(dx, dy)
-    if not self.matrix.get(newPoint) \
-        or self.matrix.get(newPoint) == '.':
-      self.matrix.unset(self.point)
-      self.point = newPoint
-      self.matrix.set(self.point, self.color)
+    newPixel = Pixel(pixel=self.pixel)
+    newPixel.translate(dx, dy)
+    if not self.matrix.get(newPixel) \
+        or self.matrix.get(newPixel) == '.':
+      self.matrix.unset(self.pixel)
+      self.pixel = newPixel
+      self.matrix.set(self.pixel, self.color)
       return True
     return False
 
 
-  def jumpTo(self, x: int = 0, y: int = 0, newPoint: Point = None):
-    self.matrix.unset(self.point)
-    self.point = newPoint
-    self.matrix.set(self.point, self.color)
+  def jumpTo(self, x: int = 0, y: int = 0, newPixel: Pixel = None):
+    self.matrix.unset(self.pixel)
+    self.pixel = newPixel
+    self.matrix.set(self.pixel, self.color)
 
 
   def walkTo(self, targetX=0, targetY=0, 
-                   targetPoint: Point = None,
+                   targetPixel: Pixel = None,
                    wobble=0.0):
     def _direct(x, xPrime, wobble=0.0):
       weights = [ 0.025, 0.95, 0.025 ]
@@ -68,15 +67,15 @@ class Ant:
       return c
 
     if self.color == 'D':
-      print(f"{self} walkTo {targetPoint}, p={wobble}")
-    if targetPoint:
-      targetX = targetPoint.x
-      targetY = targetPoint.y
+      print(f"{self} walkTo {targetPixel}, p={wobble}")
+    if targetPixel:
+      targetX = targetPixel.x
+      targetY = targetPixel.y
     
     ntries = 0
     while ntries < 3:
-      dx = _direct(self.point.x, targetX, wobble)
-      dy = _direct(self.point.y, targetY, wobble)
+      dx = _direct(self.pixel.x, targetX, wobble)
+      dy = _direct(self.pixel.y, targetY, wobble)
       if self.color == 'D':
         print(f"{self} ?= ({dx},{dy})")
       if self.step(dx, dy):
