@@ -40,8 +40,16 @@ class Pixel:
       self.y = constrain(self.y + dy)
 
 
-  def distanceTo(self, other):
+  def distance_to(self, other):
     return sqrt((other.x-self.x)**2 + (other.y-self.y)**2)
+  
+
+  # returns others, sorted by distance
+  def nearish(self, others: List[any]) -> List[any]:
+    s = {}
+    for other in others:
+      s[self.distance_to(other)] = other
+    return [value for key, value in sorted(s.items())] 
 
 
   def step(self, dx: int, dy: int, sandbox: List[any]) -> bool:
@@ -65,10 +73,10 @@ class Pixel:
     return constrain(random.choices([-1, 0, 1], weights=weights)[0])
 
 
-  def seek(self, targets: List[any], sandbox: List[any]):
+  def seek(self, targets: List[any], sandbox: List[any], wobble: float = 0.0):
     target = targets[0]
-    dx = self._d(self.x, target.x, 0.5)
-    dy = self._d(self.y, target.y, 0.5)
+    dx = self._d(self.x, target.x, wobble)
+    dy = self._d(self.y, target.y, wobble)
     if dx or dy:
       return self.step(dx, dy, sandbox)
     else:

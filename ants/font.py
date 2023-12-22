@@ -1,7 +1,9 @@
 from typing import List
 from datetime import datetime
-from point import Point
+from pixel import Pixel
 from wobblytime import WobblyTime
+import defs
+
 
 FONT = {
   0: '''\
@@ -77,28 +79,25 @@ X  X
 }
 
 
-def pstr(points: List[Point]):
-  return f"[{','.join([str(p) for p in points])}]"
-
-
-def decode(symbol: str, dx: int = 0, dy: int = 0) -> List[Point]:
-  points = []
+# decodes a character into a list of Pixels, potentially offset
+def decode(symbol: str, dx: int = 0, dy: int = 0) -> List[Pixel]:
+  pixels = []
   y = 0
   lines = symbol.splitlines()
   for line in lines:
     x = 0
     for c in line:
       if c == 'X':
-        points.append(Point(x+dx,y+dy))
+        pixels.append(Pixel(x+dx,y+dy))
       x += 1
     y += 1
-  return points
+  return pixels
 
 
 # returns the set of points representing current hh:mm
 _wt = WobblyTime(30,180)
-def get_time() -> List[Point]:
-  p = list()
+def get_time() -> List[Pixel]:
+  pixels = []
   now = datetime.now()
   hh = now.hour
   mm = now.minute
@@ -108,18 +107,8 @@ def get_time() -> List[Point]:
   h2 = hh % 10
   m1 = mm // 10
   m2 = mm % 10
-  p.extend(decode(FONT[h1], 3, 2))
-  p.extend(decode(FONT[h2], 9, 2))
-  p.extend(decode(FONT[m1], 3, 9))
-  p.extend(decode(FONT[m2], 9, 9))
-  return p
-
-
-# returns a vertical line of Points starting at origin
-def bar_graph(origin: Point, height: int, direction:int = -1) -> List[Point]:
-  graph = []
-  i = 0
-  while i < height:
-    graph.append(Point(origin.x, origin.y + direction * i))
-    i += 1
-  return graph
+  pixels.extend(decode(FONT[h1], 3, 2))
+  pixels.extend(decode(FONT[h2], 9, 2))
+  pixels.extend(decode(FONT[m1], 3, 9))
+  pixels.extend(decode(FONT[m2], 9, 9))
+  return pixels

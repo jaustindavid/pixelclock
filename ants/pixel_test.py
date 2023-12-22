@@ -44,8 +44,8 @@ class TestPixel(unittest.TestCase):
     a = Pixel(1,1)
     b = Pixel(1,1)
     c = Pixel(4,5)
-    self.assertEqual(a.distanceTo(b), 0)
-    self.assertEqual(a.distanceTo(c), 5)
+    self.assertEqual(a.distance_to(b), 0)
+    self.assertEqual(a.distance_to(c), 5)
 
 
   def test_collision(self):
@@ -102,7 +102,20 @@ class TestPixel(unittest.TestCase):
     ant = Ant(0,0, 'w')
     food = [ Food(1,1,'g') ]
     sandbox = [ ant ]
-    self.assertTrue(ant.seek(food, sandbox))
+    i = 0
+    while i < 10 and ant.distance_to(food[0]) > 0:
+      self.assertTrue(ant.seek(food, sandbox))
+      i += 1
+    self.assertTrue(ant.distance_to(food[0]) == 0)
+
+  def test_nearish(self):
+    ant = Ant(0,0, 'w')
+    food = [ Food(1,1,'g'), Food(3,3,'g') ]
+    print(f"nearish: {[str(other) for other in ant.nearish(food)]}")
+    self.assertEqual(Food(1,1,'g'), ant.nearish(food)[0])
+    ant = Ant(10,10, 'w')
+    print(f"nearish: {[str(other) for other in ant.nearish(food)]}")
+    self.assertEqual(Food(3,3,'g'), ant.nearish(food)[0])
 
 
 if __name__ == '__main__':
