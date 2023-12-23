@@ -24,3 +24,15 @@ Ants will seek open food based on a pretty simple set of rules:
    * otherwise, roam around
 * ants can't step on ants, but between culling and 5% chance wandering,
 they tend to mostly form the shape of numbers within a few seconds
+
+## RPI setup / installation
+
+1 copy antclock.service to /etc/systemd/system
+2 `sudo systemctl daemon-reload`
+
+The service should now be running, clock should be live.
+
+### manual start / stop
+* sudo systemctl start antclock.service
+* sudo systemctl stop antclock.service
+
