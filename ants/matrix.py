@@ -1,5 +1,6 @@
 from typing import List
 from pixel import Pixel
+from colors import COLOR
 
 CLI_MODE = False
 try:
