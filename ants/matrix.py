@@ -17,7 +17,7 @@ class Matrix:
     self.sandbox = sandbox
     if not CLI_MODE:
       self.pixels = neopixel.NeoPixel(board.D18, self.size * self.size,
-                                      auto_write=False)
+                                      auto_write=True)
       self.pixels.fill(COLOR[' '])
       self.buffer = self.fill(COLOR[' ']) 
 
@@ -58,8 +58,7 @@ class Matrix:
       if self.buffer[coord] != new_buffer[coord]:
         self.pixels[coord] = new_buffer[coord]
         self.buffer[coord] = new_buffer[coord]
-    self.pixels.show()
-
+    # self.pixels.show()
 
 if __name__ == "__main__":
   m = Matrix(16, [])
