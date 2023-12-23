@@ -1,4 +1,6 @@
+from typing import List
 from datetime import timedelta
+import random
 import defs
 from font import get_time
 from pixel import Ant, Food
@@ -7,25 +9,47 @@ from timer import Timer
 import internet_quality
 
 
+# might add or subtract ants based on availability of food
+def equalize(ants: List[Ant], food: List[Food], sandbox: List[any]):
+  if len(ants) > len(food):
+    ant = random.choice(ants)
+    ants.remove(ant)
+    sandbox.remove(ant)
+  elif len(ants) < len(food):
+    ant = Ant(x=defs.SIDE//2, y=defs.SIDE-1, color='w')
+    ants.append(ant)
+    sandbox.append(ant)
+
+
+# rolls the dice
+def p(f: float) -> float:
+  return random.random() < f
+
+
 if __name__ == "__main__":
+  ants = []
   sandbox = []
+  food = []
   iq = internet_quality.InternetQuality(sandbox, 15)
-  food = [ Food(x=8, y=8, color='g') ]
   matrix = Matrix(defs.SIDE, sandbox)
-  ant = Ant(color='w')
-  sandbox.append(ant)
-  print(sandbox[0])
   loop = Timer(timedelta(seconds=0.25))
   second = Timer(timedelta(seconds=1))
-  while ant.distance_to(food[0]) > 0:
+  food = get_time()
+  while True:
     if second.expired():
+      print(str(matrix))
+      print(f"graph: {defs.listr(iq.graph)}")
+      print(f"ants: {defs.listr(ants)}")
+      print(f"food: {defs.listr(food)}")
       food = get_time()
+      equalize(ants, food, sandbox)
     iq.run()
-    print(str(matrix))
-    print(ant)
-    print(food[0])
-    ant.seek(food, sandbox, 0.05)
-    defs.print_list(sandbox)
+    for ant in ants:
+      if ant.on_any(food) and p(0.95):
+        # 95% chance of staying on food
+        continue
+      else:
+        ant.seek(food, sandbox, wobble=0.05)
     loop.wait()
   print(str(matrix))
 

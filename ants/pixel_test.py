@@ -1,5 +1,5 @@
 import unittest
-from pixel import Pixel, Food, Ant
+from pixel import Pixel, Food, Ant, _choose_weighted_random
 
 class TestPixel(unittest.TestCase):
 
@@ -108,15 +108,54 @@ class TestPixel(unittest.TestCase):
       i += 1
     self.assertTrue(ant.distance_to(food[0]) == 0)
 
+  def test_nearest(self):
+    ant = Ant(0,0, 'w')
+    food = [ Food(1,1,'g'), Food(3,3,'g') ]
+    print(f"nearest: {[str(other) for other in ant.nearest(food)]}")
+    self.assertEqual(Food(1,1,'g'), ant.nearest(food)[0])
+    ant = Ant(10,10, 'w')
+    print(f"nearest: {[str(other) for other in ant.nearest(food)]}")
+    self.assertEqual(Food(3,3,'g'), ant.nearest(food)[0])
+
+  def test_weighted_rando(self):
+    data = [4, 2, 5, 1, 3]
+    r = {}
+    for i in range(1000):
+      d = _choose_weighted_random(data)
+      if d in r:
+        r[d] += 1
+      else:
+        r[d] = 1
+    print(r)
+    self.assertTrue(r[1] >= r[3] >= r[5])
+
   def test_nearish(self):
     ant = Ant(0,0, 'w')
     food = [ Food(1,1,'g'), Food(3,3,'g') ]
-    print(f"nearish: {[str(other) for other in ant.nearish(food)]}")
-    self.assertEqual(Food(1,1,'g'), ant.nearish(food)[0])
+    nearest = 0
+    for i in range(1000):
+      if food[0] == ant.nearish(food):
+        nearest += 1 
+    self.assertGreater(nearest, 500)
     ant = Ant(10,10, 'w')
-    print(f"nearish: {[str(other) for other in ant.nearish(food)]}")
-    self.assertEqual(Food(3,3,'g'), ant.nearish(food)[0])
+    nearest = 0
+    for i in range(1000):
+      if food[0] == ant.nearish(food):
+        nearest += 1 
+    self.assertLess(nearest, 500)
 
+  def test_open(self):
+    food = [ Food(1,1,'g'), Food(3,3,'g') ]
+    ants = [ Ant(0,1,'w'), Ant(3,3,'w') ]
+    ant = Ant()
+    self.assertIsNot(ant.open(food, ants), None)
+    self.assertIn(food[0], ant.open(food, ants))
+
+  def test_adjacent(self):
+    food = [ Food(1,1,'g'), Food(3,3,'g') ]
+    ant = Ant()
+    self.assertIsNot(ant.adjacent(food), None)
+    self.assertIs(food[0], ant.adjacent(food))
 
 if __name__ == '__main__':
     unittest.main()

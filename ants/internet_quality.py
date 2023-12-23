@@ -8,7 +8,7 @@ from timer import Timer
 import ping
 from ping import ping_forever
 from mproc import ForeverProcess
-from defs import map_basic, SIDE
+from defs import map_basic, SIDE, listr
 
 
 # displays a graph showing internet quality
@@ -51,15 +51,12 @@ class InternetQuality:
       self._read_ping_data()
       for ant in self.graph:
         if ant.x == 0:
-          self.sandbox.remove(ant)
           self.graph.remove(ant)
-        else:
-          ant.step(-1, 0, self.sandbox)
+          self.sandbox.remove(ant)
+    for ant in self.graph:
+      ant.step(-1, 0, self.sandbox)
       # if (SIDE-1, SIDE-1) is free...
-      new_ant = Ant(SIDE-1, SIDE-1, c[self._rtt_score()])
-      print(f"trying {new_ant}")
-      if new_ant not in self.sandbox:
-        self.sandbox.append(new_ant)
-        self.graph.append(new_ant)
-      print(f"Graph: {len(self.graph)} ants")
-
+    new_ant = Ant(SIDE-1, SIDE-1, c[self._rtt_score()])
+    if new_ant not in self.sandbox:
+      self.sandbox.append(new_ant)
+      self.graph.append(new_ant)

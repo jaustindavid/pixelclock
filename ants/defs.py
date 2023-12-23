@@ -3,8 +3,8 @@ from typing import List
 SIDE = 16
 
 
-def print_list(stuff: List[any]):
-  print(f"[{', '.join([str(i) for i in stuff])}]")
+def listr(stuff: List[any]) -> str:
+  return f"[{', '.join([str(i) for i in stuff])}]"
 
 
 # returns a value hard-constrained to the square boundary
