@@ -50,6 +50,7 @@ if __name__ == "__main__":
         continue
       else:
         ant.seek(food, sandbox, wobble=0.05)
+    matrix.show()
     loop.wait()
   print(str(matrix))
 
