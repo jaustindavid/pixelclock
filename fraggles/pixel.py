@@ -3,7 +3,17 @@
 from typing import List
 from math import sqrt
 import random
+import defs
 from defs import constrain
+
+'''
+primitives:
+  seek(target, sandbox)
+    try to get to target without stepping on anything in sandbox
+
+'''
+
+
 
 
 """ i have a list of floats; how would I choose from that list, 
@@ -91,7 +101,7 @@ class Pixel:
   def adjacent(self, others: List[any]) -> any:
     candidates = []
     for other in others:
-      if self.distance_to(other) <= 1.5:
+      if other is not self and self.distance_to(other) <= 1.5:
         candidates.append(other)
     if candidates:
       return random.choice(candidates)
@@ -141,9 +151,11 @@ class Pixel:
     return o
 
 
-  def seek(self, targets: List[any], sandbox: List[any], wobble: float = 0.0):
-    opens = self.open(targets, sandbox)
-    target = self.adjacent(opens) or self.nearish(opens)
+  # seek a target which is NOT in sandbox
+  def seek(self, targets: List[any], sandbox: List[any], 
+                 wobble: float = 0.0) -> bool:
+    # print(f"seek({defs.listr(targets)}, {defs.listr(sandbox)})")
+    target = self.adjacent(targets) or self.nearish(targets)
     if target:
       # print(f"{self}: seeking {target}")
       dx = self._d(self.x, target.x, wobble)
@@ -155,7 +167,7 @@ class Pixel:
         # print(f"{self}: non-step: {dx}, {dy}")
         return True
     else:
-      self.wander(sandbox)
+      return self.wander(sandbox)
 
 
   def wander(self, sandbox: List[any]) -> bool:
