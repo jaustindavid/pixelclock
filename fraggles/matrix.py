@@ -28,7 +28,9 @@ class Matrix:
     if not CLI_MODE:
       self.pixels = neopixel.NeoPixel(board.D18, self.size * self.size,
                                       auto_write=True)
+      self.pixels.brightness = 0.25
       self.pixels.fill(COLOR[' '])
+
 
 
   def __str__(self):

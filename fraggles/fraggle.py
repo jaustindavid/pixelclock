@@ -54,6 +54,7 @@ class Fraggle(Pixel):
     self.state = RESTING
     self.last_loc = Pixel(self.x, self.y)
     self.stuckness = 0
+    self.work_timer = None
 
 
   def __str__(self):
@@ -81,8 +82,8 @@ class Fraggle(Pixel):
       self.state = CLEANING
     elif self.adjacent(sandbox):
       self.wander(sandbox)
-    else:
-      print(f"{self} resting")
+    # else:
+    #   print(f"{self} resting")
 
 
   '''
@@ -97,13 +98,14 @@ class Fraggle(Pixel):
     if brick:
       sandbox.remove(brick)
       self.state = BUILDING
-    else:
+    elif bricks:
       # otherwise, keep seeking that brick
-      # print(f"{self} Fetching: {defs.listr(bricks)}")
       self.seek(bricks, sandbox, wobble=0.0) \
         or self.seek(bricks, sandbox, wobble=0.10) \
         or self.seek(bricks, sandbox, wobble=0.50) 
-      self.am_i_stuck()
+    else:
+      # no bricks to fetch; rest
+      self.state = RESTING
 
 
   def fseek(self, plans, sandbox, wobble):
@@ -132,7 +134,6 @@ class Fraggle(Pixel):
         self.seek(self.open(plans, sandbox), sandbox, wobble=0.0) \
           or self.seek(self.open(plans, sandbox), sandbox, wobble=0.10) \
           or self.seek(self.open(plans, sandbox), sandbox, wobble=0.50)
-        self.am_i_stuck()
       else:
         self.state = RESTING
 
@@ -152,7 +153,6 @@ class Fraggle(Pixel):
       else:
         # otherwise, keep seeking that brick
         self.seek(bricks, sandbox, wobble=0.10)
-        self.am_i_stuck()
     else:
       self.state = RESTING
 
@@ -161,16 +161,16 @@ class Fraggle(Pixel):
   almost identical to build()
   '''
   def dump(self, plans: List[Pixel], sandbox: List[Pixel]):
+    dumpin_spot = Pixel(defs.SIDE-1, defs.SIDE-2)
     # if I'm on THE dump spot, drop my brick
-    if self == Pixel(15, 15):
+    if self == dumpin_spot:
       # brick = Pixel(self.x, self.y, BRICK_COLOR)
       # sandbox.append(brick)
       # actually it's just gone
       self.state = RESTING
     else:
       # walk to the dumping spot
-      self.seek([Pixel(15,15)], sandbox, wobble=0.10)
-      self.am_i_stuck()
+      self.seek([dumpin_spot], sandbox, wobble=0.10)
 
   
   def am_i_stuck(self):
@@ -179,7 +179,7 @@ class Fraggle(Pixel):
       if self.stuckness >= 10:
         self.pre_stuck_state = self.state
         self.state = STUCK
-        self.sticky_counter = 10
+        self.sticky_timer = Timer(timedelta(seconds=10))
     else:
       self.stuckness = 0
       self.last_loc = Pixel(self.x, self.y)
@@ -189,11 +189,10 @@ class Fraggle(Pixel):
   I think I got stuck!  wander around for a while
   '''
   def unstick(self, plans: List[Pixel], sandbox: List[Pixel]):
-    if self.sticky_counter:
-      self.sticky_counter -= 1
-      self.wander()
-    else:
+    if self.sticky_timer.expired():
       self.state == self.pre_stuck_state
+    else:
+      self.wander()
 
 
   # manages states, but NOT state transitions
@@ -202,12 +201,16 @@ class Fraggle(Pixel):
       self.unstick(plans, sandbox)
     elif self.state == FETCHING:
       self.fetch(plans, sandbox)
+      self.am_i_stuck()
     elif self.state == BUILDING:
       self.build(plans, sandbox)
+      self.am_i_stuck()
     elif self.state == CLEANING:
       self.clean(plans, sandbox)
+      self.am_i_stuck()
     elif self.state == DUMPING:
       self.dump(plans, sandbox)
+      self.am_i_stuck()
     else:
       self.state = RESTING # just in case
       self.rest(plans, sandbox)
