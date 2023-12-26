@@ -1,0 +1,11 @@
+[Unit]
+Description=the Fraggle Clock
+After=multi-user.target
+
+[Service]
+Type=idle
+User=root
+ExecStart=/home/austin/src/pixelclock/fraggles/clock.sh
+
+[Install]
+WantedBy=multi-user.target

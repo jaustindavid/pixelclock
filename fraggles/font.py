@@ -107,8 +107,8 @@ def get_time() -> List[Pixel]:
   h2 = hh % 10
   m1 = mm // 10
   m2 = mm % 10
-  pixels.extend(decode(FONT[h1], 3, 2))
-  pixels.extend(decode(FONT[h2], 9, 2))
-  pixels.extend(decode(FONT[m1], 3, 9))
-  pixels.extend(decode(FONT[m2], 9, 9))
+  pixels.extend(decode(FONT[h1], 3, 1))
+  pixels.extend(decode(FONT[h2], 9, 1))
+  pixels.extend(decode(FONT[m1], 3, 8))
+  pixels.extend(decode(FONT[m2], 9, 8))
   return pixels

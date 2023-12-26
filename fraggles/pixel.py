@@ -8,8 +8,11 @@ from defs import constrain
 
 '''
 primitives:
-  seek(target, sandbox)
+  seek(targets, sandbox)
     try to get to target without stepping on anything in sandbox
+    * if a target is adjacent, step there
+    * if there are any nearish targets, step towards one
+    * wander
 
 '''
 
@@ -101,7 +104,10 @@ class Pixel:
   def adjacent(self, others: List[any]) -> any:
     candidates = []
     for other in others:
-      if other is not self and self.distance_to(other) <= 1.5:
+      if other is not self \
+        and abs(self.x - other.x) <= 1 \
+        and abs(self.y - other.y) <= 1:
+      # and self.distance_to(other) <= 1.0:
         candidates.append(other)
     if candidates:
       return random.choice(candidates)
@@ -146,14 +152,16 @@ class Pixel:
   def open(self, others, sandbox):
     o = []
     for other in others:
-      if not other.on_any(sandbox):
+      if not other.on_any(sandbox) and other != self:
         o.append(other)
     return o
 
 
   # seek a target which is NOT in sandbox
+  # if productive, returns the target (a goal) or True (moved)
+  # returns false if blocked
   def seek(self, targets: List[any], sandbox: List[any], 
-                 wobble: float = 0.0) -> bool:
+                 wobble: float = 0.0) -> any:
     # print(f"seek({defs.listr(targets)}, {defs.listr(sandbox)})")
     target = self.adjacent(targets) or self.nearish(targets)
     if target:
@@ -162,10 +170,11 @@ class Pixel:
       dy = self._d(self.y, target.y, wobble)
       if dx or dy:
         # print(f"{self}: stepping {dx}, {dy}")
-        return self.step(dx, dy, sandbox)
+        if self.step(dx, dy, sandbox):
+          return target
       else:
         # print(f"{self}: non-step: {dx}, {dy}")
-        return True
+        return target
     else:
       return self.wander(sandbox)
 

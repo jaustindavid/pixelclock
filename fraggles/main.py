@@ -17,7 +17,7 @@ def p(f: float) -> float:
 
 
 '''
-if there are NO bricks, try to add one in a corner
+if there are not enough bricks, try to add one in a corner
 '''
 def manage_bricks(plans: List[Pixel], sandbox: List[Pixel]):
   fraggle = Fraggle()
@@ -28,6 +28,7 @@ def manage_bricks(plans: List[Pixel], sandbox: List[Pixel]):
     new_brick = random.choice([Pixel(0,0,f.BRICK_COLOR),
                                Pixel(defs.SIDE-1,0,f.BRICK_COLOR),
                                Pixel(0,defs.SIDE-2,f.BRICK_COLOR)])
+    new_brick = Pixel(defs.SIDE-1, defs.SIDE-2, f.BRICK_COLOR)
     if new_brick not in sandbox:
       sandbox.append(new_brick)
 
@@ -52,15 +53,17 @@ def graph_iq(iq: internet_quality.InternetQuality, sandbox: List[Pixel]):
 
 
 if __name__ == "__main__":
-  fraggles = [Fraggle() for i in range(3)]
-  sandbox = []
+  fraggles = [Fraggle() for i in range(2)]
+  sandbox = [ Pixel(x, defs.SIDE-2, f.BRICK_COLOR) 
+              for x in range(defs.SIDE) ] \
+          + [ Pixel(x, defs.SIDE-3, f.BRICK_COLOR) 
+              for x in range(defs.SIDE) ]
   sandbox.extend(fraggles)
-  plans = []
+  plans = get_time()
   matrix = Matrix(defs.SIDE, sandbox)
   iq = internet_quality.InternetQuality(15)
-  loop = Timer(timedelta(seconds=0.25)) # ratelimit: 10 fps
+  loop = Timer(timedelta(seconds=0.25)) # ratelimit: 4 fps
   second = Timer(timedelta(seconds=1))
-  plan = get_time()
   frames = 0
   while True:
     if second.expired():

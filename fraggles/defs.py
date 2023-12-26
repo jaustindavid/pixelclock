@@ -1,6 +1,11 @@
 from typing import List
+import sys
 
 SIDE = 16
+
+
+def debug(*args, **kwargs):
+  print(*args, **kwargs, file=sys.stderr)
 
 
 def listr(stuff: List[any]) -> str:
