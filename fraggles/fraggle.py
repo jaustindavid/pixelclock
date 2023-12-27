@@ -1,10 +1,8 @@
 from typing import List
 import time
-from datetime import timedelta
 import random
 import defs
 from pixel import Pixel
-from timer import Timer
 
 '''
 A Fraggle is a Pixel which can retrieve a thing from a spot, 
@@ -59,7 +57,6 @@ class Fraggle(Pixel):
     self.state = RESTING
     self.last_loc = Pixel(self.x, self.y)
     self.stuckness = 0
-    self.work_timer = None
     self.last_state = 9 # no state
     self.dumps = [ [Pixel(x, defs.SIDE-3) for x in range(defs.SIDE)],
                    [Pixel(x, defs.SIDE-2) for x in range(defs.SIDE)] ]
