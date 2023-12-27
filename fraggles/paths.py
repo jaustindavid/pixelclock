@@ -69,7 +69,7 @@ class Pathfinder:
     self.distances[f'{pixel.x},{pixel.y}'] = distance
     p = Pixel(pixel.x, pixel.y, colorize(distance))
     if p in self.grid:
-      self.grid.get_pixel(p).color = p.color
+      self.get_pixel(p).color = p.color
     else:
       self.grid.append(p)
 
@@ -82,35 +82,34 @@ class Pathfinder:
     return 999
 
 
-  # attempts to run ONE MORE STEP toward dest
-  # True if gets there
-  # leaves a breadcrumb along the way
-  def run(self, cursor: Pixel, dest: Pixel, 
+  def get_pixels(self, distance: int) -> List[Pixel]:
+    pixels = []
+    for xy in self.distances.keys():
+      if self.distances[xy] == distance:
+        x, y = map(int, xy.split(','))
+        pixels.append(Pixel(x,y))
+    return pixels
+  
+
+  def run(self, source: Pixel, dest: Pixel, 
           distance: int, debug: bool = False) -> bool:
     if not distance:
-      return False
-    maybe = False
-    if debug: print(f"running {cursor} --{distance}--> {dest}")
-    neighbors = self.open_adjacent(cursor)
-    if debug: print(f"neighbors: {defs.listr(neighbors)}")
-    if dest in neighbors:
-      if debug: print("YESSSS")
-      return True
-    for neighbor in neighbors:
-      # print(f"{cursor}: smelling {neighbor}")
-      if self.get_distance(neighbor) < self.get_distance(cursor):
-        if debug: print(f"{cursor} -> {neighbor}: downhill, skipping")
-        continue
-      elif self.get_distance(neighbor) == 999:
-        if debug: print(f"{cursor} -> {neighbor}: new, adding one")
-        self.set_distance(neighbor, self.get_distance(cursor)+1)
-      elif self.get_distance(neighbor) > self.get_distance(cursor)+2:
-        if debug: print(f"{cursor} -> {neighbor}: better path, recording")
-        self.set_distance(neighbor, self.get_distance(cursor)+1)
-      else:
-        if debug: print(f"{cursor}->{neighbor} is the way")
-        if self.run(neighbor, dest, distance-1):
-          return True
+      self.set_distance(source, 0)
+    if debug: print(f"running {source} --{distance}--> {dest}")
+    targets = self.get_pixels(distance-1)
+    if debug:
+      print(f"targets @ {distance}: {defs.listr(targets)}")
+    for cursor in targets:
+      # test adjacent
+      neighbors = self.open_adjacent(cursor)
+      print(f"neighbors: {defs.listr(neighbors)}")
+      if dest in neighbors:
+        if debug: print("YESSSS")
+        self.set_distance(dest, distance)
+        return True
+      for neighbor in neighbors:
+        if self.get_distance(neighbor) > distance:
+          self.set_distance(neighbor, distance)
     return False
 
 
@@ -135,7 +134,8 @@ class Pathfinder:
     print(f"navigating from {source} -> {dest}")
     self.set_distance(source, 0)
     stopwatch = Stopwatch()
-    for distance in range(9):
+    path = []
+    for distance in range(15):
       if stopwatch.read() > timelimit:
         print("out of time")
         break
@@ -143,12 +143,15 @@ class Pathfinder:
       # print(f"Sandbox:")
       # print(Matrix.to_str(16, self.sandbox))
       # print(f"running {distance}")
-      if self.run(source, dest, distance):
+      if self.run(source, dest, distance, debug=debug):
         print(f"FOUND IT!!!")
         path = self.backtrace(dest, source)
-        return path
-    # print(Matrix.to_str(16, self.grid))
-    return []
+        break
+      if debug:
+        print(Matrix.to_str(16, self.grid))
+    if path:
+      print(f"solution: {source} -> {defs.listr(path)} -> {dest}")
+    return path
 
 
 if __name__ == "__main__":
@@ -164,5 +167,6 @@ if __name__ == "__main__":
       fraggle.wander(sandbox)
   print(Matrix.to_str(16, sandbox))
   pathfinder = Pathfinder(sandbox)
+  
   pathfinder.navigate(Pixel(2,3), Pixel(4,2))
   pathfinder.navigate(Pixel(0,3), Pixel(6,2), 0.25)
