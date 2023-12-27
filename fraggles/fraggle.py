@@ -84,29 +84,44 @@ class Fraggle(Pixel):
     return [ hay for hay in haystack if hay not in needles ]
 
 
-  # returns a from self to dest, navigating sandbox
-  def _path_to(self, dest: Pixel, depth: int, 
-                    sandbox: List[Pixel],
-                    debug: bool = False) -> List[Pixel]:
+  '''
+  # hoppy path algorithm:
+  #   with a way to connect two short paths (dist < 6)
+  #   build a set of paths of 4x4 hops to dest
+  #   test each path to be sure the hops are connected
+  #   return the shortest
+
+
+  def in_bounds(self, dx: int, dy: int):
+    return self.x + dx == defs.constrain(self.x + dx) \
+        and self.y + dy == defs.constrain(self.y + dy)
+
+
+  # returns a connected path from self to dest, navigating sandbox
+  def _short_path_to(self, dest: Pixel, depth: int, 
+                           sandbox: List[Pixel],
+                           debug: bool = False) -> List[Pixel]:
     if debug: 
-      defs.debug(f"Trying {self} = {depth} => {dest}")
+      defs.debug(f"Trying short {self} = {depth} => {dest}")
       defs.debug(defs.listr(sandbox))
 
     if self.adjacent([dest]):
+      if debug: 
+        defs.debug(f"{self} is adjacent!!")
       return [Pixel(self.x, self.y), dest]
     if depth == 1:
       return None
+    depth = min(depth, 8)
     possibles = []
     for x in -1, 0, 1:
       for y in -1, 0, 1:
-        fraggle = Fraggle()
-        if (self.x + x) == defs.constrain(self.x + x) \
-            and (self.y + y) == defs.constrain(self.y + y):
+        if self.in_bounds(x, y):
+          fraggle = Fraggle()
           fraggle.x = self.x + x
           fraggle.y = self.y + y
           if fraggle not in sandbox:
             sandbox.append(fraggle)
-            possibles.append(fraggle._path_to(dest, depth-1,
+            possibles.append(fraggle._short_path_to(dest, depth-1,
                                               sandbox, debug=debug))
     distance = 999
     best = []
@@ -119,13 +134,65 @@ class Fraggle(Pixel):
     return best
 
 
+
+  # find a "hopping" path to dest
+  def hop_to(self, dest: Pixel, depth: int,
+                   sandbox: List[Pixel],
+                   attempts: List[Pixel],
+                   debug: bool = False) -> List[Pixel]:
+    if depth == 0:
+      return []
+    elif self == dest:
+      return [ self ]
+      # I am the short path
+    elif self.distance_to(dest) < 5:
+      # I am ON the short path
+      return [Pixel(self.x, self.y), dest]
+    else:
+      # try every 4x4 path around me, which hasn't yet been tried
+      grid = [ (dx, dy) for dx in [-4, 0, 4] for dy in [-4, 0, 4] ]
+      paths = []
+      for dx,dy in grid:
+        # print(f"{self} dx={dx}, dy={dy}")
+        if (dx or dy) \
+            and defs.constrain(self.x + dx) == self.x + dx \
+            and defs.constrain(self.y + dy) == self.y + dy:
+          stone = Fraggle()
+          stone.x = self.x+dx
+          stone.y = self.y+dy
+          # print(f"trying {stone}")
+          if stone not in attempts:
+            p = self._short_path_to(dest, depth, sandbox)
+            if p:
+              attempts.append(stone)
+              path = stone.hop_to(dest, depth-1, sandbox, attempts, debug)
+              if path:
+                paths.append(path)
+      if paths:
+        paths = sorted(paths, key = lambda x: len(x))
+        print(f"I have a few options:")
+        for path in paths:
+          print(f"\t{defs.listr(path)}")
+        stone = Pixel(self.x, self.y)
+        return [stone] + paths[0]
+
+
   def path_to(self, dest: Pixel, depth: int,
                     sandbox: List[Pixel],
                     debug: bool = False) -> List[Pixel]:
     sandbox_copy = [ p for p in sandbox ]
-    path = self._path_to(dest, depth, sandbox_copy, debug=debug)
-    if debug: print(f"finally: {defs.listr(sandbox_copy)}")
+    path = self.hop_to(dest, depth, sandbox_copy, [], debug=debug)
+    if self in path:
+      path.remove(self)
     return path
+
+  def path2(self, dest: Pixel, sandbox: List[Pixel], debug: bool = False):
+    grid = {}
+    for delta in range(1, defs.SIDE):
+      for dx in range(-delta, delta+1):
+        for dy in range(-delta, delta+1):
+  '''
+
 
 
   '''

@@ -262,8 +262,12 @@ class TestFraggle(unittest.TestCase):
                 Pixel(2,4,f.BRICK_COLOR) ]
     matrix = Matrix(defs.SIDE, sandbox)
     print(f"--------\n{matrix}\n")
-    path = fraggle.path_to(Pixel(3, 5), 10, sandbox, debug=False)
-    print(f"path: {defs.listr(path)}")
+    for dest in [ Pixel(1,2), Pixel(1,3), Pixel(1,5), Pixel(2,5), Pixel(3,0) ]:
+      path = fraggle.path_to(dest, 10, sandbox, debug=True)
+      if path:
+        print(f"path to {dest}: {defs.listr(path)}")
+      else:
+        print(f"can't find a path to {dest}")
 
 
 
