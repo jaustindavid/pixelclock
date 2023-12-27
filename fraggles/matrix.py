@@ -95,6 +95,18 @@ class Matrix:
     # self.pixels.show()
 
 
+  def to_str(size: int, sandbox: List[Pixel]):
+    buffer = [ [ ' ' for _ in range(size) ] for _ in range(size) ]
+    for item in sandbox:
+      if buffer[item.y][item.x] == ' ':
+        buffer[item.y][item.x] = item.color
+
+    ret = ""
+    for row in buffer:
+      ret += f" {' '.join(row)}\n"
+    return ret
+
+
 if __name__ == "__main__":
   m = Matrix(16, [])
   print(str(m))
