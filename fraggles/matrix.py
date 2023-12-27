@@ -67,7 +67,7 @@ class Matrix:
   def set_brightness(self):
     if not CLI_MODE and self.sensor:
       brightness = defs.map_basic(self.sensor.lux, 0, 200, 0.1, 1.0)
-      print(f"{self.last_brightness} vs. new {brightness}: {Matrix.ish(brightness, self.last_brightness, 0.1)}")
+      # print(f"{self.last_brightness} vs. new {brightness}: {Matrix.ish(brightness, self.last_brightness, 0.1)}")
       # if brightness != self.last_brightness \
       if not Matrix.ish(brightness, self.last_brightness, 0.1) \
           and self.brightness_timer.expired():
