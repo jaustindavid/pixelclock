@@ -261,6 +261,10 @@ class Fraggle(Pixel):
     if self.state == self.last_state \
         and self.sought_target:
       if debug: defs.debug(f"{self} same old seek")
+      # from paths import Pathfinder
+      # pathfinder = Pathfinder(sandbox)
+      # path = pathfinder.navigate(self, self.sought_target, debug=False)
+      # print(f"seeking path: {defs.listr(path)}")
       self.sought_target = super().seek([self.sought_target], sandbox, wobble)
       # path = self.path_to(self.sought_target, 6, sandbox)
       # if path:

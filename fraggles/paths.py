@@ -68,7 +68,7 @@ class Pathfinder:
     self.distances[f'{pixel.x},{pixel.y}'] = distance
     p = Pixel(pixel.x, pixel.y, colorize(distance))
     if p in self.grid:
-      self.grid.get_pixel(p).color = p.color
+      self.get_pixel(p).color = p.color
     else:
       self.grid.append(p)
 
@@ -81,41 +81,19 @@ class Pathfinder:
     return 999
 
 
-  # returns the lowest number of any neighbor to cursor
-  def min_neighbor(self, cursor: Pixel) -> int:
-    neighbors = self.open_adjacent(cursor)
-    return min([get_distance(n) for n in neighbors])
-
-  
-  def color_neighbors(self, cursor: Pixel, step_nr: int, dest: Pixel):
-    for pixel in self.open_adjacent(cursor):
-      if pixel not in self.grid:
-        pixel = Pixel(pixel.x, pixel.y)
-        self.grid.append(pixel)
-      else:
-        pixel = self.get_pixel(pixel)
-      print(f"thinkin bout {pixel}: {self.get_distance(pixel)}")
-      if self.get_distance(pixel) > step_nr + 1:
-        self.set_distance(pixel, step_nr + 1)
-        pixel.color = colorize(step_nr+1)
-
-
-  def color(self, cursor: Pixel, step_nr: int, dest: Pixel):
-    print(f"coloring @ {cursor}->{dest}: step={step_nr}")
-    print(Matrix.to_str(16, self.grid))
-    if step_nr > 10:
-      return
-    time.sleep(0.25)
-    self.color_neighbors(cursor, step_nr, dest)
-    for neighbor in self.open_adjacent(cursor):
-      if self.get_distance(neighbor) > step_nr:
-        self.color(neighbor, step_nr + 1, dest)
+  def get_pixels(self, distance: int) -> List[Pixel]:
+    pixels = []
+    for xy in self.distances.keys():
+      if self.distances[xy] == distance:
+        x, y = map(int, xy.split(','))
+        pixels.append(Pixel(x,y))
+    return pixels
 
 
   # attempts to run ONE MORE STEP toward dest
   # True if gets there
   # leaves a breadcrumb along the way
-  def run(self, cursor: Pixel, dest: Pixel, 
+  def run2(self, cursor: Pixel, dest: Pixel, 
           distance: int, debug: bool = False) -> bool:
     if not distance:
       return False
@@ -144,6 +122,28 @@ class Pathfinder:
     return False
 
 
+  def run(self, source: Pixel, dest: Pixel, 
+          distance: int, debug: bool = False) -> bool:
+    if not distance:
+      self.set_distance(source, 0)
+    if debug: print(f"running {source} --{distance}--> {dest}")
+    targets = self.get_pixels(distance-1)
+    if debug:
+      print(f"targets @ {distance}: {defs.listr(targets)}")
+    for cursor in targets:
+      # test adjacent
+      neighbors = self.open_adjacent(cursor)
+      print(f"neighbors: {defs.listr(neighbors)}")
+      if dest in neighbors:
+        if debug: print("YESSSS")
+        self.set_distance(dest, distance)
+        return True
+      for neighbor in neighbors:
+        if self.get_distance(neighbor) > distance:
+          self.set_distance(neighbor, distance)
+    return False
+
+
   def backtrace(self, dest: Pixel, source: Pixel):
     path = []
     cursor = dest.clone()
@@ -157,25 +157,27 @@ class Pathfinder:
     return path
 
 
-  def navigate(self, source: Pixel, dest: Pixel) -> List[Pixel]:
+  def navigate(self, source: Pixel, dest: Pixel,
+               debug: bool = False) -> List[Pixel]:
     self.grid = []
     self.distances = {}
     self.grid.extend(self.sandbox)
     print(f"navigating from {source} -> {dest}")
     self.set_distance(source, 0)
-    for distance in range(9):
+    path = []
+    for distance in range(15):
       # print(f"Sandbox:")
       # print(Matrix.to_str(16, self.sandbox))
       # print(f"running {distance}")
-      if self.run(source, dest, distance):
+      if self.run(source, dest, distance, debug=debug):
         print(f"FOUND IT!!!")
         path = self.backtrace(dest, source)
-        return path
         break
-      # print(Matrix.to_str(16, self.grid))
-    # print(Matrix.to_str(16, self.grid))
+      if debug:
+        print(Matrix.to_str(16, self.grid))
     if path:
       print(f"solution: {source} -> {defs.listr(path)} -> {dest}")
+    return path
 
 
 if __name__ == "__main__":
@@ -191,5 +193,6 @@ if __name__ == "__main__":
       fraggle.wander(sandbox)
   print(Matrix.to_str(16, sandbox))
   pathfinder = Pathfinder(sandbox)
-  pathfinder.navigate(Pixel(2,3), Pixel(4,2))
-  pathfinder.navigate(Pixel(0,3), Pixel(6,2))
+  pathfinder.navigate(Pixel(2,3), Pixel(4,2), debug=True)
+  pathfinder.navigate(Pixel(0,3), Pixel(6,2), debug=True)
+  pathfinder.navigate(Pixel(0,3), Pixel(14,2), debug=True)
