@@ -80,7 +80,8 @@ X  X
 
 
 # decodes a character into a list of Pixels, potentially offset
-def decode(symbol: str, dx: int = 0, dy: int = 0) -> List[Pixel]:
+def decode(symbol: str, dx: int = 0, dy: int = 0,
+           color: str = ' ') -> List[Pixel]:
   pixels = []
   y = 0
   lines = symbol.splitlines()
@@ -88,7 +89,7 @@ def decode(symbol: str, dx: int = 0, dy: int = 0) -> List[Pixel]:
     x = 0
     for c in line:
       if c == 'X':
-        pixels.append(Pixel(x+dx,y+dy))
+        pixels.append(Pixel(x+dx, y+dy, color))
       x += 1
     y += 1
   return pixels
@@ -96,7 +97,7 @@ def decode(symbol: str, dx: int = 0, dy: int = 0) -> List[Pixel]:
 
 # returns the set of points representing current hh:mm
 _wt = WobblyTime(30,180)
-def get_time() -> List[Pixel]:
+def get_time(color: str = ' ') -> List[Pixel]:
   pixels = []
   now = datetime.now()
   hh = now.hour
