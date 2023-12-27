@@ -1,6 +1,6 @@
 from typing import List
 from time import sleep
-from datetime import datetime, timedelta
+from datetime import datetime
 import random
 
 from pixel import Pixel, Ant
@@ -15,7 +15,7 @@ from defs import map_basic, SIDE, listr
 # can be run FREQUENTLY without hosing everything up
 class InternetQuality: 
   def __init__(self, interval: int):
-    self.timer = Timer(timedelta(seconds=interval))
+    self.timer = Timer(interval)
     self.pinger = ForeverProcess(ping_forever)
     self.age = 999
     self.rtt = 999

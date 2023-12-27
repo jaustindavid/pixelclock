@@ -1,5 +1,4 @@
 from typing import List, Tuple
-from datetime import timedelta
 from pixel import Pixel
 from colors import COLOR
 from timer import Timer
@@ -31,7 +30,8 @@ class Matrix:
     self.sandbox = sandbox
     self.buffer = self.fill(COLOR[' ']) 
     self.sensor = None
-    self.brightness_timer = Timer(timedelta(seconds=10))
+    self.brightness_timer = Timer(10)
+    self.brightness_timer.expire()
     self.last_brightness = -1
     if not CLI_MODE:
       self.pixels = neopixel.NeoPixel(board.D18, self.size * self.size,
@@ -58,10 +58,18 @@ class Matrix:
     return ret
 
 
+  # True if x = y "ish"
+  def ish(x: float, y: float, var: float): 
+    tolerance = abs(y*var)
+    return abs(x-y) <= tolerance
+
+
   def set_brightness(self):
     if not CLI_MODE and self.sensor:
       brightness = defs.map_basic(self.sensor.lux, 0, 200, 0.1, 1.0)
-      if brightness != self.last_brightness \
+      print(f"{self.last_brightness} vs. new {brightness}: {Matrix.ish(brightness, self.last_brightness, 0.1)}")
+      # if brightness != self.last_brightness \
+      if not Matrix.ish(brightness, self.last_brightness, 0.1) \
           and self.brightness_timer.expired():
         self.pixels.brightness = brightness
         self.last_brightness = brightness
@@ -108,5 +116,21 @@ class Matrix:
 
 
 if __name__ == "__main__":
-  m = Matrix(16, [])
+  for x, y in [(-1, 1), (1, 0.9), (1, 0.8), (-1, 0.9), (1, 1.1), (1,1)]:
+    print(f"{x} <> {y}: {Matrix.ish(x, y, 0.1)}")
+  import time
+  sandbox = []
+  m = Matrix(16, sandbox) 
+  x = 0
+  y = 0
+  for color in COLOR.keys():
+    sandbox.append(Pixel(x,y,color))
+    sandbox.append(Pixel(defs.SIDE-x-1, defs.SIDE-y-1,color))
+    x += 1
+    if x >= defs.SIDE:
+      x = 0
+      y += 1
   print(str(m))
+  while True:
+    m.show()
+    time.sleep(0.5)
