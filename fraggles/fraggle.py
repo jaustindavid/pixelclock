@@ -84,6 +84,50 @@ class Fraggle(Pixel):
     return [ hay for hay in haystack if hay not in needles ]
 
 
+  # returns a from self to dest, navigating sandbox
+  def _path_to(self, dest: Pixel, depth: int, 
+                    sandbox: List[Pixel],
+                    debug: bool = False) -> List[Pixel]:
+    if debug: 
+      defs.debug(f"Trying {self} = {depth} => {dest}")
+      defs.debug(defs.listr(sandbox))
+
+    if self.adjacent([dest]):
+      return [Pixel(self.x, self.y), dest]
+    if depth == 1:
+      return None
+    possibles = []
+    for x in -1, 0, 1:
+      for y in -1, 0, 1:
+        fraggle = Fraggle()
+        if (self.x + x) == defs.constrain(self.x + x) \
+            and (self.y + y) == defs.constrain(self.y + y):
+          fraggle.x = self.x + x
+          fraggle.y = self.y + y
+          if fraggle not in sandbox:
+            sandbox.append(fraggle)
+            possibles.append(fraggle._path_to(dest, depth-1,
+                                              sandbox, debug=debug))
+    distance = 999
+    best = []
+    for path in possibles:
+      if path and len(path) < distance:
+        best = path
+        distance = len(path)
+    if best:
+      best.insert(0, Pixel(self.x, self.y))
+    return best
+
+
+  def path_to(self, dest: Pixel, depth: int,
+                    sandbox: List[Pixel],
+                    debug: bool = False) -> List[Pixel]:
+    sandbox_copy = [ p for p in sandbox ]
+    path = self._path_to(dest, depth, sandbox_copy, debug=debug)
+    if debug: print(f"finally: {defs.listr(sandbox_copy)}")
+    return path
+
+
   '''
   looking for something to do
   - if there are any plan spots without a brick, FETCHING
@@ -129,7 +173,7 @@ class Fraggle(Pixel):
     bricks = self.find(BRICK_COLOR, self.open(sandbox, plans))
     brick = self.adjacent(bricks)
 
-    if brick:
+    if brick and not isinstance(brick, Fraggle):
       defs.debug(f"{self} removing {brick}")
       sandbox.remove(brick)
       self.state = BUILDING
@@ -154,6 +198,11 @@ class Fraggle(Pixel):
         and self.sought_target:
       if debug: defs.debug(f"{self} same old seek")
       self.sought_target = super().seek([self.sought_target], sandbox, wobble)
+      # path = self.path_to(self.sought_target, 6, sandbox)
+      # if path:
+      #   super().seek(path, sandbox, wobble)
+      # else:
+      #   self.sought_target = super().seek([self.sought_target], sandbox, wobble)
     else:
       self.last_state = self.state
       if debug: defs.debug(f"{self} intercepted a seek")
@@ -199,7 +248,7 @@ class Fraggle(Pixel):
     if debug: defs.debug(f"{self}: now cleaning {defs.listr(bricks)}")
     if bricks:
       brick = self.adjacent(bricks)
-      if brick:
+      if brick and not isinstance(brick, Fraggle):
         defs.debug(f"{self} removing {brick}")
         sandbox.remove(brick)
         self.state = DUMPING

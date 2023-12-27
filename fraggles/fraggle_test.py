@@ -118,18 +118,18 @@ class TestFraggle(unittest.TestCase):
 
     # generate competition 
     fraggle.state = f.FETCHING
-    fraggle.run(plans, sandbox, debug=True)
+    fraggle.run(plans, sandbox, debug=False)
     print(f"F1:{fraggle} => {fraggle.sought_target}")
     print(f"sandbox: {defs.listr(sandbox)}")
     fraggle2.state = f.FETCHING
-    fraggle2.run(plans, sandbox, debug=True)
+    fraggle2.run(plans, sandbox, debug=False)
     print(f"F2:{fraggle2} => {fraggle2.sought_target}")
     print(f"sandbox: {defs.listr(sandbox)}")
 
     # let #1 win
     while fraggle.state == f.FETCHING:
       print(f"F1:{fraggle} => {fraggle.sought_target}, plans={defs.listr(plans)}")
-      fraggle.fetch(plans, sandbox, debug=True)
+      fraggle.fetch(plans, sandbox, debug=False)
     print(f"F1: {fraggle}, sandbox: {defs.listr(sandbox)}")
     self.assertNotIn(Pixel(4,4,f.BRICK_COLOR), sandbox)
 
@@ -140,7 +140,7 @@ class TestFraggle(unittest.TestCase):
 
     # have f2 attempt to fetch
     print(f"F2:{fraggle2} => {fraggle2.sought_target}, {defs.listr(sandbox)}")
-    fraggle2.fetch(plans, sandbox, debug=True)
+    fraggle2.fetch(plans, sandbox, debug=False)
     print(f"F2:{fraggle2} => {fraggle2.sought_target}, {defs.listr(sandbox)}")
 
     self.assertNotEqual(fraggle2.state, f.FETCHING)
@@ -212,8 +212,8 @@ class TestFraggle(unittest.TestCase):
               Pixel(1,3,' '),
               Pixel(1,4,' ') ]
     sandbox = [ fraggle, 
-                Pixel(0,14,f.BRICK_COLOR), 
-                Pixel(0,13,f.BRICK_COLOR), 
+                Pixel(0,10,f.BRICK_COLOR), 
+                Pixel(0,11,f.BRICK_COLOR), 
                 Pixel(0,12,f.BRICK_COLOR), 
                 Pixel(1,1,f.BRICK_COLOR),
                 Pixel(1,2,f.BRICK_COLOR),
@@ -226,11 +226,10 @@ class TestFraggle(unittest.TestCase):
     i = 0
     while i < 100:
       fraggle.run(plans, sandbox, debug=True)
-      print(" -------------- ")
+      print(f"{i:2} -------------- ")
       print(matrix)
-      time.sleep(0.25)
       i += 1
-    self.assertNotIn(Pixel(0,14), sandbox)
+    self.assertNotIn(Pixel(0,11), sandbox)
 
 
   def test_stuck(self):
@@ -247,6 +246,25 @@ class TestFraggle(unittest.TestCase):
       i += 1
     print(f"{fraggle}")
     self.assertNotEqual(fraggle.state, f.STUCK)
+
+
+  def test_zzpath(self):
+    fraggle = Fraggle()
+    fraggle.color = 'R'
+    sandbox = [ fraggle, 
+                Pixel(0,14,f.BRICK_COLOR), 
+                Pixel(0,13,f.BRICK_COLOR), 
+                Pixel(0,12,f.BRICK_COLOR), 
+                Pixel(2,0,f.BRICK_COLOR),
+                Pixel(2,1,f.BRICK_COLOR),
+                Pixel(2,2,f.BRICK_COLOR),
+                Pixel(2,3,f.BRICK_COLOR),
+                Pixel(2,4,f.BRICK_COLOR) ]
+    matrix = Matrix(defs.SIDE, sandbox)
+    print(f"--------\n{matrix}\n")
+    path = fraggle.path_to(Pixel(3, 5), 10, sandbox, debug=False)
+    print(f"path: {defs.listr(path)}")
+
 
 
 
