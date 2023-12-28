@@ -24,6 +24,7 @@ library, or using it.  But internal buffers are still maintained
 """
 
 
+AUTO_WRITE=False
 class Matrix:
   def __init__(self, size: int, sandbox: List):
     self.size = size
@@ -35,7 +36,7 @@ class Matrix:
     self.last_brightness = -1
     if not CLI_MODE:
       self.pixels = neopixel.NeoPixel(board.D18, self.size * self.size,
-                                      auto_write=True)
+                                      auto_write=AUTO_WRITE)
       self.pixels.fill(COLOR[' '])
       try:
         i2c = board.I2C()
@@ -100,7 +101,8 @@ class Matrix:
         self.buffer[coord] = new_buffer[coord]
         if not CLI_MODE:
           self.pixels[coord] = new_buffer[coord]
-    # self.pixels.show()
+    if not AUTO_WRITE:
+      self.pixels.show()
 
 
   def to_str(size: int, sandbox: List[Pixel]):
