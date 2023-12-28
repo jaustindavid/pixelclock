@@ -1,11 +1,11 @@
 [Unit]
-Description=the Fraggle Clock
+Description=the Pixel Clock
 After=multi-user.target
 
 [Service]
 Type=idle
 User=root
-ExecStart=/home/austin/src/pixelclock/fraggles/clock.sh
+ExecStart=/home/austin/src/pixelclock/fraggles/pixelclock.sh
 
 [Install]
 WantedBy=multi-user.target

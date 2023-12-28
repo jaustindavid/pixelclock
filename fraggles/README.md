@@ -28,18 +28,18 @@ they tend to mostly form the shape of numbers within a few seconds
 
 ## RPI setup / installation
 
-1 copy fraggleclock.service to /etc/systemd/system
+1 copy pixelclock.service to /etc/systemd/system
 2 `sudo systemctl daemon-reload`
+3 `sudo systemctl enablepixelclock.service`
+4 link (ln -s ...) pixelclock.py to the flavor you prefer
 
 ### de-install
-1 `sudo rm /etc/systemd/system/fraggleclock.service`
+1 `sudo rm /etc/systemd/system/pixelclock.service`
 2 `sudo systemctl daemon-reload`
-3 `sudo systemctl enable fraggleclock.service`
 
-
-The service should now be running, clock should be live.
+The service should now be running, pixelclock should be live.
 
 ### manual start / stop
-* `sudo systemctl start fraggleclock.service`
-* `sudo systemctl stop fraggleclock.service`
+* `sudo systemctl start pixelclock.service`
+* `sudo systemctl stop pixelclock.service`
 
