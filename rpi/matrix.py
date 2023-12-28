@@ -5,11 +5,11 @@ from timer import Timer
 import defs
 
 
-CLI_MODE = False
 try:
   import board
   import neopixel
   import adafruit_bh1750
+  CLI_MODE = False
 except ModuleNotFoundError as e:
   print("Failed to import board OR neopixel; running CLI-only")
   CLI_MODE = True
@@ -35,9 +35,13 @@ class Matrix:
     self.brightness_timer.expire()
     self.last_brightness = -1
     if not CLI_MODE:
-      self.pixels = neopixel.NeoPixel(board.D18, self.size * self.size,
-                                      auto_write=AUTO_WRITE)
-      self.pixels.fill(COLOR[' '])
+      try: 
+        self.pixels = neopixel.NeoPixel(board.D18, self.size * self.size,
+                                        auto_write=AUTO_WRITE)
+        self.pixels.fill(COLOR[' '])
+      except RuntimeError:
+        print("failed to instantiate NeoPixel.  No pixels, next time be root")
+        self.pixels = None
       try:
         i2c = board.I2C()
         self.sensor = adafruit_bh1750.BH1750(i2c)
@@ -66,7 +70,7 @@ class Matrix:
 
 
   def set_brightness(self):
-    if not CLI_MODE and self.sensor:
+    if not CLI_MODE and self.pixels and self.sensor:
       brightness = defs.map_basic(self.sensor.lux, 0, 200, 0.1, 1.0)
       # print(f"{self.last_brightness} vs. new {brightness}: {Matrix.ish(brightness, self.last_brightness, 0.1)}")
       # if brightness != self.last_brightness \
@@ -92,17 +96,18 @@ class Matrix:
   # udpates self.buffer from self.sandbox
   # then pushes and changed Pixels to self.pixels
   def show(self):
-    self.set_brightness()
-    new_buffer = self.fill(COLOR[' '])
-    for item in self.sandbox:
-      new_buffer[self._coord(item)] = COLOR[item.color]
-    for coord, color in enumerate(new_buffer):
-      if self.buffer[coord] != new_buffer[coord]:
-        self.buffer[coord] = new_buffer[coord]
-        if not CLI_MODE:
-          self.pixels[coord] = new_buffer[coord]
-    if not AUTO_WRITE:
-      self.pixels.show()
+    if self.pixels:
+      self.set_brightness()
+      new_buffer = self.fill(COLOR[' '])
+      for item in self.sandbox:
+        new_buffer[self._coord(item)] = COLOR[item.color]
+      for coord, color in enumerate(new_buffer):
+        if self.buffer[coord] != new_buffer[coord]:
+          self.buffer[coord] = new_buffer[coord]
+          if not CLI_MODE:
+            self.pixels[coord] = new_buffer[coord]
+      if not AUTO_WRITE:
+        self.pixels.show()
 
 
   def to_str(size: int, sandbox: List[Pixel]):
@@ -133,6 +138,8 @@ if __name__ == "__main__":
       x = 0
       y += 1
   print(str(m))
-  while True:
-    m.show()
-    time.sleep(0.5)
+  if m.sensor:
+    print("running forever, play with the light sensor")
+    while True:
+      m.show()
+      time.sleep(0.5)
