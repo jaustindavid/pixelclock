@@ -5,7 +5,7 @@ After=multi-user.target
 [Service]
 Type=idle
 User=root
-ExecStart=/home/austin/src/pixelclock/fraggles/pixelclock.sh
+ExecStart=/home/austin/src/pixelclock/rpi/pixelclock.sh
 
 [Install]
 WantedBy=multi-user.target
