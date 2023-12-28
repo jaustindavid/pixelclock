@@ -3,7 +3,7 @@ from datetime import timedelta
 import random
 import defs
 from font import get_time
-from pixel import Pixel, Ant
+from pixel import Pixel
 from fraggle import Fraggle
 import fraggle as f
 from matrix import Matrix
@@ -30,22 +30,22 @@ def manage_bricks(plans: List[Pixel], sandbox: List[Pixel]):
       sandbox.append(new_brick)
 
 
-graph_ants = []
+graph_dots = []
 iq_timer = Timer(timedelta(seconds=15))
 def graph_iq(iq: internet_quality.InternetQuality, sandbox: List[Pixel]):
   if iq_timer.expired():
-    if graph_ants and graph_ants[0].x == 0:
-      sandbox.remove(graph_ants[0])
-      graph_ants.remove(graph_ants[0])
-    for ant in graph_ants:
-      ant.step(-1,0, sandbox)
+    if graph_dots and graph_dots[0].x == 0:
+      sandbox.remove(graph_dots[0])
+      graph_dots.remove(graph_dots[0])
+    for dot in graph_dots:
+      dot.step(-1,0, sandbox)
     score = min(iq.age_score(), iq.rtt_score())
     print(f"IQ: {score}, age={iq.age}, rtt={iq.rtt}")
     c = { 4: 'G', 3: 'L', 2: 'Y', 1: 'R' }
-    ant = Ant(defs.SIDE-1, defs.SIDE-1, c[score])
-    if ant not in graph_ants:
-      graph_ants.append(ant)
-      sandbox.append(ant)
+    dot = Pixel(defs.SIDE-1, defs.SIDE-1, c[score])
+    if dot not in graph_dots:
+      graph_dots.append(dot)
+      sandbox.append(dot)
 
 
 
