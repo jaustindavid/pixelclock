@@ -74,6 +74,7 @@ class Queen(Pixel):
   def run(self, food: List[Pixel], sandbox: List[Pixel]):
     amt_food = len(food)
     nr_ants = len([thing for thing in sandbox if isinstance(thing, Ant)])
+    # print(f"{self}: {nr_ants} for {amt_food} food")
     if nr_ants > amt_food:
       self.eat_ant(sandbox)
     elif amt_food > nr_ants \
