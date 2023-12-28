@@ -20,7 +20,7 @@ class Ant(Pixel):
 
 
   def run(self, food: List[Pixel], sandbox: List[Pixel]):
-    if self in food and random.random() < 0.9:
+    if self in food and random.random() < 0.95:
       return
     else:
       # seek food

@@ -1,4 +1,9 @@
 #!/bin/bash
 cd $(dirname $0)
 
-python3 main.py > /dev/null
+if [ -e clock.py ]
+then
+  python3 clock.py > /dev/null
+else
+  python3 main.py > /dev/null
+fi
