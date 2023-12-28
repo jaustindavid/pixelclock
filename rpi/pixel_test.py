@@ -1,5 +1,5 @@
 import unittest
-from pixel import Pixel, Food, Ant, _choose_weighted_random
+from pixel import Pixel, _choose_weighted_random
 
 class TestPixel(unittest.TestCase):
 
@@ -48,59 +48,37 @@ class TestPixel(unittest.TestCase):
     self.assertEqual(a.distance_to(c), 5)
 
 
-  def test_collision(self):
-    ant = Ant(1,1)
-    food = Food(1,1)
-    self.assertNotEqual(ant, food)
-    food2 = food.clone()
-    self.assertNotEqual(ant, food2)
-    self.assertEqual(food, food2)
-    sandbox = []
-    ant = Ant(1,1)
-    sandbox.append(ant)
-    self.assertIn(ant, sandbox)
-    food = Food(1,1)
-    sandbox.append(food)
-    self.assertIn(food, sandbox)
-    food2 = food.clone()
-    self.assertIn(food2, sandbox)
-    pixel = Pixel(1,1)
-    self.assertIn(pixel, sandbox)
-
-
   def test_step(self):
-    ant = Ant(1,1)
+    dot = Pixel(1,1)
     sandbox = []
-    sandbox.append(ant)
-    self.assertIn(ant, sandbox)
-    pant = ant.clone()
-    self.assertIn(pant, sandbox)
-    pant.x += 1
-    self.assertNotIn(pant, sandbox)
-    ant.step(0, 0, sandbox)
-    ant = Ant(0,1)
-    self.assertNotIn(ant, sandbox)
-    self.assertTrue(ant.step(0,-1, sandbox))
-    self.assertFalse(ant.step(1,1, sandbox))
-    food = Food(0,0)
-    sandbox.append(food)
-    self.assertIn(food, sandbox)
-    self.assertTrue(ant.step(-1,-1, sandbox))
+    sandbox.append(dot)
+    self.assertIn(dot, sandbox)
+    pot = dot.clone()
+    self.assertIn(pot, sandbox)
+    pot.x += 1
+    self.assertNotIn(pot, sandbox)
+    pot.step(0, 0, sandbox)
+    dot = Pixel(0,1)
+    self.assertNotIn(dot, sandbox)
+    self.assertTrue(dot.step(0,-1, sandbox))
+    self.assertFalse(dot.step(1,1, sandbox))
+
 
   def test_scan(self):
-    ant = Ant(1,1)
+    dot = Pixel(1,1)
     sandbox = []
-    sandbox.append(ant)
-    self.assertIn(ant, sandbox)
+    sandbox.append(dot)
+    self.assertIn(dot, sandbox)
     p = Pixel(0,0)
     self.assertNotIn(p, sandbox)
     p.x = 1
     p.y = 1
     self.assertIn(p, sandbox)
     
+
   def test_seek(self):
-    ant = Ant(0,0, 'w')
-    food = [ Food(1,1,'g') ]
+    ant = Pixel(0,0, 'w')
+    food = [ Pixel(1,1,'g') ]
     sandbox = [ ant ]
     i = 0
     while i < 10 and ant.distance_to(food[0]) > 0:
@@ -109,13 +87,13 @@ class TestPixel(unittest.TestCase):
     self.assertTrue(ant.distance_to(food[0]) == 0)
 
   def test_nearest(self):
-    ant = Ant(0,0, 'w')
-    food = [ Food(1,1,'g'), Food(3,3,'g') ]
+    ant = Pixel(0,0, 'w')
+    food = [ Pixel(1,1,'g'), Pixel(3,3,'g') ]
     print(f"nearest: {[str(other) for other in ant.nearest(food)]}")
-    self.assertEqual(Food(1,1,'g'), ant.nearest(food)[0])
-    ant = Ant(10,10, 'w')
+    self.assertEqual(Pixel(1,1,'g'), ant.nearest(food)[0])
+    ant = Pixel(10,10, 'w')
     print(f"nearest: {[str(other) for other in ant.nearest(food)]}")
-    self.assertEqual(Food(3,3,'g'), ant.nearest(food)[0])
+    self.assertEqual(Pixel(3,3,'g'), ant.nearest(food)[0])
 
   def test_weighted_rando(self):
     data = [4, 2, 5, 1, 3]
@@ -129,31 +107,34 @@ class TestPixel(unittest.TestCase):
     print(r)
     self.assertTrue(r[1] >= r[3] >= r[5])
 
+
   def test_nearish(self):
-    ant = Ant(0,0, 'w')
-    food = [ Food(1,1,'g'), Food(3,3,'g') ]
+    ant = Pixel(0,0, 'w')
+    food = [ Pixel(1,1,'g'), Pixel(3,3,'g') ]
     nearest = 0
     for i in range(1000):
       if food[0] == ant.nearish(food):
         nearest += 1 
     self.assertGreater(nearest, 500)
-    ant = Ant(10,10, 'w')
+    ant = Pixel(10,10, 'w')
     nearest = 0
     for i in range(1000):
       if food[0] == ant.nearish(food):
         nearest += 1 
     self.assertLess(nearest, 500)
 
+
   def test_open(self):
-    food = [ Food(1,1,'g'), Food(3,3,'g') ]
-    ants = [ Ant(0,1,'w'), Ant(3,3,'w') ]
-    ant = Ant()
+    food = [ Pixel(1,1,'g'), Pixel(3,3,'g') ]
+    ants = [ Pixel(0,1,'w'), Pixel(3,3,'w') ]
+    ant = Pixel()
     self.assertIsNot(ant.open(food, ants), None)
     self.assertIn(food[0], ant.open(food, ants))
 
+
   def test_adjacent(self):
-    food = [ Food(1,1,'g'), Food(3,3,'g') ]
-    ant = Ant()
+    food = [ Pixel(1,1,'g'), Pixel(3,3,'g') ]
+    ant = Pixel()
     self.assertIsNot(ant.adjacent(food), None)
     self.assertIs(food[0], ant.adjacent(food))
 
