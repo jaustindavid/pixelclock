@@ -68,7 +68,7 @@ class Queen(Pixel):
           sandbox.append(ant)
           return
     # FALLTHROUGH: I must be too close to stuff to bear an ant...
-    self.wander()
+    self.wander(sandbox)
 
 
   def run(self, food: List[Pixel], sandbox: List[Pixel]):
@@ -81,4 +81,4 @@ class Queen(Pixel):
       self.bear_ant(sandbox)
     else:
       self.color = 'q'
-      self.wander(sandbox)
+      self.wander(sandbox+food) # do not step on food
