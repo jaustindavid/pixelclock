@@ -31,7 +31,7 @@ class Matrix:
     self.sandbox = sandbox
     self.buffer = self.fill(COLOR[' ']) 
     self.sensor = None
-    self.brightness_timer = Timer(10)
+    self.brightness_timer = Timer(5)
     self.brightness_timer.expire()
     self.last_brightness = -1
     if not CLI_MODE:

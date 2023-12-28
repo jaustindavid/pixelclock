@@ -40,7 +40,7 @@ otherwise just roam about
 class Queen(Pixel):
   def __init__(self):
     super().__init__()
-    self.color = 'g'
+    self.color = 'q'
 
 
   def __str__(self):
@@ -59,7 +59,7 @@ class Queen(Pixel):
 
   def bear_ant(self, sandbox: List[Pixel]):
     ant = Ant()
-    self.color = 'g'
+    self.color = 'Q'
     for dx in [-1, 0, 1]:
       for dy in [-1, 0, 1]:
         ant.x = defs.constrain(self.x+dx)
