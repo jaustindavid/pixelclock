@@ -1,6 +1,6 @@
 import unittest
 import defs
-from pixel import Ant
+from pixel import Pixel
 
 class TestPixel(unittest.TestCase):
 
@@ -20,8 +20,8 @@ class TestPixel(unittest.TestCase):
 
 
   def test_listr(self):
-    l = [ Ant(), Ant() ]
-    self.assertEqual(defs.listr(l), f"[{Ant()}, {Ant()}]")
+    l = [ Pixel(), Pixel() ]
+    self.assertEqual(defs.listr(l), f"[{Pixel()}, {Pixel()}]")
 
 
 if __name__ == '__main__':
