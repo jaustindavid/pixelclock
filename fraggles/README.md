@@ -4,7 +4,10 @@
 
 * rpi zero W
 * amazon 16x16 RGB grid
-* solder directly to D18, +5V, GND
+   * solder directly to D18, +5V, GND
+* adafruit BH1750 & qwiic cable
+   * pin or solder to +3.3V, SDA, SCL, GND
+* lazer up a nice enclosure
 
 ## Software: 
 
@@ -30,7 +33,7 @@ they tend to mostly form the shape of numbers within a few seconds
 
 1 copy pixelclock.service to /etc/systemd/system
 2 `sudo systemctl daemon-reload`
-3 `sudo systemctl enablepixelclock.service`
+3 `sudo systemctl enable pixelclock.service`
 4 link (ln -s ...) pixelclock.py to the flavor you prefer
 
 ### de-install
