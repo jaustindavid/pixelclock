@@ -3,7 +3,6 @@ from time import sleep
 from datetime import datetime
 import random
 
-from pixel import Pixel, Ant
 from timer import Timer
 import ping
 from ping import ping_forever

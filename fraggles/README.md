@@ -9,6 +9,7 @@
 ## Software: 
 
 * adafruit's circuitpython stuff
+   * `sudo pip3 install adafruit-circuitpython-bh1750`
 * this
 
 ## Theory of Operation
