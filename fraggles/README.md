@@ -34,10 +34,12 @@ they tend to mostly form the shape of numbers within a few seconds
 ### de-install
 1 `sudo rm /etc/systemd/system/fraggleclock.service`
 2 `sudo systemctl daemon-reload`
+3 `sudo systemctl enable fraggleclock.service`
+
 
 The service should now be running, clock should be live.
 
 ### manual start / stop
-* `sudo systemctl start antclock.service`
-* `sudo systemctl stop antclock.service`
+* `sudo systemctl start fraggleclock.service`
+* `sudo systemctl stop fraggleclock.service`
 

@@ -9,11 +9,20 @@ A Fraggle is a Pixel which can retrieve a thing from a spot,
 then move it to another location.  It's a builder.  it has 
 intent and state.
 
+it's JOB is to rearrange the contents of sandbox to match
+plans
+
 RESTING: looking for something to do; trying not to get in the way 
 FETCHING: hunting for a new brick (dumping spot or not in plan)
 BUILDING: taking the new brick to a free spot on the plan
-CLEANING: taking a wild brick to a dumping spot
+CLEANING: hunting for a wild brick ...
+DUMPING: dropping that brick in a dumping area
+STUCK: blocked (no successful move in N cycles); will unstick self
 
+navigation: Fraggles are not smart.  they move toward their goal,
+with some random wobbling.  If they get stuck they'll wander around
+for a bit, thus re-orienting and usually enough to get around an
+obstacle.
 
 needs:
   "find a brick not in the plan"
@@ -203,6 +212,7 @@ class Fraggle(Pixel):
       self.state = FETCHING
     elif self.find(BRICK_COLOR, self.subtract(self.open(sandbox, plans), 
                                               self.dumps[0]+self.dumps[1])):
+      # TODO: find anything out of place, not just BRICK_COLOR
       self.state = CLEANING
     elif self.adjacent(sandbox):
       # half-speed wander
@@ -218,21 +228,6 @@ class Fraggle(Pixel):
   '''
   def fetch(self, plans: List[Pixel], sandbox: List[Pixel],
             debug: bool = False):
-    # need to rethink this
-    # bail out: if I'm on my target ...
-    if False and len(plans) == 1 and self == plans[0]:
-      if debug: defs.debug(f"{self} fetching {plans[0]} ... ", end='')
-      # ... and it's a brick, take it
-      if plans[0].color == BRICK_COLOR:
-        if debug: defs.debug("brick!")
-        brick = plans[0]
-        # FALLTHROUGH
-      else:
-        # not a brick?  do something else
-        if debug: defs.debug("no brick, rest")
-        self.state = RESTING
-        return
-
     # if I'm next to a brick, pick it up & build
     bricks = self.find(BRICK_COLOR, self.open(sandbox, plans))
     brick = self.adjacent(bricks)

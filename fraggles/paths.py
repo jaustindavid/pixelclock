@@ -1,9 +1,10 @@
 from typing import List
+import time
+from timer import Stopwatch
 from pixel import Pixel
 from fraggle import Fraggle
 from matrix import Matrix
 import defs
-import time
 
 
 def colorize(n: int) -> str:
@@ -88,39 +89,7 @@ class Pathfinder:
         x, y = map(int, xy.split(','))
         pixels.append(Pixel(x,y))
     return pixels
-
-
-  # attempts to run ONE MORE STEP toward dest
-  # True if gets there
-  # leaves a breadcrumb along the way
-  def run2(self, cursor: Pixel, dest: Pixel, 
-          distance: int, debug: bool = False) -> bool:
-    if not distance:
-      return False
-    maybe = False
-    if debug: print(f"running {cursor} --{distance}--> {dest}")
-    neighbors = self.open_adjacent(cursor)
-    if debug: print(f"neighbors: {defs.listr(neighbors)}")
-    if dest in neighbors:
-      if debug: print("YESSSS")
-      return True
-    for neighbor in neighbors:
-      # print(f"{cursor}: smelling {neighbor}")
-      if self.get_distance(neighbor) < self.get_distance(cursor):
-        if debug: print(f"{cursor} -> {neighbor}: downhill, skipping")
-        continue
-      elif self.get_distance(neighbor) == 999:
-        if debug: print(f"{cursor} -> {neighbor}: new, adding one")
-        self.set_distance(neighbor, self.get_distance(cursor)+1)
-      elif self.get_distance(neighbor) > self.get_distance(cursor)+2:
-        if debug: print(f"{cursor} -> {neighbor}: better path, recording")
-        self.set_distance(neighbor, self.get_distance(cursor)+1)
-      else:
-        if debug: print(f"{cursor}->{neighbor} is the way")
-        if self.run(neighbor, dest, distance-1):
-          return True
-    return False
-
+  
 
   def run(self, source: Pixel, dest: Pixel, 
           distance: int, debug: bool = False) -> bool:
@@ -158,14 +127,19 @@ class Pathfinder:
 
 
   def navigate(self, source: Pixel, dest: Pixel,
-               debug: bool = False) -> List[Pixel]:
+                     timelimit: float = 0.1) -> List[Pixel]:
     self.grid = []
     self.distances = {}
     self.grid.extend(self.sandbox)
     print(f"navigating from {source} -> {dest}")
     self.set_distance(source, 0)
+    stopwatch = Stopwatch()
     path = []
     for distance in range(15):
+      if stopwatch.read() > timelimit:
+        print("out of time")
+        break
+      print(f"trying {distance}...")
       # print(f"Sandbox:")
       # print(Matrix.to_str(16, self.sandbox))
       # print(f"running {distance}")
@@ -193,6 +167,6 @@ if __name__ == "__main__":
       fraggle.wander(sandbox)
   print(Matrix.to_str(16, sandbox))
   pathfinder = Pathfinder(sandbox)
-  pathfinder.navigate(Pixel(2,3), Pixel(4,2), debug=True)
-  pathfinder.navigate(Pixel(0,3), Pixel(6,2), debug=True)
-  pathfinder.navigate(Pixel(0,3), Pixel(14,2), debug=True)
+  
+  pathfinder.navigate(Pixel(2,3), Pixel(4,2))
+  pathfinder.navigate(Pixel(0,3), Pixel(6,2), 0.25)

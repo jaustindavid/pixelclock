@@ -25,9 +25,6 @@ def manage_bricks(plans: List[Pixel], sandbox: List[Pixel]):
   print(f"# bricks: {len(bricks)}")
   print(f"plan calls for: {len(plans)}")
   if len(bricks) < len(plans):
-    new_brick = random.choice([Pixel(0,0,f.BRICK_COLOR),
-                               Pixel(defs.SIDE-1,0,f.BRICK_COLOR),
-                               Pixel(0,defs.SIDE-2,f.BRICK_COLOR)])
     new_brick = Pixel(defs.SIDE-1, defs.SIDE-2, f.BRICK_COLOR)
     if new_brick not in sandbox:
       sandbox.append(new_brick)
@@ -59,7 +56,7 @@ if __name__ == "__main__":
           + [ Pixel(x, defs.SIDE-3, f.BRICK_COLOR) 
               for x in range(defs.SIDE) ]
   sandbox.extend(fraggles)
-  plans = get_time()
+  plans = get_time(f.BRICK_COLOR)
   matrix = Matrix(defs.SIDE, sandbox)
   iq = internet_quality.InternetQuality(15)
   loop = Timer(timedelta(seconds=0.25)) # ratelimit: 4 fps
