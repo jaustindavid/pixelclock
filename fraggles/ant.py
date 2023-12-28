@@ -9,6 +9,9 @@ from pixel import Pixel
 import defs
 
 
+'''
+very simple: it seeks available food, and sits on it
+'''
 class Ant(Pixel):
   def __init__(self):
     super().__init__()
@@ -29,6 +32,11 @@ class Ant(Pixel):
           or self.wander(sandbox)
 
 
+'''
+if there are not enough ants (more food than ants), birth one
+if there are too many ants, eat one
+otherwise just roam about
+'''
 class Queen(Pixel):
   def __init__(self):
     super().__init__()
@@ -40,7 +48,6 @@ class Queen(Pixel):
 
 
   def eat_ant(self, sandbox: List[Pixel]):
-    print("Eating one")
     self.color = 'x'
     ants = [ thing for thing in sandbox if isinstance(thing, Ant) ]
     nom = self.adjacent(ants)
@@ -68,11 +75,9 @@ class Queen(Pixel):
     amt_food = len(food)
     nr_ants = len([thing for thing in sandbox if isinstance(thing, Ant)])
     if nr_ants > amt_food:
-      # try to eat an ant
       self.eat_ant(sandbox)
     elif amt_food > nr_ants \
         and random.random() > 0.5:
-      # birth an ant
       self.bear_ant(sandbox)
     else:
       self.color = 'q'
