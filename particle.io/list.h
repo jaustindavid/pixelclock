@@ -17,7 +17,6 @@ int len(Dot** dots) {
 
 
 /* 
- * for (Dot* dot = first(food); dot != nullptr; dot = next(food)) ...
  * for (int cursor = first(food); cursor != -1; cursor = next(cursor, food)) ...
  */
 
@@ -30,6 +29,7 @@ int next(int cursor, Dot** dots) {
     }
     return -1;
 }
+
 
 int first(Dot** dots) {
     return next(-1, dots);
@@ -82,27 +82,4 @@ bool any_adjacent(Dot* needle, Dot** haystack) {
     return false;
 }
 
-/*
-// returns the index of a close-ish needle in haystack
-int closeish(Dot* needle, Dot** haystack) {
-    // find the range of distances
-    float closest = 23, furthest = 0, sum_p = 0;
-    for (int i = 0; i < MAX_DOTS; i++) {
-        float distance = needle->distance_to(haystack[i]));
-        closest = min(closest, distance);
-        furthest = max(furthest, distance);
-        sum_p += 1/(distance+1);
-    }
-    // favor lower distances 
-    while (1) {
-        for (int i = 0; i < MAX_DOTS; i++) {
-            float r = random(0, RAND_MAX) / (float)RAND_MAX;
-            float p = 1/((distance+1)*sum_p);
-            if (p > r) {
-                return i;
-            }
-        }
-    }
-}
-*/
 #endif

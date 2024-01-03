@@ -4,6 +4,8 @@
  *
  * NB / food for thought: there's not a GREAT reason to create/destroy objects, 
  * vs activating / deactivating static objects.
+ *
+ * ps tried this, it'as fast as h*ck
  * 
  * dot: 
  *   a sprite
@@ -13,21 +15,21 @@
  * food:    list (array) of dots
  * sandbox: list (array) of ants
  *
- * ant:
+ * ant: a dot which...
  *   avoids other ants
  *   nop: stay on food (nop)
  *   seek: walk toward food
  *   wander
  *
- * queen:
+ * queen: an ant which ...
  *   if not enough ants: make one
  *   if too many ants: eat one
  *   wander
  *
  * primitives needed:
- *   contents of cell at location
- *   location of "nearest thing"
- *   any <thing> adjacent (?)
+ *   contents of cell at location (is anything in list at this location)
+ *   location of "nearest thing" (thing in list sort-of near me)
+ *   any <thing> adjacent 
  *   distance / vector to <thing>
  */
 
@@ -49,6 +51,7 @@ DST dst;
 #include "WobblyTime.h"
 #include "chef.h"
 #include "pinger.h"
+#include "luna.h"
 
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
 #define PIXEL_PIN D0
@@ -67,6 +70,7 @@ void make_sandbox();
 WobblyTime wTime(30, 180);
 Chef chef;
 Pinger pinger;
+Luna *luna;
 
 
 void setup() {
@@ -81,6 +85,8 @@ void setup() {
     display.init();
     
     setup_dst();
+    luna = new Luna(A1);
+    luna->get_brightness();
     
     make_food();
     make_sandbox();
@@ -143,6 +149,7 @@ void loop() {
             dst.check();
         }
         Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
+        display.set_brightness(luna->get_brightness());
     }
     if (daily.isExpired()) {
         if (Particle.connected()) {

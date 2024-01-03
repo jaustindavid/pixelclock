@@ -13,6 +13,7 @@
 #include "dot.h"
 #include "list.h"
 
+#undef PRINTF_DEBUGGER
 
 class Display {
     private:
@@ -49,6 +50,14 @@ class Display {
             neopixels->show(); // Initialize all pixels to 'off'
         }
         
+        
+        void set_brightness(int brightness) {
+            int b = map(brightness, 0, 100, 16, 196);
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("setting brightness to %d\n", b);
+            #endif
+            neopixels->setBrightness(b);
+        }
         
         void paint(int i, color_t color) {
             neopixels->setPixelColor(i, color);

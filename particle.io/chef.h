@@ -5,10 +5,11 @@
  * a Chef makes food in the shape of time.
  */
 
-#undef PRINTF_DEBUGGER
 
 #include "dot.h"
 #include "list.h"
+
+#undef PRINTF_DEBUGGER
 
 class Chef {
     private:
@@ -79,7 +80,7 @@ class Chef {
         Chef() : last_hh(-1), last_mm(-1) {};
         
         
-        void render(Dot** food, int d, int dx, int dy) {
+        void prepare(Dot** food, int d, int dx, int dy) {
             #ifdef PRINTF_DEBUGGER
                 Serial.printf("Chef: starting render(%d)\n", d);
             #endif
@@ -113,10 +114,10 @@ class Chef {
                 last_mm = mm;
                 // food->clear();
                 clear_dots(food);
-                render(food, hh / 10, 3, 1);
-                render(food, hh % 10, 9, 1);
-                render(food, mm / 10, 3, 8);
-                render(food, mm % 10, 9, 8);
+                prepare(food, hh / 10, 3, 1);
+                prepare(food, hh % 10, 9, 1);
+                prepare(food, mm / 10, 3, 8);
+                prepare(food, mm % 10, 9, 8);
             }
         }
 };
