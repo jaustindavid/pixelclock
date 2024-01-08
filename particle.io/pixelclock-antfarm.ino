@@ -60,7 +60,10 @@ DST dst;
 Adafruit_NeoPixel neopixels(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 Display display(&neopixels);
 
-SimpleTimer every50(1000/10); // 10 FPS  
+#define FPS 5
+// SimpleTimer every50(1000/10); // 10 FPS  
+SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
+SimpleTimer every50(100);
 SimpleTimer second(1000);
 SimpleTimer daily(24*60*60*1000);
 Dot* food[MAX_DOTS];
@@ -101,15 +104,16 @@ void setup() {
     morsel->y = 1;
     morsel->color = BLUE;
     
+    
     Serial.printf("%d active foods\n", len(food));
     
     display.render(food);
-    display.show();
+    display.show(show_timer);
     delay(1000);
     int cursor = first(food);
     food[cursor]->color = BLUE;
     display.render(food);
-    display.show();
+    display.show(show_timer);
     delay(1000);
     for (cursor = first(food); cursor != -1; cursor = next(cursor, food)) {
         Serial.printf("cursor=%d\n", cursor);
@@ -143,12 +147,12 @@ void loop() {
         Serial.print("free memory: ");
         Serial.println(freemem);
         chef.cook(food, wTime.hour(), wTime.minute());
-        display.render(food);
+        // display.render(food);
         if (Particle.connected()) {
             Particle.syncTime();
             dst.check();
         }
-        Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
+        // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
         display.set_brightness(luna->get_brightness());
     }
     if (daily.isExpired()) {
@@ -165,15 +169,15 @@ void loop() {
     }
     
     display.clear();
-    display.render(food);
+    // display.render(food);
     display.render(sandbox);
     display.render(pinger.pings());
-    display.show();
+    Serial.printf("loop duration: %d ms\n", millis() - start_ms);
+    display.show(show_timer);
 //    #ifdef PRINTF_DEBUGGER
         // Serial.printf("dot: (%02d,%02d):%08x\n", dot.x, dot.y, dot.color);
-        Serial.printf("loop duration: %d ms\n", millis() - start_ms);
 //    #endif
-    every50.wait();
+    // every50.wait();
 } // loop()
 
 

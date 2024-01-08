@@ -46,7 +46,8 @@ int Luna::get_brightness() {
             Serial.println("updating last_read");
         #endif
         last_read = v;
-        brightness = map(last_read, LOWER_LIGHT, UPPER_LIGHT, LOWER_BRIGHT, UPPER_BRIGHT);
+        brightness = constrain(map(last_read, LOWER_LIGHT, UPPER_LIGHT, LOWER_BRIGHT, UPPER_BRIGHT),
+                               LOWER_BRIGHT, UPPER_BRIGHT);
     }
     return brightness;
 }

@@ -39,19 +39,19 @@ class Pinger {
             int latency = ping();
             int r = map(latency, 50, 500, 0, 255);
             int g = map(latency, 0, 250, 255, 0);
-            Serial.printf("latecy %d -> r = %d, g = %d\n", latency, r, g);
+            // Serial.printf("latecy %d -> r = %d, g = %d\n", latency, r, g);
             Dot* dot =graph[MATRIX_X - 1];
             if (latency == -1 || latency > 500) {
-                Serial.println("reddenning");
+                // Serial.println("reddenning");
                 graph[MATRIX_X-1]->set_color(RED);
             } else if (latency < 50) {
-                Serial.println("greenenning");
+                // Serial.println("greenenning");
                 graph[MATRIX_X-1]->set_color(GREEN);
             } else { 
-                Serial.printf("coloring r = %d, g = %d\n", latency, r, g);
+                // Serial.printf("coloring r = %d, g = %d\n", latency, r, g);
                 graph[MATRIX_X-1]->set_color(Adafruit_NeoPixel::Color(r, g, 0));
             }
-            Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
+           //  Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
         }
         
         
@@ -74,9 +74,9 @@ class Pinger {
         
         // return a graph of ping data
         Dot** pings() {
-            Serial.println("getting pings");
+            // Serial.println("getting pings");
             if (ping_timer->isExpired()) {
-                Serial.println("updating graph");
+                Serial.println("pinger: updating graph");
                 update_graph();
             }
             
