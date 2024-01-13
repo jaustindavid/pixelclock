@@ -14,7 +14,7 @@ class OpenWeather {
         SimpleTimer* timer;
         float _feels_like_temp;
         int _icon;
-        const char* API_KEY = "abede4bd54d77c92a10495b460e9de5a";
+        const char* API_KEY = "REDACTED";
         const char* ZIP_CODE = "29414";
 
 
