@@ -107,10 +107,12 @@ class Display {
         // a multi-pass show(), one pass per show_timer
         void show(SimpleTimer* show_timer) {
             for (int w = 1; w < 5; w++) {
+                unsigned long start = millis();
                 for (int i = 0; i < MATRIX_X * MATRIX_Y; i++) {
                     neopixels->setPixelColor(i, wavrgb(fg[i], w, bg[i], 5-w));
                 }
                 neopixels->show();
+                // Serial.printf("%d ms elapsed between shows\n", millis() - start);
                 show_timer->wait();
             }
         }

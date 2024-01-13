@@ -61,14 +61,48 @@ void deactivate(int cursor, Dot** dots) {
 }
 
 
+void deactivate(Dot* needle, Dot** haystack) {
+    for (int i = 0; i < MAX_DOTS; i++) {
+        if (haystack[i]->active && needle->equals(haystack[i])) {
+            deactivate(i, haystack);
+            return;
+        }
+    }
+}
+
+
 // true if needle is active in haystack
-bool in(Dot* needle, Dot** haystack) {
+bool in2(Dot* needle, Dot** haystack) {
     for (int i = 0; i < MAX_DOTS; i++) {
         if (haystack[i]->active && needle->equals(haystack[i])) {
             return true;
         }
     }
     return false;
+}
+
+
+// true (ptr) if needle is active in haystack
+Dot* in(Dot* needle, Dot** haystack) {
+    for (int i = 0; i < MAX_DOTS; i++) {
+        if (haystack[i]->active && needle->equals(haystack[i])) {
+            return haystack[i];
+        }
+    }
+    return nullptr;
+}
+
+
+// true (ptr) if needle of color is active in haystack
+Dot* in(Dot* needle, color_t color, Dot** haystack) {
+    for (int i = 0; i < MAX_DOTS; i++) {
+        if (haystack[i]->active 
+            && needle->equals(haystack[i]) 
+            && haystack[i]->get_color() == color) {
+            return haystack[i];
+        }
+    }
+    return nullptr;
 }
 
 
@@ -80,6 +114,13 @@ bool any_adjacent(Dot* needle, Dot** haystack) {
         }
     }
     return false;
+}
+
+
+void print_list(Dot** haystack) {
+    for (int cursor = first(haystack); cursor != -1; cursor = next(cursor, haystack)) {
+        Serial.printf("%d: (%d,%d); ", cursor, haystack[cursor]->x, haystack[cursor]->y);
+    }
 }
 
 #endif

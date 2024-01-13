@@ -17,8 +17,14 @@ class Dot {
         bool active;
 
         Dot(void) : x(0), y(0), color(0), active(false) {}
-        Dot(int new_x, int new_y, color_t new_color) : x(new_x), y(new_y), color(new_color) {}
+        Dot(int new_x, int new_y, color_t new_color) : x(new_x), y(new_y), color(new_color), active(true) {}
 
+
+        color_t get_color() {
+            return color;
+        }
+        
+        
         void set_color(color_t new_color) {
             color = new_color;
             // Serial.printf("Color now == %08x\n", color);

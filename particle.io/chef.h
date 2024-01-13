@@ -118,6 +118,9 @@ class Chef {
                 prepare(food, hh % 10, 9, 1);
                 prepare(food, mm / 10, 3, 8);
                 prepare(food, mm % 10, 9, 8);
+                #ifdef PRINTF_DEBUGGER
+                    print_list(food);
+                #endif
             }
         }
 };

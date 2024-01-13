@@ -40,7 +40,7 @@ class Pinger {
             int r = map(latency, 50, 500, 0, 255);
             int g = map(latency, 0, 250, 255, 0);
             // Serial.printf("latecy %d -> r = %d, g = %d\n", latency, r, g);
-            Dot* dot =graph[MATRIX_X - 1];
+            // Dot* dot =graph[MATRIX_X - 1];
             if (latency == -1 || latency > 500) {
                 // Serial.println("reddenning");
                 graph[MATRIX_X-1]->set_color(RED);
