@@ -164,3 +164,4 @@ cython_debug/
 # vim leftovers
 *.swp
 particle.io/pixelclock-antfarm/fraggleclock/src/ow_api.h
+*.txt
