@@ -18,7 +18,7 @@ class OpenWeather {
         float _feels_like_temp;
         int _icon, forecast_age;
         time_t last_update;
-        const char* API_KEY = "22ec273ebea663d360ddb8df37426aa7";
+        const char* API_KEY = OW_API_KEY;
         double lattitude, longitude;
 
 
