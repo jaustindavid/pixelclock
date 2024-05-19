@@ -19,6 +19,7 @@ typedef uint32_t color_t;
 #define DARKGREY    (Adafruit_NeoPixel::Color(8, 8, 8))
 #define LIGHTGREY   (Adafruit_NeoPixel::Color(32, 32, 32))
 #define DARKWHITE   (Adafruit_NeoPixel::Color(64, 64, 64))
+#define MIDWHITE    (Adafruit_NeoPixel::Color(128, 128, 128))
 #define WHITE       (Adafruit_NeoPixel::Color(255, 255, 255))
 #define YELLOWGREEN (Adafruit_NeoPixel::Color(64, 255, 0))
 #define CYAN        (Adafruit_NeoPixel::Color(0, 255, 255))

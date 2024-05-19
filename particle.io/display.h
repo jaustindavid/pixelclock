@@ -15,10 +15,20 @@
 
 #undef PRINTF_DEBUGGER
 
+#ifndef MIN_BRIGHTNESS
+    #define MIN_BRIGHTNESS 4
+#endif
+
+#ifndef MAX_BRIGHTNESS
+    #define MAX_BRIGHTNESS 196
+#endif
+
+
 class Display {
     private:
         color_t fg[MATRIX_X*MATRIX_Y], bg[MATRIX_X*MATRIX_Y];
         Adafruit_NeoPixel *neopixels;
+        int brightness;
 
         int txlate(Dot* dot) {
             int pixel = 0;
@@ -40,20 +50,22 @@ class Display {
         }
 
 
-        void init(void) {
+        void setup(void) {
             neopixels->begin();
             neopixels->setBrightness(64);
             memset(fg, 0, sizeof(fg));
             clear();
+            Particle.variable("display_brightness", this->brightness);
         }
         
         
-        void set_brightness(int brightness) {
-            int b = map(brightness, 0, 100, 16, 196);
+        int set_brightness(int b) {
+            brightness = map(b, 0, 100, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
             #ifdef PRINTF_DEBUGGER
-                Serial.printf("setting brightness to %d\n", b);
+                Serial.printf("setting brightness to %d\n", brightness);
             #endif
-            neopixels->setBrightness(b);
+            neopixels->setBrightness(brightness);
+            return brightness;
         }
         
         
@@ -107,7 +119,7 @@ class Display {
         // a multi-pass show(), one pass per show_timer
         void show(SimpleTimer* show_timer) {
             for (int w = 1; w < 5; w++) {
-                unsigned long start = millis();
+                // unsigned long start = millis();
                 for (int i = 0; i < MATRIX_X * MATRIX_Y; i++) {
                     neopixels->setPixelColor(i, wavrgb(fg[i], w, bg[i], 5-w));
                 }
@@ -120,9 +132,20 @@ class Display {
         
         // render() writes to the fg[] buffer;
         // show() will copy these to pixels, then push them
-        void render(Dot** dots) {
+        void render(Dot* dots[]) {
+            render(dots, MAX_DOTS);
+            return;
             // for (int cursor = first(dots); cursor != -1; cursor = next(cursor, dots)) {
             for (int cursor = 0; cursor < MAX_DOTS; cursor++) {
+                if (dots[cursor]->active) {
+                    paint(dots[cursor]);
+                }
+            }
+        }
+        
+        void render(Dot* dots[], int ndots) {
+            // for (int cursor = first(dots); cursor != -1; cursor = next(cursor, dots)) {
+            for (int cursor = 0; cursor < ndots; cursor++) {
                 if (dots[cursor]->active) {
                     paint(dots[cursor]);
                 }

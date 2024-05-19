@@ -12,12 +12,18 @@
 
 class Dot {
     public:
+        static int next_id;
+        int id;
         byte x, y;
         color_t color;
         bool active;
 
-        Dot(void) : x(0), y(0), color(0), active(false) {}
-        Dot(int new_x, int new_y, color_t new_color) : x(new_x), y(new_y), color(new_color), active(true) {}
+        Dot(void) : x(0), y(0), color(0), active(false) {
+            id = Dot::next_id++;
+        }
+        Dot(int new_x, int new_y, color_t new_color) : x(new_x), y(new_y), color(new_color), active(true) {
+            id = Dot::next_id++;
+        }
 
 
         color_t get_color() {
@@ -30,8 +36,22 @@ class Dot {
             // Serial.printf("Color now == %08x\n", color);
         }
 
+
+        void lighten(byte amt) {
+            uint8_t r = (color & RED) >> 16;
+            uint8_t g = (color & GREEN) >> 8;
+            uint8_t b = (color & BLUE);
+            Serial.printf("Before: (%d,%d,%d)", r, g, b);
+            r = max(0, r-amt);
+            g = max(0, g-amt);
+            b = max(0, b-amt);
+            color = (r<<16) | (g<<8) | (b);
+            Serial.printf("; after: (%ld,%ld,%ld)\n", (color & RED) >> 16, (color & GREEN) >> 8, (color & BLUE));
+        }
+        
+        
         void print() {
-            Serial.printf("(%d,%d):%08x", x, y, color);
+            Serial.printf("(%d,%d):%08lx", x, y, color);
         }
         
         

@@ -6,16 +6,20 @@
 #include <HttpClient.h>
 #include <ArduinoJson.h>
 
+#include "defs.h"
+
 
 
 // call this frequently, it will occasionally hit the openweather API
 class OpenWeather {
     private:
+        int address;
         SimpleTimer* timer;
         float _feels_like_temp;
-        int _icon;
-        const char* API_KEY = "REDACTED";
-        const char* ZIP_CODE = "29414";
+        int _icon, forecast_age;
+        time_t last_update;
+        const char* API_KEY = "22ec273ebea663d360ddb8df37426aa7";
+        double lattitude, longitude;
 
 
         void update() {
@@ -31,7 +35,7 @@ class OpenWeather {
             http_request_t request;
             http_response_t response;
             
-            request.path = String::format("/data/2.5/weather?q=%s&appid=%s&units=metric", ZIP_CODE, API_KEY);
+            request.path = String::format("/data/2.5/weather?lat=%5.2f&lon=%5.2f&appid=%s&units=metric", lattitude, longitude, API_KEY);
             request.hostname = "api.openweathermap.org";
             request.port = 80;
         
@@ -42,7 +46,7 @@ class OpenWeather {
             Serial.print("Application>\tResponse status: ");
             Serial.println(response.status);
             unsigned long elapsed = millis() - start;
-            Serial.printf("%d ms\n", elapsed);
+            Serial.printf("%ld ms\n", elapsed);
         
             Serial.print("Application>\tHTTP Response Body: ");
             Serial.println(response.body);
@@ -63,17 +67,63 @@ class OpenWeather {
         
             // Fetch the values
             _feels_like_temp = doc["main"]["feels_like"];
-            const char * icon = doc["weather"][0]["icon"];
-            String s = String(icon);
-            _icon = s.toInt();
-            Serial.printf("feels like %5.2f, icon: %s=>%d\n", _feels_like_temp, icon, _icon);
+            icon_str = String((const char *)doc["weather"][0]["icon"]);
+            _icon = icon_str.toInt();
+            Serial.printf("feels like %5.2f, icon: %s=>%d\n", _feels_like_temp, icon_str.c_str(), _icon);
+            last_update = millis();
         }
         
         
+        void read_data() {
+            EEPROM.get(address, lattitude);
+            EEPROM.get(address+sizeof(lattitude), longitude);
+        }
+
+
+        void write_data() {
+            double d;
+            EEPROM.update(address, d);
+            EEPROM.get(address, d);
+            if (lattitude != d) {
+                EEPROM.put(address, lattitude);
+            }
+            EEPROM.get(address+sizeof(lattitude), d);
+            if (longitude != d) {
+                EEPROM.put(address+sizeof(lattitude), longitude);
+            }
+        }
+
+
+        int setLattitude(String data) {
+            float f = data.toFloat();
+            if (f != 0) {
+                lattitude = (double)f;
+                write_data();
+            }
+            return (int)f;
+        }
+        
+
+        int setLongitude(String data) {
+            float f = data.toFloat();
+            if (f != 0) {
+                longitude = (double)f;
+                write_data();
+            }
+            return (int)f;
+        }
+
+
     public:
-        OpenWeather(int update_period) : _feels_like_temp(-99.0) {
+        String icon_str;
+
+        OpenWeather(int addy, int update_period) : _feels_like_temp(-99.0) {
+            address = addy;
             timer = new SimpleTimer(update_period, true);
             // Particle.variable("feels_like", _feels_like_temp);
+            lattitude = 32.85;
+            longitude = -80.06;
+            icon_str = "01d";
             update();
         }
 
@@ -83,26 +133,33 @@ class OpenWeather {
         }
 
 
+        void setup() {
+            Particle.function("ow_set_lattitude", &OpenWeather::setLattitude, this);
+            Particle.function("ow_set_longitude", &OpenWeather::setLongitude, this);
+            Particle.variable("ow_lattitude", this->lattitude);
+            Particle.variable("ow_longitude", this->longitude);
+            Particle.variable("ow_age", this->forecast_age);
+            read_data();
+        }
+        
+
         float feels_like() {
             if (timer->isExpired()) {
                 update();
             }
+            forecast_age = (millis() - last_update)/1000;
             return _feels_like_temp;
         }
+
         
         float icon() {
             if (timer->isExpired()) {
                 update();
             }
+            forecast_age = (millis() - last_update)/1000;
             return _icon;
         }
 };
 
 
-
-
-
-
-void getWeatherData() {
-}
 #endif

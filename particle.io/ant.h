@@ -4,6 +4,7 @@
 #include "dot.h"
 #include "list.h"
 
+#undef PRINTF_DEBUGGER
 
 #define P(M) (random(100) < M)
 
@@ -14,9 +15,27 @@ class Ant : public Dot {
         };
 
 
+        // tries to jump to, or adjacent to, target
+        bool jump(Dot* candidate, Dot* sandbox[]) {
+            Dot proxy = Dot(0, 0, WHITE);
+            int i = 0;
+            while (i < 16) {
+                if(randomize(&proxy, sandbox)) {
+                    if (!in(&proxy, sandbox)) {
+                        x = proxy.x;
+                        y = proxy.y;
+                        return true;
+                    }
+                }
+                i++;
+            }
+            return false;
+        }
+        
+        
         // adjust candidate to be a cell adjacent to me and not otherwise
         // represented in sandbox.  returns True if such exists
-        bool randomize(Dot* candidate, Dot** sandbox) {
+        virtual bool randomize(Dot* candidate, Dot* sandbox[]) {
             int i = 0;
             while (i < 16) {
                 candidate->x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
@@ -30,7 +49,7 @@ class Ant : public Dot {
         }
 
 
-        void wander(Dot** sandbox) {
+        void wander(Dot* sandbox[]) {
             Dot candidate = Dot(x, y, color);
             if (randomize(&candidate, sandbox)) {
                 x = candidate.x;
@@ -40,7 +59,7 @@ class Ant : public Dot {
 
 
         // returns true if it was able to step
-        bool step(int dx, int dy, Dot** sandbox) {
+        bool step(int dx, int dy, Dot* sandbox[]) {
             Dot proto = Dot(constrain(x+dx, 0, MATRIX_X-1), constrain(y+dy, 0, MATRIX_Y-1), color);
             if (! proto.equals(this) && !in(&proto, sandbox)) {
                 x = proto.x;
@@ -53,7 +72,7 @@ class Ant : public Dot {
 
         // attempts to step to an adjacent location with open food
         // returns true on success
-        bool step_adjacent_open(Dot** food, Dot** sandbox) {
+        bool step_adjacent_open(Dot* food[], Dot* sandbox[]) {
             Dot candidate = Dot(x, y, color);
             for (int i = 0; i < 10; i++) {
                 if (randomize(&candidate, sandbox) 
@@ -69,7 +88,7 @@ class Ant : public Dot {
         
         // got this from Bard ~ 50/50 [edit: less, the first pass was bad]
         // find a nearby "needle" of target_color in a cell which is not occupied in "sandbox"
-        int pick_closeish_open(Dot** needle, Dot** haystack, color_t target_color) {
+        int pick_closeish_open(Dot* needle[], Dot* haystack[], color_t target_color) {
             // 1. find open food
             bool open[MAX_DOTS];
             // Serial.print("open needles: ");
@@ -111,7 +130,7 @@ class Ant : public Dot {
         }
 
 
-        int pick_closeish_open(Dot** needle, Dot** haystack) {
+        int pick_closeish_open(Dot* needle[], Dot* haystack[]) {
             return pick_closeish_open(needle, haystack, BLACK);
         }
         
@@ -126,9 +145,19 @@ class Ant : public Dot {
         }
         
         
+        // nyoom
+        bool teleport(Dot* spot, Dot* sandbox[]) {
+            x = spot->x;
+            y = spot->y;
+            return true;
+        }
+        
         // attempt to move toward spot among the sandbox
         // true if successful
-        bool move_toward(Dot* spot, Dot** sandbox) {
+        bool move_toward(Dot* spot, Dot* sandbox[], bool walls_are_blocking = true) {
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("moving from (%d,%d)->", x, y);
+            #endif
             int i = 0, dx = 0, dy = 0;
             Dot proto = Dot();
             while (i < 5) {
@@ -136,18 +165,136 @@ class Ant : public Dot {
                 dy = d(y, spot->y);
                 proto.x = constrain(x+dx, 0, MATRIX_X-1);
                 proto.y = constrain(y+dy, 0, MATRIX_Y-1);
-                if (!in(&proto, sandbox)) {
+                if (!walls_are_blocking || !in(&proto, sandbox)) {
                     x = proto.x;
                     y = proto.y;
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.printf("(%d,%d)\n", x, y);
+                    #endif
                     return true;
                 }
                 i++;
             }
+            #ifdef PRINTF_DEBUGGER
+                Serial.println(" (x,x) nm\n");
+            #endif
+            
+            if (P(10)) {
+                return teleport(spot, sandbox);
+            } 
+
             return false;
         }
-    
 
-        void seek(Dot** food, Dot** sandbox) {
+/*
+        void mark_adjacent(Dot *cursor, int distance, Dot* sandbox[50], byte distances[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (!in(i, j, sandbox)) {
+                        distances[i][j] = min(distances[i][j], distance);
+                    }
+                }
+            }
+        }
+
+
+        // if possible, move cursor to an adjacent spot which has a distance, but not yet visited 
+        bool nearby_unvisited(Dot *cursor, byte distances[16][16], bool visited[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (!visited[i][j] && distances[i][j] < 199) {
+                        cursor->x = i; 
+                        cursor->y = j;
+                        return true;
+                    }
+                }
+            }
+            // printf("REACHED UNREACHABLE CODE AGAIN");
+            return false;
+        }
+        
+        
+        // move cursor one step closer to 0
+        void step_home(Dot* cursor, byte distances[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (distances[i][j] < distances[cursor->x][cursor->y]) {
+                        cursor->x = i;
+                        cursor->y = j;
+                        return;
+                    }
+                }
+            }
+        }
+
+
+        // true if successful
+        bool move_toward2(Dot* end, Dot** sandbox, bool junk = false) {
+            Serial.printf("moving from (%d,%d)->(%d,%d)\n", x, y, end->x, end->y);
+            return move_toward(end, sandbox);
+            
+            byte distances[16][16];
+            bool visited[16][16];
+            int i, j;
+            Dot cursor;
+            int distance;
+            
+
+            for (i = 0; i < 16; i++) {
+                for (j = 0; j < 16; j++) {
+                    distances[i][j] = 199;
+                    visited[i][j] = false;
+                }
+            }
+
+            distances[x][y] = 0;
+            cursor.x = x;
+            cursor.y = y;
+
+            return move_toward2(end, sandbox);
+
+            distance = 0;
+            do {
+                distance += 1;
+                visited[cursor.x][cursor.y] = true;
+                // printf("Marking (%d,%d): %d\n", cursor.x, cursor.y, distance);
+                // 1. mark every adjacent cell as 1 away from "here"
+                mark_adjacent(&cursor, distance, sandbox, distances);
+    
+                // 2. move cursor to a nearby, unvisited cell
+                nearby_unvisited(&cursor, distances, visited);
+                // bail out after a lil while
+                if (distance >= 15) {
+                    return move_toward2(end, sandbox);
+                    return false;
+                }
+            } while (cursor.x != end->x && cursor.y != end->y);
+
+            // return move_toward2(end, sandbox);
+
+
+            // 3. backtrace it
+            i = 0;
+            do {
+                step_home(&cursor, distances);
+                if (i++ >= 15) {
+                    // bail out after a lil while
+                    return move_toward2(end, sandbox);
+                    return false;
+                }
+            } while (distances[cursor.x][cursor.y] != 1);
+            
+            x = cursor.x;
+            y = cursor.y;
+            return true;
+        }
+
+*/
+
+        void seek(Dot* food[], Dot* sandbox[]) {
             // if any adjacent but not occupied, step there
             //Dot* candidate = adjacent_open(food, sandbox);
             if (step_adjacent_open(food, sandbox)) {
@@ -164,7 +311,7 @@ class Ant : public Dot {
         }
         
         
-        virtual void run(Dot** food, Dot** sandbox) {
+        virtual void run(Dot* food[], Dot* sandbox[]) {
             // 99% chance of staying on food
             if (in(this, food) && P(99)) {
                 // I'm on food
@@ -176,7 +323,7 @@ class Ant : public Dot {
         
         
         // walk to a square with no adjacent dots.  true on success
-        bool avoid(Dot** dots) {
+        bool avoid(Dot* dots[]) {
             int i = 0;
             while (i < 10) {
                 int xprime = constrain(x+random(-1, 2), 0, MATRIX_X-1);
@@ -213,7 +360,7 @@ class Queen : public Ant {
 
 
 
-        void eat_one(Dot** sandbox) {
+        void eat_one(Dot* sandbox[]) {
             color = Q_EATING;
             // Serial.println("eating one!");
             int cursor = next(0, sandbox); // skip me
@@ -229,7 +376,7 @@ class Queen : public Ant {
         }
         
         
-        void birth_one(Dot** sandbox) {
+        void birth_one(Dot* sandbox[]) {
             color = Q_BIRTHING;
             // Serial.println("Birthing one!");
             Ant* bb = (Ant*)activate(sandbox);
@@ -238,7 +385,7 @@ class Queen : public Ant {
         }
 
 
-        void rest(Dot** sandbox) {
+        void rest(Dot* sandbox[]) {
             color = Q_RESTING;
             if (P(75)) {
                 avoid(sandbox);
@@ -248,7 +395,7 @@ class Queen : public Ant {
         }
 
         
-        void run(Dot** food, Dot** sandbox) override {
+        void run(Dot* food[], Dot* sandbox[]) override {
             if (len(food) < len(sandbox) - 1 && P(50)) {
                 eat_one(sandbox);
             } else if (len(food) > len(sandbox) -1 && birth_control->isExpired()) {
@@ -277,14 +424,31 @@ class Queen : public Ant {
  *   -1: no mess
  */
 class Fraggle: public Ant {
-    private:
+    protected:
         Dot* target;
         uint8_t state, prev_state;
         int8_t patience;
+        bool walls_are_blocking;
     
+    
+        // adjust candidate to be a cell adjacent to me and not otherwise
+        // represented in sandbox.  returns True if such exists
+        virtual bool randomize(Dot* candidate, Dot* sandbox[]) override {
+            int i = 0;
+            while (i < 16) {
+                candidate->x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
+                candidate->y = constrain(y+random(-1, 2), 0, MATRIX_Y-2);
+                 if (!in(candidate, sandbox)) { 
+                    return true;
+                 }
+                 i++;
+            }
+            return false;
+        }
+
     
         // returns 1 brick, or nullptr
-        Dot* find_loose_brick(Dot** plan, Dot** sandbox) {
+        Dot* find_loose_brick(Dot* plan[], Dot* sandbox[]) {
             // TOOD: return an adjacent if available
             int i = pick_closeish_open(sandbox, plan, RED);
             if (i == -1) {
@@ -298,26 +462,38 @@ class Fraggle: public Ant {
         
         
         bool is_brick(Dot* target) {
-            return target && target->get_color() == RED || target->get_color() == DARKRED;
+            return target 
+              && (target->get_color() == RED) 
+              || (target->get_color() == DARKRED);
         }
         
         
         // returns 1 brick, or nullptr
-        Dot* adjacent_loose_brick(Dot** plan, Dot** sandbox) {
-            Serial.printf("Scanning for a loose brick near (%d,%d)\n", x, y);
+        Dot* adjacent_loose_brick(Dot* plan[], Dot* sandbox[]) {
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("Scanning for a loose brick near (%d,%d)\n", x, y);
+            #endif
             Dot candidate = Dot(x, y, color);
             for (int i = 0; i < 10; i++) {
                 candidate.x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
                 candidate.y = constrain(y+random(-1, 2), 0, MATRIX_Y-1);
-                Serial.printf("candidate: (%d,%d)\n", candidate.x, candidate.y);
+                #ifdef PRINTF_DEBUGGER
+                    Serial.printf("candidate: (%d,%d)\n", candidate.x, candidate.y);
+                #endif
                 if (!in(&candidate, plan)) {
-                    Serial.println("not in plan...");
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.println("not in plan...");
+                    #endif
                     Dot* possible_brick = in(&candidate, sandbox);
-                    if (possible_brick) {
-                        Serial.printf("possible match: (%d,%d)\n", possible_brick->x, possible_brick->y);
-                    }
+                    #ifdef PRINTF_DEBUGGER
+                        if (possible_brick) {
+                            Serial.printf("possible match: (%d,%d)\n", possible_brick->x, possible_brick->y);
+                        }
+                    #endif
                     if (is_brick(possible_brick)) {
-                        Serial.println("hit!!");
+                        #ifdef PRINTF_DEBUGGER
+                            Serial.println("hit!!");
+                        #endif
                         return possible_brick;
                     }
                 }
@@ -327,11 +503,15 @@ class Fraggle: public Ant {
         
         
         // returns a plan location, or nullptr
-        Dot* find_open_plan(Dot** plan, Dot** sandbox) {
-            Serial.printf("Fraggle(%d,%d) finding open plan spot\n", x, y);
+        Dot* find_open_plan(Dot* plan[], Dot* sandbox[]) {
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("Fraggle(%d,%d) finding open plan spot\n", x, y);
+            #endif
             // TODO: prefer adjacent
             int i = pick_closeish_open(plan, sandbox);
-            Serial.printf("found %d: (%d,%d)\n", i, plan[i]->x, plan[i]->y);
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("found %d: (%d,%d)\n", i, plan[i]->x, plan[i]->y);
+            #endif
             if (i != -1) {
                 return plan[i];
             }
@@ -340,7 +520,7 @@ class Fraggle: public Ant {
 
         
         
-        void place_brick(Dot* target, color_t color, Dot** sandbox) {
+        void place_brick(Dot* target, color_t color, Dot* sandbox[]) {
             Dot* brick = activate(sandbox);
             brick->set_color(color);
             brick->x = target->x;
@@ -348,7 +528,7 @@ class Fraggle: public Ant {
         }
 
 
-        void pick_up(Dot* brick, Dot** sandbox) {
+        void pick_up(Dot* brick, Dot* sandbox[]) {
             deactivate(brick, sandbox);
         }
 
@@ -358,12 +538,18 @@ class Fraggle: public Ant {
         }
         
         
-        void maybe_stuck() {
+        void maybe_stuck(Dot* sandbox[]) {
             patience --;
-            Serial.printf("patience: %d\n", patience);
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("patience: %d\n", patience);
+            #endif
             if (patience == 5) {
-                // force a new target
-                target = nullptr;
+                if (P(10) && jump(target, sandbox)) {
+                    return;
+                } else {
+                    // force a new target
+                    target = nullptr;
+                }
             } else if (patience <= 0) {
                 prev_state = state;
                 state = SPAZZING;
@@ -373,39 +559,66 @@ class Fraggle: public Ant {
             }
         }
         
+        
+        void teleport(Dot* target) {
+            
+        }
+        
+        
     public:
-        Fraggle(): Ant(), state(RESTING) {
+        Fraggle(): Ant(), state(RESTING), walls_are_blocking(false) {
             active = true;
             patience = 10;
+            // Particle.function("fraggle_walls", &Fraggle::toggle_walls, this);
         }
 
+/*
+        int toggle_walls(String data) {
+            walls_are_blocking = !walls_are_blocking;
+            return walls_are_blocking ? 1 : 0;
+        }
+*/ 
 
         // I seek an open brick (not in the plan)
-        void fetch(Dot** plan, Dot** sandbox) {
+        void fetch(Dot* plan[], Dot* sandbox[]) {
             color = BLUE;
-            Serial.println("fetching");
+            #ifdef PRINTF_DEBUGGER
+                Serial.println("fetching");
+            #endif
             // an invalid target is nullptr, is in the plan, is not in the sandbox, or is not a brick
-            if (!target || in(target, plan) || !in(target, sandbox) || ! is_brick(target)) {
+            if (!target || in(target, plan) || !in(target, sandbox) || !is_brick(target)) {
                 target = find_loose_brick(plan, sandbox);
             }
             if (target) {
-                Serial.printf("found brick(%d,%d): d=%4.1f\n", target->x, target->y, distance_to(target));
+                #ifdef PRINTF_DEBUGGER
+                    Serial.printf("found brick(%d,%d): d=%4.1f\n", target->x, target->y, distance_to(target));
+                #endif
                 if (adjacent(target) && is_brick(target)) { 
                     // found it
-                    Serial.println("picking up");
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.println("picking up");
+                    #endif
                     pick_up(target, sandbox);
                     target = nullptr;
                     state = BUILDING;
                 } else {
-                    Serial.println("moving toward that brick");
-                    if (!move_toward(target, sandbox)) {
-                        Serial.println("I might be stuck?");
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.println("moving toward that brick");
+                    #endif
+                    if (move_toward(target, sandbox, walls_are_blocking)) {
+                        Serial.printf("success: (%d,%d)\n", x, y);
+                    } else {
+                        #ifdef PRINTF_DEBUGGER
+                            Serial.println("I might be stuck?");
+                        #endif
                         target = adjacent_loose_brick(plan, sandbox);
                         if (target) {
-                            Serial.printf("found a brick(%d,%d)\n", target->x, target->y);
+                            #ifdef PRINTF_DEBUGGER
+                                Serial.printf("found a brick(%d,%d)\n", target->x, target->y);
+                            #endif
                             not_stuck();
                         } else {
-                            maybe_stuck();
+                            maybe_stuck(sandbox);
                         }
                     }
                 }
@@ -422,24 +635,30 @@ class Fraggle: public Ant {
          * 
          * target: the intended location for my brick
          */
-        void build(Dot** plan, Dot** sandbox) {
-            color = GREEN;
-            Serial.println("building");
+        void build(Dot* plan[], Dot* sandbox[]) {
+            #ifdef PRINTF_DEBUGGER
+                Serial.println("building");
+            #endif
             if (! target || in(target, sandbox)) {
-                Serial.println("finding open plan...");
+                #ifdef PRINTF_DEBUGGER
+                    Serial.println("finding open plan...");
+                #endif
                 target = find_open_plan(plan, sandbox);
             }
-            Serial.printf("targetting (%d,%d)\n", target->x, target->y);
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("targetting (%d,%d)\n", target->x, target->y);
+            #endif
             if (target) {
                 if (adjacent(target)) {
                     // found it
-                    Serial.printf("placing brick at (%d,%d)\n", target->x, target->y);
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.printf("placing brick at (%d,%d)\n", target->x, target->y);
+                    #endif
                     place_brick(target, RED, sandbox);
                     state = RESTING;
                 } else {
-                    if (!move_toward(target, sandbox)) {
-                        // TODO: stuckness checker
-                        maybe_stuck();
+                    if (!move_toward(target, sandbox, walls_are_blocking)) {
+                        maybe_stuck(sandbox);
                         target = find_open_plan(plan, sandbox);
                     } else {
                         not_stuck();
@@ -452,32 +671,37 @@ class Fraggle: public Ant {
         }
         
         
-        void clean(Dot** plan, Dot** sandbox) {
-            color = BLUE;
+        void clean(Dot* plan[], Dot* sandbox[]) {
             Dot* target = find_loose_brick(plan, sandbox);
             if (target) {
-                Serial.printf("maybe cleaning (%d,%d)\n", target->x, target->y);
+                #ifdef PRINTF_DEBUGGER
+                    Serial.printf("maybe cleaning (%d,%d)\n", target->x, target->y);
+                #endif
                 if (adjacent(target) && is_brick(target)) { 
                     // found it
-                    Serial.println("picking up");
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.println("picking up");
+                    #endif
                     pick_up(target, sandbox);
                     target = nullptr;
                     state = DUMPING;
                 } else {
-                    if (move_toward(target, sandbox)) {
+                    if (move_toward(target, sandbox, walls_are_blocking)) {
                         not_stuck();
                     } else {
-                        maybe_stuck();
+                        maybe_stuck(sandbox);
                     }
                 }
             } else {
-                Serial.println("nothing to clean; resting");
+                #ifdef PRINTF_DEBUGGER
+                    Serial.println("nothing to clean; resting");
+                #endif
                 state = RESTING;
             }
         }
 
 
-        Dot* first_available(Dot** bin, Dot** sandbox) {
+        Dot* first_available(Dot* bin[], Dot* sandbox[]) {
             for (int i = 0; i < MAX_DOTS; i++) {
                 if (bin[i]->active && !in(bin[i], sandbox)) {
                     return bin[i];
@@ -487,15 +711,18 @@ class Fraggle: public Ant {
         }
 
         
-        void dump(Dot** bin, Dot** sandbox) {
-            color = MAGENTA;
+        void dump(Dot* bin[], Dot* sandbox[]) {
             // target invalid if nullptr, not a bin location, or occupied
             if (! target || !in(target, bin) || in(target, sandbox)) {
                 target = first_available(bin, sandbox);
             }
-            Serial.printf("dump target: (%d,%d)", target->x, target->y);
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("dump target: (%d,%d)", target->x, target->y);
+            #endif
             if (adjacent(target) && !in(target, sandbox)) {
-                Serial.println("dumping here!");
+                #ifdef PRINTF_DEBUGGER
+                    Serial.println("dumping here!");
+                #endif
                 Dot* rubbish = activate(sandbox);
                 rubbish->x = target->x;
                 rubbish->y = target->y;
@@ -503,16 +730,15 @@ class Fraggle: public Ant {
                 target = nullptr;
                 state = RESTING;
             }
-            if (move_toward(target, sandbox)) {
+            if (move_toward(target, sandbox, walls_are_blocking)) {
                 not_stuck();
             } else {
-                maybe_stuck();
+                maybe_stuck(sandbox);
             }
         }
         
         
-        void spaz(Dot** sandbox) {
-            color = YELLOW;
+        void spaz(Dot* sandbox[]) {
             // if (distance_to(target) >= 3) {
             if (patience >= 10) {
                 // done spazzing
@@ -527,20 +753,27 @@ class Fraggle: public Ant {
         }
         
         
-        void rest(Dot** plan, Dot** sandbox) {
+        void rest(Dot* plan[], Dot* sandbox[]) {
             state = RESTING;
-            color = WHITE;
-            Serial.println("resting.  Picking open plan, sandbox to check for open plan spots");
+            #ifdef PRINTF_DEBUGGER
+                Serial.println("resting.  Picking open plan, sandbox to check for open plan spots");
+            #endif
             int i = pick_closeish_open(plan, sandbox);
             if (i != -1) {
-            // plan missing bricks; fetch & build
-                Serial.printf("found %d; fetching\n", i);
+                // plan missing bricks; fetch & build
+                #ifdef PRINTF_DEBUGGER
+                    Serial.printf("found %d; fetching\n", i);
+                #endif
                 state = FETCHING;
             } else {
-                Serial.println("looking for RED bricks in sandbox, not plan");
-                if (i = pick_closeish_open(sandbox, plan, RED) != -1) {
-                    Serial.printf("found %d; cleaning\n", i);
+                #ifdef PRINTF_DEBUGGER
+                    Serial.println("looking for RED bricks in sandbox, not plan");
+                #endif
+                if ((i = pick_closeish_open(sandbox, plan, RED)) != -1) {
                     // if bricks not on plan, clean
+                    #ifdef PRINTF_DEBUGGER
+                        Serial.printf("found %d; cleaning\n", i);
+                    #endif
                     state = CLEANING;            
                 } else if (P(10)) {
                     wander(sandbox);
@@ -553,26 +786,33 @@ class Fraggle: public Ant {
 
 
         // the bin is ONLY a set of locations, in priority, order, for dumping
-        void run(Dot** plan, Dot** sandbox, Dot** bin) {
-            Serial.printf("Fraggle(%d, %d):%d\n", x, y, state);
+        void run(Dot* plan[], Dot* sandbox[], Dot* bin[]) {
+            #ifdef PRINTF_DEBUGGER
+                Serial.printf("Fraggle[%d](%d, %d):%d\n", id, x, y, state);
+            #endif
             switch (state) {
                 case SPAZZING:
+                    color = YELLOW;
                     spaz(sandbox);
                     break;
                 case FETCHING:
                     fetch(plan, sandbox);
                     break;
                 case BUILDING:
+                    color = GREEN;
                     build(plan, sandbox);
                     break;
                 case CLEANING:
+                    color = BLUE;
                     clean(plan, sandbox);
                     break;
                 case DUMPING:
+                    color = MAGENTA;
                     dump(bin, sandbox);
                     break;
                 case RESTING: 
                 default:
+                    color = WHITE;
                     rest(plan, sandbox);
             }
         }
