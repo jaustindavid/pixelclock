@@ -101,7 +101,8 @@ Dot* in(Dot* needle, color_t color, Dot* haystack[]) {
 bool in(int x, int y, Dot* haystack[]) {
     for (int i = 0; i < MAX_DOTS; i++) {
         if (haystack[i]->active 
-            && haystack[i]->x == x && haystack[i]->y == y) {
+            && (haystack[i]->x == x) 
+            && (haystack[i]->y == y)) {
             return true;
         }
     }
@@ -124,6 +125,7 @@ void print_list(Dot* haystack[]) {
     for (int cursor = first(haystack); cursor != -1; cursor = next(cursor, haystack)) {
         Serial.printf("%d: (%d,%d); ", cursor, haystack[cursor]->x, haystack[cursor]->y);
     }
+    Serial.println();
 }
 
 

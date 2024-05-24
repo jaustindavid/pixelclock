@@ -5,6 +5,8 @@
 #include "ant.h"
 #include "list.h"
 
+#define TURTLE_SPEED 750 // ms per step or pick/place
+
 #undef PRINTF_DEBUGGER
 
 /*
@@ -23,6 +25,7 @@
 class Turtle: public Fraggle {
     protected:
         int target_i;
+        SimpleTimer* step_timer;
         
         
         int pick_closest_open(Dot* needle[], Dot* haystack[], color_t target_color) {
@@ -70,6 +73,7 @@ class Turtle: public Fraggle {
     public:
         Turtle() : Fraggle() {
             color = GREEN;
+            step_timer = new SimpleTimer(TURTLE_SPEED);
         };
 
         
@@ -144,6 +148,9 @@ class Turtle: public Fraggle {
 
 
         void run(Dot* plan[], Dot* sandbox[]) {
+            if (! step_timer->isExpired()) {
+                return;
+            }
             #ifdef PRINTF_DEBUGGER
                 Serial.printf("Turtle[%d](%d, %d):%d\n", id, x, y, state);
             #endif

@@ -16,8 +16,8 @@ class Ant : public Dot {
 
 
         // tries to jump to, or adjacent to, target
-        bool jump(Dot* candidate, Dot* sandbox[]) {
-            Dot proxy = Dot(0, 0, WHITE);
+        bool jump(Dot* target, Dot* sandbox[]) {
+            Dot proxy = Dot(target->x, target->y, WHITE);
             int i = 0;
             while (i < 16) {
                 if(randomize(&proxy, sandbox)) {
@@ -144,17 +144,12 @@ class Ant : public Dot {
             return 0;
         }
         
-        
-        // nyoom
-        bool teleport(Dot* spot, Dot* sandbox[]) {
-            x = spot->x;
-            y = spot->y;
-            return true;
-        }
-        
+
         // attempt to move toward spot among the sandbox
         // true if successful
-        bool move_toward(Dot* spot, Dot* sandbox[], bool walls_are_blocking = true) {
+        bool move_toward_classic(Dot* spot, 
+                                 Dot* sandbox[], 
+                                 bool walls_are_blocking = true) {
             #ifdef PRINTF_DEBUGGER
                 Serial.printf("moving from (%d,%d)->", x, y);
             #endif
@@ -179,14 +174,13 @@ class Ant : public Dot {
                 Serial.println(" (x,x) nm\n");
             #endif
             
-            if (P(10)) {
-                return teleport(spot, sandbox);
-            } 
-
             return false;
+            if (P(10)) {
+                return jump(spot, sandbox);
+            } 
         }
 
-/*
+
         void mark_adjacent(Dot *cursor, int distance, Dot* sandbox[50], byte distances[16][16]) {
             int i, j;
             for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
@@ -232,9 +226,11 @@ class Ant : public Dot {
 
 
         // true if successful
-        bool move_toward2(Dot* end, Dot** sandbox, bool junk = false) {
+        bool move_toward_djikstra(Dot* end, 
+                                  Dot* sandbox[], 
+                                  bool walls_are_blocking = false) {
             Serial.printf("moving from (%d,%d)->(%d,%d)\n", x, y, end->x, end->y);
-            return move_toward(end, sandbox);
+            // return move_toward_classic(end, sandbox);
             
             byte distances[16][16];
             bool visited[16][16];
@@ -254,7 +250,7 @@ class Ant : public Dot {
             cursor.x = x;
             cursor.y = y;
 
-            return move_toward2(end, sandbox);
+            // return move_toward_classic(end, sandbox, walls_are_blocking);
 
             distance = 0;
             do {
@@ -268,13 +264,12 @@ class Ant : public Dot {
                 nearby_unvisited(&cursor, distances, visited);
                 // bail out after a lil while
                 if (distance >= 15) {
-                    return move_toward2(end, sandbox);
+                    return move_toward_classic(end, sandbox, walls_are_blocking);
                     return false;
                 }
             } while (cursor.x != end->x && cursor.y != end->y);
 
-            // return move_toward2(end, sandbox);
-
+            return move_toward_classic(end, sandbox, walls_are_blocking);
 
             // 3. backtrace it
             i = 0;
@@ -282,7 +277,7 @@ class Ant : public Dot {
                 step_home(&cursor, distances);
                 if (i++ >= 15) {
                     // bail out after a lil while
-                    return move_toward2(end, sandbox);
+                    return move_toward_classic(end, sandbox, walls_are_blocking);
                     return false;
                 }
             } while (distances[cursor.x][cursor.y] != 1);
@@ -292,7 +287,13 @@ class Ant : public Dot {
             return true;
         }
 
-*/
+
+        bool move_toward(Dot* spot, 
+                         Dot* sandbox[], 
+                         bool walls_are_blocking = true) {
+          return move_toward_djikstra(spot, sandbox, walls_are_blocking);
+        }
+
 
         void seek(Dot* food[], Dot* sandbox[]) {
             // if any adjacent but not occupied, step there
@@ -449,12 +450,15 @@ class Fraggle: public Ant {
     
         // returns 1 brick, or nullptr
         Dot* find_loose_brick(Dot* plan[], Dot* sandbox[]) {
-            // TOOD: return an adjacent if available
+            Log.info("finding loose brick");
+            // TODO: return an adjacent if available
             int i = pick_closeish_open(sandbox, plan, RED);
             if (i == -1) {
                i = pick_closeish_open(sandbox, plan, DARKRED);
             }
             if (i != -1) {
+                Log.info("picked %d (%d,%d), 0x06%x", i,
+                         sandbox[i]->x, sandbox[i]->y, sandbox[i]->color);
                 return sandbox[i];
             }
             return nullptr;
@@ -462,9 +466,9 @@ class Fraggle: public Ant {
         
         
         bool is_brick(Dot* target) {
-            return target 
-              && (target->get_color() == RED) 
-              || (target->get_color() == DARKRED);
+            return (target 
+                    && (target->get_color() == RED) 
+                    || (target->get_color() == DARKRED));
         }
         
         
@@ -560,13 +564,9 @@ class Fraggle: public Ant {
         }
         
         
-        void teleport(Dot* target) {
-            
-        }
-        
         
     public:
-        Fraggle(): Ant(), state(RESTING), walls_are_blocking(false) {
+        Fraggle(): Ant(), state(RESTING), walls_are_blocking(true) {
             active = true;
             patience = 10;
             // Particle.function("fraggle_walls", &Fraggle::toggle_walls, this);

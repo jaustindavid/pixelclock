@@ -69,6 +69,7 @@ DST dst;
 #include "dot.h"
 #include "ant.h"
 #include "turtle.h"
+#include "doozer.h"
 #include "gfx.h"
 #include "list.h"
 #include "chef.h"
@@ -93,6 +94,7 @@ int Dot::next_id = 0;
 #define ANT_MODE 0
 #define FRAGGLE_MODE 1
 #define TURTLE_MODE 2
+#define DOOZER_MODE 3
 
 uint8_t mode = ANT_MODE;
 // mode = TURTLE_MODE;
@@ -188,14 +190,16 @@ void make_sandbox() {
  *
  */
 
+#define NUMBER_OF_FRAGGLES 1
 
 void make_fraggles() {
     #ifdef PRINTF_DEBUGGER
         Serial.println("Making fraggles");
     #endif
-    sandbox[0] = new Fraggle();
-    sandbox[1] = new Fraggle();
-    for (int i = 2; i < MAX_DOTS; i++) {
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        sandbox[i] = new Fraggle();
+    }
+    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
         sandbox[i] = new Dot();
     }
     
@@ -252,59 +256,134 @@ void loop_fraggles() {
         maybe_adjust_one_brick();
     }
     Fraggle *fraggle;
-    fraggle = (Fraggle*)sandbox[0];
-    fraggle->run(food, sandbox, bin);
-    fraggle = (Fraggle*)sandbox[1];
-    fraggle->run(food, sandbox, bin);
-}
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+      fraggle = (Fraggle*)sandbox[i];
+      fraggle->run(food, sandbox, bin);
+    }
+  }
 
 
 /*
- * TURTLE(s)
+ * DOOZERS
  *
- * Sandbox[0] is my turtle
  */
 
-void setup_turtles() {
+#define NUMBER_OF_DOOZERS 2
+
+void maybe_check_brick_pile(Dot* sandbox[]) {
+    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
+    if (!in(&proxy, sandbox)) {
+        #ifdef PRINTF_DEBUGGER
+            Serial.println("adding one");
+        #endif
+        // print_list(sandbox);
+        Dot* brick = activate(sandbox);
+        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
+        brick->set_color(DARKRED);
+        brick->x = proxy.x;
+        brick->y = proxy.y;
+        // print_list(sandbox);
+    }
+
+    // scan the bin top row; remove any bricks
+    proxy.y = MATRIX_Y - 3;
+    for (int x = 0; x < MATRIX_X; x++) {
+        proxy.x = x;
+        Dot* brick;
+        if ((brick = in(&proxy, sandbox)) && 
+            (brick->get_color() == DARKRED)) {
+            // Serial.printf("removing: x=%d\n", x);
+            deactivate(brick, sandbox);
+        }
+    }
+}
+
+
+void make_doozers() {
     #ifdef PRINTF_DEBUGGER
-        Serial.println("Making turtle(s)");
+        Serial.println("Making doozers");
     #endif
-    sandbox[0] = new Turtle();
-    for (int i = 1; i < MAX_DOTS; i++) {
-        sandbox[i] = new Dot();
+    for (int i = 0; i < MAX_DOTS; i++) {
+        if (i < NUMBER_OF_DOOZERS) {
+            sandbox[i] = new Doozer();
+            sandbox[i]->x = i;
+            sandbox[i]->y = i;
+        } else {
+            sandbox[i] = new Dot();
+        }
     }
-
 }
 
-void loop_turtles() {
-    Turtle* turtle = (Turtle*)sandbox[0];
-    turtle->run(food, sandbox);
-    // turn off all the food
+
+void loop_doozers() {
+    static SimpleTimer second(1000);
+    if (second.isExpired()) {
+        // maybe_adjust_one_brick();
+        maybe_check_brick_pile(sandbox);
+    }
     
-}
-
-/*
- * EEPROM - burned "mode" Ants vs. Fraggles
- *
- */
-
-
-void write_mode() {
-    if (EEPROM.read(CORE_ADDY) != mode) {
-        EEPROM.write(CORE_ADDY, mode);
-    }
-    if (EEPROM.read(CORE_ADDY+sizeof(mode)) != show_food) {
-        EEPROM.write(CORE_ADDY+sizeof(mode), show_food);
-    }
-    if (EEPROM.read(CORE_ADDY+sizeof(mode)+sizeof(show_food)) != show_weather) {
-        EEPROM.write(CORE_ADDY+sizeof(mode)+sizeof(show_food), show_weather);
+    Doozer *doozer;
+    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
+        Doozer* doozer = (Doozer*)sandbox[i];
+        doozer->run(food, sandbox);
     }
 }
 
 
-void read_mode() {
-    uint8_t data = EEPROM.read(CORE_ADDY);
-    if (data > 2) {
+  /*
+   * TURTLE(s)
+   *
+   */
+
+  #define NTURTLES 1
+
+  void setup_turtles() {
+      #ifdef PRINTF_DEBUGGER
+          Serial.println("Making turtle(s)");
+      #endif
+      for (int i = 0; i < MAX_DOTS; i++) {
+          if (i < NTURTLES) {
+              sandbox[i] = new Turtle();
+          } else {
+              sandbox[i] = new Dot();
+          }
+      }
+  }
+
+
+  void loop_turtles() {
+      for (int i = 0; i < NTURTLES; i++) {
+          Turtle* turtle = (Turtle*)sandbox[i];
+          turtle->run(food, sandbox);
+      }
+  }
+
+  /*
+   * EEPROM - burned "mode" Ants vs. Fraggles
+   *
+   */
+
+
+  void write_mode() {
+      int addy = CORE_ADDY;
+      if (EEPROM.read(addy) != mode) {
+          EEPROM.write(addy, mode);
+      }
+      addy += sizeof(mode);
+      if (EEPROM.read(addy) != show_food) {
+          EEPROM.write(addy, show_food);
+      }
+      addy += sizeof(show_food);
+      if (EEPROM.read(addy) != show_weather) {
+          EEPROM.write(addy, show_weather);
+      }
+  }
+
+
+  void read_mode() {
+    int addy = CORE_ADDY;
+    uint8_t data = EEPROM.read(addy);
+    if (data > 3) {
         // Serial.printf("Invalid data in EEPROM: 0x%02x; re-writing 'mode'\n", data);
         mode = ANT_MODE;
         write_mode();
@@ -315,6 +394,9 @@ void read_mode() {
         case TURTLE_MODE: 
             mode_name = "Turtle";
             break;
+        case DOOZER_MODE:
+            mode_name = "Doozer";
+            break;
         case FRAGGLE_MODE:
             mode_name = "Fraggle";
             break;
@@ -324,13 +406,15 @@ void read_mode() {
     }
     // Serial.printf("read mode: %s\n", mode_name.c_str());
     
-    show_food = EEPROM.read(CORE_ADDY+sizeof(mode));
-    show_weather = EEPROM.read(CORE_ADDY+sizeof(mode)+sizeof(show_food));
+    addy += sizeof(mode);
+    show_food = EEPROM.read(addy);
+    addy += sizeof(show_food);
+    show_weather = EEPROM.read(addy);
 }
 
 
 int toggle_mode(String data) {
-    mode = (mode + 1) % 3;
+    mode = (mode + 1) % 4;
     write_mode();
     read_mode();
     display.clear();
@@ -469,11 +553,10 @@ void setup_wifi() {
 
 void setup_cloud() {
     read_mode();
-    mode = ANT_MODE;
     Particle.variable("mode", mode_name);
     Particle.function("toggle_mode", toggle_mode);
-    //Particle.variable("show_food", show_food);
-    //Particle.function("toggle_show_food", toggle_show_food);
+    Particle.variable("show_food", show_food);
+    Particle.function("toggle_show_food", toggle_show_food);
     Particle.function("toggle_show_weather", toggle_show_weather);
 }
 
@@ -487,6 +570,9 @@ void setup_whatever_mode() {
         case FRAGGLE_MODE:
             make_fraggles();
             break;
+        case DOOZER_MODE:
+            make_doozers();
+            break;
         default:
             make_sandbox();
     }
@@ -494,8 +580,6 @@ void setup_whatever_mode() {
 
 
 void loop_whatever_mode() {
-    Turtle *turtle;
-    Ant* ant;
     
     switch (mode) {
         case TURTLE_MODE:
@@ -504,12 +588,46 @@ void loop_whatever_mode() {
         case FRAGGLE_MODE: 
             loop_fraggles();
             break;
+        case DOOZER_MODE:
+            loop_doozers();
+            break;
         default:
-            for (int cursor = first(sandbox); cursor != -1; cursor = next(cursor, sandbox)) {
+            Ant* ant;
+            for (int cursor = first(sandbox); 
+                    cursor != -1; 
+                    cursor = next(cursor, sandbox)) {
                 ant = (Ant*)sandbox[cursor];
                 ant->run(food, sandbox);
             }
     }
+}
+
+
+void prefill(Dot* food[], Dot* sandbox[]) {
+    Dot* proxy;
+    for (int i = first(food); i != -1; i = next(i, food)) {
+        if (!in(food[i], sandbox)) {
+            proxy = activate(sandbox);
+            proxy->x = food[i]->x;
+            proxy->y = food[i]->y;
+            proxy->color = RED;
+        }
+    }
+} // void prefill(Dot* food[], Dot* sandbox[])
+
+
+// Global variable to hold the watchdog object pointer
+ApplicationWatchdog *wd;
+
+void watchdogHandler() {
+  // Do as little as possible in this function, preferably just
+  // calling System.reset().
+  // Do not attempt to Particle.publish(), use Cellular.command()
+  // or similar functions. You can save data to a retained variable
+  // here safetly so you know the watchdog triggered when you 
+  // restart.
+  // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
+  System.reset(RESET_NO_WAIT);
 }
 
 
@@ -520,10 +638,9 @@ void setup() {
     #ifdef PRINTF_DEBUGGER
         waitFor(Serial.isConnected, 30000);
         Serial.println("Beginning display.init()");
-    // #else
-    //    delay(30*1000);
     #endif
-    //delay(30*1000);
+
+    wd = new ApplicationWatchdog(30000, watchdogHandler, 1536);
     setup_wifi();
     
     display.setup();
@@ -539,15 +656,16 @@ void setup() {
     chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
     // cook();
     
+    prefill(food, sandbox);
+
     Serial.print(" initialization complete; free mem == ");
     Serial.println(System.freeMemory());
 } // setup()
 
 
 void loop() {
-    uint32_t start_ms = millis();
+    uint32_t freemem = System.freeMemory();
     if (second.isExpired()) {
-        uint32_t freemem = System.freeMemory();
         Serial.print("free memory: ");
         Serial.println(freemem);
         chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
@@ -563,14 +681,16 @@ void loop() {
     if (minute.isExpired()) {
         if (wTime.metric()) {
             Particle.publish("tick", 
-                String::format("wobbly %02d.%02d, actual %02d:%02d", 
+                String::format("wobbly %02d.%02d, actual %02d:%02d, free %u, %u uptime", 
                             wTime.hour(), wTime.minute(), 
-                            Time.hour(), Time.minute()));
+                            Time.hour(), Time.minute(),
+                            System.freeMemory(), millis()/60000));
         } else {
             Particle.publish("tick", 
-                String::format("wobbly %02d:%02d, actual %02d:%02d", 
+                String::format("wobbly %02d:%02d, actual %02d:%02d, free %u, %u uptime", 
                             wTime.hour(), wTime.minute(), 
-                            Time.hour(), Time.minute()));
+                            Time.hour(), Time.minute(),
+                            System.freeMemory(), millis()/60000));
         }
     }
     if (daily.isExpired()) {
