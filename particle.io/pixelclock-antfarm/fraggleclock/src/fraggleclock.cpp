@@ -678,6 +678,7 @@ void loop() {
         luna_brite = luna->get_brightness();
         display_brite = display.set_brightness(luna_brite);
     }
+    /*
     if (minute.isExpired()) {
         if (wTime.metric()) {
             Particle.publish("tick", 
@@ -693,6 +694,7 @@ void loop() {
                             System.freeMemory(), millis()/60000));
         }
     }
+    */
     if (daily.isExpired()) {
         if (!Particle.connected()) {
             Particle.connect();

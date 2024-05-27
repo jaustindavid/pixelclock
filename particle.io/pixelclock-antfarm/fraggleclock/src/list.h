@@ -89,12 +89,12 @@ Dot* in(Dot* needle, color_t color, Dot* haystack[]) {
     for (int i = 0; i < MAX_DOTS; i++) {
         if (haystack[i]->active 
             && needle->equals(haystack[i]) 
-            && haystack[i]->get_color() == color) {
+            && (haystack[i]->get_color() == color)) {
             return haystack[i];
         }
     }
     return nullptr;
-}
+} // Dot* in(Dot* needle, color_t color, Dot* haystack[])
 
 
 // true if (x,y) active in haystack
@@ -107,7 +107,20 @@ bool in(int x, int y, Dot* haystack[]) {
         }
     }
     return false;
-}
+} // bool in(int x, int y, Dot* haystack[])
+
+
+// true if (x,y) active in haystack
+Dot* find(int x, int y, Dot* haystack[]) {
+    for (int i = 0; i < MAX_DOTS; i++) {
+        if (haystack[i]->active 
+            && (haystack[i]->x == x) 
+            && (haystack[i]->y == y)) {
+            return haystack[i];
+        }
+    }
+    return nullptr;
+} // Dot* find(int x, int y, Dot* haystack[])
 
 
 // true if needle has any neighbors in haystack

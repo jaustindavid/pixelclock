@@ -221,6 +221,24 @@ class Doozer: public Turtle {
         } // void dump(Dot* sandbox[])
 
 
+        // if needed, sort the bin
+        bool maybe_ocd(Dot* sandbox[]) {
+          Dot* ocd_target;
+          // scan L -> R
+          int py = MATRIX_Y - 2;
+          for (int px = 0; px <= MATRIX_X-2; px++) {
+              if ((ocd_target = find(x, y, sandbox))
+                  && !in(px+1, py, sandbox)) {
+                  target = ocd_target;
+                  state = CLEANING;
+                  return true;
+              }
+          }
+
+          return false;
+        } // bool maybe_ocd(Dot* sandbox[])
+
+
         void rest(Dot* plan[], Dot* sandbox[]) {
             int i = pick_closeish_open(plan, sandbox);
             if (i != -1) {
@@ -236,6 +254,12 @@ class Doozer: public Turtle {
                 state = CLEANING;
                 return;
             }
+
+            /* TODO: this
+            if (P(25) && maybe_ocd(sandbox)) {
+                return;
+            }
+            */
 
             if (rest_timer->isExpired()) {
                 if (! avoid(sandbox) || P(10)) {

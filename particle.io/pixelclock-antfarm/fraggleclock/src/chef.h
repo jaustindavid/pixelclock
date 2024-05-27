@@ -20,6 +20,7 @@
 class Chef {
     private:
         int last_hh, last_mm;
+        String chef_time;
         int font[10][5] = {
             // 0
             {0b0110, 
@@ -85,10 +86,13 @@ class Chef {
 
 
     public:
-        Chef() : last_hh(-1), last_mm(-1) {};
+        Chef() : last_hh(-1), last_mm(-1) {
+          chef_time = "00:00";
+        };
         
         void setup() {
             // Particle.function("chef_chaos", &Chef::beChaos, this); 
+            Particle.variable("chef_time", this->chef_time);
         }
         
         
@@ -130,7 +134,7 @@ class Chef {
 
 
         void cook(Dot* food[], int hh, int mm, bool decimal) {
-            if (true || (hh != last_hh) || (mm != last_mm)) {
+            if ((hh != last_hh) || (mm != last_mm)) {
                 #ifdef PRINTF_DEBUGGER
                     Serial.printf("Chef: starting cook(%02d, %02d)\n", hh, mm);
                 #endif
@@ -144,6 +148,13 @@ class Chef {
                 prepare(food, mm % 10, 9, 8);
                 if (decimal) {
                     decimate(food);
+                    chef_time = String::format(
+                        "wobbly %02d.%02d, actual %02d:%02d",
+                        hh, mm, Time.hour(), Time.minute());
+                } else {
+                    chef_time = String::format(
+                        "wobbly %02d:%02d, actual %02d:%02d",
+                        hh, mm, Time.hour(), Time.minute());
                 }
                 #ifdef PRINTF_DEBUGGER
                     print_list(food);
