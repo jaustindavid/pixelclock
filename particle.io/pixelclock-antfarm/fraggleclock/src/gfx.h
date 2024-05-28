@@ -95,7 +95,8 @@ class WeatherBug: public Ant {
             if (y == height || y == height + 1) {
                 color = MIDWHITE;
             } else if (color == BLACK) {
-                if (P(3) && (millis()/1000%2==0)) {
+                // maybe make a twinkle
+                if (P(1) && (millis()/1000%2==0)) {
                     int w = 32+random(64);
                     color = Adafruit_NeoPixel::Color(w, w, w);
                 }

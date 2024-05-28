@@ -147,12 +147,10 @@ class Ant : public Dot {
 
         // attempt to move toward spot among the sandbox
         // true if successful
-        bool move_toward_classic(Dot* spot, 
+        virtual bool move_toward(Dot* spot, 
                                  Dot* sandbox[], 
                                  bool walls_are_blocking = true) {
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("moving from (%d,%d)->", x, y);
-            #endif
+            Log.info("moving from (%d,%d)->", x, y);
             int i = 0, dx = 0, dy = 0;
             Dot proto = Dot();
             while (i < 5) {
@@ -163,136 +161,23 @@ class Ant : public Dot {
                 if (!walls_are_blocking || !in(&proto, sandbox)) {
                     x = proto.x;
                     y = proto.y;
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.printf("(%d,%d)\n", x, y);
-                    #endif
+                    Log.info("(%d,%d)", x, y);
                     return true;
                 }
                 i++;
             }
-            #ifdef PRINTF_DEBUGGER
-                Serial.println(" (x,x) nm\n");
-            #endif
+            Log.info(" (x,x) nm");
             
             return false;
+            // TODO
             if (P(10)) {
                 return jump(spot, sandbox);
             } 
         }
 
 
-        void mark_adjacent(Dot *cursor, int distance, Dot* sandbox[50], byte distances[16][16]) {
-            int i, j;
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
-                    if (!in(i, j, sandbox)) {
-                        distances[i][j] = min(distances[i][j], distance);
-                    }
-                }
-            }
-        }
 
 
-        // if possible, move cursor to an adjacent spot which has a distance, but not yet visited 
-        bool nearby_unvisited(Dot *cursor, byte distances[16][16], bool visited[16][16]) {
-            int i, j;
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
-                    if (!visited[i][j] && distances[i][j] < 199) {
-                        cursor->x = i; 
-                        cursor->y = j;
-                        return true;
-                    }
-                }
-            }
-            // printf("REACHED UNREACHABLE CODE AGAIN");
-            return false;
-        }
-        
-        
-        // move cursor one step closer to 0
-        void step_home(Dot* cursor, byte distances[16][16]) {
-            int i, j;
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
-                    if (distances[i][j] < distances[cursor->x][cursor->y]) {
-                        cursor->x = i;
-                        cursor->y = j;
-                        return;
-                    }
-                }
-            }
-        }
-
-
-        // true if successful
-        bool move_toward_djikstra(Dot* end, 
-                                  Dot* sandbox[], 
-                                  bool walls_are_blocking = false) {
-            Serial.printf("moving from (%d,%d)->(%d,%d)\n", x, y, end->x, end->y);
-            // return move_toward_classic(end, sandbox);
-            
-            byte distances[16][16];
-            bool visited[16][16];
-            int i, j;
-            Dot cursor;
-            int distance;
-            
-
-            for (i = 0; i < 16; i++) {
-                for (j = 0; j < 16; j++) {
-                    distances[i][j] = 199;
-                    visited[i][j] = false;
-                }
-            }
-
-            distances[x][y] = 0;
-            cursor.x = x;
-            cursor.y = y;
-
-            // return move_toward_classic(end, sandbox, walls_are_blocking);
-
-            distance = 0;
-            do {
-                distance += 1;
-                visited[cursor.x][cursor.y] = true;
-                // printf("Marking (%d,%d): %d\n", cursor.x, cursor.y, distance);
-                // 1. mark every adjacent cell as 1 away from "here"
-                mark_adjacent(&cursor, distance, sandbox, distances);
-    
-                // 2. move cursor to a nearby, unvisited cell
-                nearby_unvisited(&cursor, distances, visited);
-                // bail out after a lil while
-                if (distance >= 15) {
-                    return move_toward_classic(end, sandbox, walls_are_blocking);
-                    return false;
-                }
-            } while (cursor.x != end->x && cursor.y != end->y);
-
-            return move_toward_classic(end, sandbox, walls_are_blocking);
-
-            // 3. backtrace it
-            i = 0;
-            do {
-                step_home(&cursor, distances);
-                if (i++ >= 15) {
-                    // bail out after a lil while
-                    return move_toward_classic(end, sandbox, walls_are_blocking);
-                    return false;
-                }
-            } while (distances[cursor.x][cursor.y] != 1);
-            
-            x = cursor.x;
-            y = cursor.y;
-            return true;
-        }
-
-
-        bool move_toward(Dot* spot, 
-                         Dot* sandbox[], 
-                         bool walls_are_blocking = true) {
-          return move_toward_djikstra(spot, sandbox, walls_are_blocking);
-        }
 
 
         void seek(Dot* food[], Dot* sandbox[]) {
@@ -303,7 +188,8 @@ class Ant : public Dot {
             } else {
                 int closeish_id = pick_closeish_open(food, sandbox);
                 if (closeish_id != -1) {
-                    // Serial.printf("(%d,%d) -> a closeish open @ (%d,%d)\n", x, y, food[closeish_id]->x, food[closeish_id]->y);
+                    Log.info("(%d,%d) -> a closeish open @ (%d,%d)", 
+                        x, y, food[closeish_id]->x, food[closeish_id]->y);
                     move_toward(food[closeish_id], sandbox);
                 } else {
                     wander(sandbox);
@@ -416,6 +302,8 @@ class Queen : public Ant {
 #define CLEANING 4
 #define DUMPING  5
 
+#define FRAGGLE_SPEED 350 // ms per action or step
+
 
 /*
  * pick_closeish_open(plan, sandbox) => returns index of plan without a brick
@@ -424,13 +312,173 @@ class Queen : public Ant {
  * pick_closeish_open(sandbox, plan) => returns index of a brick not in the plan
  *   -1: no mess
  */
+
 class Fraggle: public Ant {
     protected:
         Dot* target;
         uint8_t state, prev_state;
         int8_t patience;
         bool walls_are_blocking;
+        SimpleTimer *pacer;
     
+
+        byte min_distance(byte xp, byte yp, byte distances[16][16]) {
+            byte r = 99;
+            for (int i = max(xp - 1, 0); i < min(xp + 1, 15); i++) {
+                for (int j = max(yp - 1, 0); j < min(yp + 1, 15); j++) {
+                    // Serial.printf("peeking (%d,%d)\n", i, j);
+                    r = min(r, distances[i][j]);
+                }
+            }
+            return r;
+        }
+
+
+        void mark_adjacent(Dot *cursor, int distance, Dot* sandbox[50], byte distances[16][16]) {
+            byte i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    // Serial.printf("checking (%d,%d)\n", i, j);
+                    if (!in(i, j, sandbox)) {
+                        distances[i][j] = min(distances[i][j], distance);
+                        // Serial.printf("min=%d, min_distance=%d\n", 
+                        //               distances[i][j], 
+                        //               min_distance(i, j, distances));
+                        distances[i][j] = min_distance(i, j, distances) + 1;
+                    }
+                }
+            }
+        }
+
+
+        // if possible, move cursor to an adjacent spot which has a distance, but not yet visited 
+        bool nearby_unvisited(Dot *cursor, byte distances[16][16], bool visited[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (!visited[i][j] && distances[i][j] < 99) {
+                        cursor->x = i; 
+                        cursor->y = j;
+                        return true;
+                    }
+                }
+            }
+            Log.error("REACHED UNREACHABLE CODE AGAIN");
+            print_distances(distances);
+            // delay(10000);
+            return false;
+        } // bool nearby_unvisited(cursor, distances, visited)
+        
+        
+        // move cursor one step closer to 0
+        void step_home(Dot* cursor, byte distances[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (distances[i][j] < distances[cursor->x][cursor->y]) {
+                        cursor->x = i;
+                        cursor->y = j;
+                        return;
+                    }
+                }
+            }
+        } // step_home(cursor, distances)
+
+
+        void print_distances(byte distances[16][16]) {
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    Serial.printf(" %02d ", min(distances[x][y], 99));
+                }
+                Serial.println();
+            }
+        } // print_distances(distances)
+
+
+        // true if successful
+        bool move_toward_djikstra(Dot* end, 
+                                  Dot* sandbox[], 
+                                  bool walls_are_blocking = false) {
+            Log.info("djmoving from (%d,%d)->(%d,%d)", x, y, end->x, end->y);
+            
+            byte distances[16][16];
+            bool visited[16][16];
+            int i, j;
+            Dot cursor;
+            int distance;
+            
+
+            Log.info("initializaing distances");
+            for (i = 0; i < 16; i++) {
+                for (j = 0; j < 16; j++) {
+                    distances[i][j] = 99;
+                    visited[i][j] = false;
+                }
+            }
+
+            distances[x][y] = 0;
+            cursor.x = x;
+            cursor.y = y;
+
+            distance = 0;
+            do {
+                Log.info("scanning distance=%d", distance);
+                distance += 1;
+                visited[cursor.x][cursor.y] = true;
+                // printf("Marking (%d,%d): %d\n", cursor.x, cursor.y, distance);
+                // 1. mark every adjacent cell as 1 away from "here"
+                mark_adjacent(&cursor, distance, sandbox, distances);
+    
+                // 2. move cursor to a nearby, unvisited cell
+                if (! nearby_unvisited(&cursor, distances, visited)) {
+                    Log.info("giving up 0.5, using Ant::move_toward");
+                    return Ant::move_toward(end, sandbox, walls_are_blocking);
+                }
+                // bail out after a lil while
+                if (distance >= 25) {
+                    Log.info("giving up 1, using Ant::move_toward");
+                    return Ant::move_toward(end, sandbox, walls_are_blocking);
+                }
+            } while (cursor.x != end->x && cursor.y != end->y);
+
+            // print_distances(distances);
+
+            // return Ant::move_toward(end, sandbox, walls_are_blocking);
+
+            // 3. backtrace it
+            i = 0;
+            do {
+                step_home(&cursor, distances);
+                if (i++ >= 25) {
+                    // bail out after a lil while
+                    Log.info("giving up 2, using Ant::move_toward");
+                    return Ant::move_toward(end, sandbox, walls_are_blocking);
+                    return false;
+                }
+            } while (distances[cursor.x][cursor.y] != 1);
+
+            Log.info("ended up with cursor=(%d,%d)", cursor.x, cursor.y);
+            
+            x = cursor.x;
+            y = cursor.y;
+            return true;
+        } // bool move_toward_djikstra(spot, sandbox, walls_are_blocking)
+
+
+        bool move_toward(Dot* spot, 
+                         Dot* sandbox[], 
+                         bool walls_are_blocking = true) override {
+            Log.info("move_toward(%d,%d)", spot->x, spot->y);
+            if ((spot->x >= MATRIX_X)
+                && (spot->x >= MATRIX_Y)) {
+                Log.info("!!!!!");
+                Log.info("!!!!!");
+                Log.info("!!!!!");
+                Log.info("!!!!!");
+                delay(10000);
+            }
+            return move_toward_djikstra(spot, sandbox, walls_are_blocking);
+        }
     
         // adjust candidate to be a cell adjacent to me and not otherwise
         // represented in sandbox.  returns True if such exists
@@ -457,7 +505,7 @@ class Fraggle: public Ant {
                i = pick_closeish_open(sandbox, plan, DARKRED);
             }
             if (i != -1) {
-                Log.info("picked %d (%d,%d), 0x06%x", i,
+                Log.info("picked %d (%d,%d), 0x%06x", i,
                          sandbox[i]->x, sandbox[i]->y, sandbox[i]->color);
                 return sandbox[i];
             }
@@ -544,9 +592,7 @@ class Fraggle: public Ant {
         
         void maybe_stuck(Dot* sandbox[]) {
             patience --;
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("patience: %d\n", patience);
-            #endif
+            Log.info("patience: %d\n", patience);
             if (patience == 5) {
                 if (P(10) && jump(target, sandbox)) {
                     return;
@@ -570,65 +616,95 @@ class Fraggle: public Ant {
             active = true;
             patience = 10;
             // Particle.function("fraggle_walls", &Fraggle::toggle_walls, this);
-        }
+            pacer = new SimpleTimer(FRAGGLE_SPEED);
+        } // Fraggle()
 
-/*
-        int toggle_walls(String data) {
-            walls_are_blocking = !walls_are_blocking;
-            return walls_are_blocking ? 1 : 0;
-        }
-*/ 
+
+        void start_fetching(Dot* plan[], Dot* sandbox[]) {
+            target = find_loose_brick(plan, sandbox);
+            if (target) {
+                Log.info("starting fetch; target=(%d,%d)", 
+                         target->x, target->y);
+                state = FETCHING;
+            } else {
+                Log.info("didn't find a target; resting");
+                state = RESTING;
+            }
+        } // start_fetching(plan, sandbox)
+
 
         // I seek an open brick (not in the plan)
         void fetch(Dot* plan[], Dot* sandbox[]) {
             color = BLUE;
-            #ifdef PRINTF_DEBUGGER
-                Serial.println("fetching");
-            #endif
+            Log.info("fetching");
             // an invalid target is nullptr, is in the plan, is not in the sandbox, or is not a brick
-            if (!target || in(target, plan) || !in(target, sandbox) || !is_brick(target)) {
-                target = find_loose_brick(plan, sandbox);
+            if (!target) {
+                Log.info("no target");
             }
-            if (target) {
-                #ifdef PRINTF_DEBUGGER
-                    Serial.printf("found brick(%d,%d): d=%4.1f\n", target->x, target->y, distance_to(target));
-                #endif
-                if (adjacent(target) && is_brick(target)) { 
-                    // found it
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.println("picking up");
-                    #endif
-                    pick_up(target, sandbox);
-                    target = nullptr;
-                    state = BUILDING;
-                } else {
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.println("moving toward that brick");
-                    #endif
-                    if (move_toward(target, sandbox, walls_are_blocking)) {
-                        Serial.printf("success: (%d,%d)\n", x, y);
-                    } else {
-                        #ifdef PRINTF_DEBUGGER
-                            Serial.println("I might be stuck?");
-                        #endif
-                        target = adjacent_loose_brick(plan, sandbox);
-                        if (target) {
-                            #ifdef PRINTF_DEBUGGER
-                                Serial.printf("found a brick(%d,%d)\n", target->x, target->y);
-                            #endif
-                            not_stuck();
-                        } else {
-                            maybe_stuck(sandbox);
-                        }
-                    }
-                }
+
+            Log.info("checking target (%d,%d)", target->x, target->y);
+
+            if (in(target, plan)) {
+                Log.info("target in plan");
+            }
+
+            if (!in(target, sandbox)) {
+                Log.info("target not in sandbox");
+            }
+
+            if (!is_brick(target)) {
+                Log.info("target is not a brick");
+            }
+
+            if (!target 
+                || in(target, plan) 
+                || !in(target, sandbox) 
+                || !is_brick(target)) {
+                Log.info("no target");
+                state = RESTING;
+                return;
+            }
+            Log.info("fetching brick(%d,%d): d=%4.1f", 
+                target->x, target->y, distance_to(target));
+            if (adjacent(target) && is_brick(target)) { 
+                // found it
+                Log.info("picking up");
+                pick_up(target, sandbox);
+                start_building(plan, sandbox);
+                return;
+                // TODO start_building()
+                target = nullptr;
+                state = BUILDING;
+                return;
+            }
+            Log.info("moving toward that brick");
+            if (move_toward(target, sandbox, walls_are_blocking)) {
+                Log.info("success: (%d,%d)\n", x, y);
             } else {
-                // no target; rest
+                Log.info("I might be stuck?");
+                target = adjacent_loose_brick(plan, sandbox);
+                if (target) {
+                    Log.info("found a brick(%d,%d)\n", target->x, target->y);
+                    not_stuck();
+                } else {
+                    maybe_stuck(sandbox);
+                }
+            }
+        } // fetch(plan, sandbox)
+        
+
+        void start_building(Dot* plan[], Dot* sandbox[]) {
+            target = find_open_plan(plan, sandbox);
+            if (target) {
+                Log.info("starting build with target=(%d,%d)", 
+                         target->x, target->y);
+                state = BUILDING;
+            } else {
                 state = RESTING;
             }
-        }
-        
-        
+        } // start_building(plan, sandbox)
+
+
         /*
          * I have a brick, and need to put it on a plan spot
          * if no plan spots, put it in the bin
@@ -636,55 +712,57 @@ class Fraggle: public Ant {
          * target: the intended location for my brick
          */
         void build(Dot* plan[], Dot* sandbox[]) {
-            #ifdef PRINTF_DEBUGGER
-                Serial.println("building");
-            #endif
+            Log.info("building");
+            if (! target) {
+                Log.info("no target");
+            }
+
+            if (in(target, sandbox) ) {
+                Log.info("target already in sandbox");
+            }
+
             if (! target || in(target, sandbox)) {
-                #ifdef PRINTF_DEBUGGER
-                    Serial.println("finding open plan...");
-                #endif
+                Log.info("no target, or in sandbox; dump");
+                start_dumping(plan, sandbox);
+                return;
+            }
+            Log.info("targetting (%d,%d)", target->x, target->y);
+            if (adjacent(target)) {
+                // found it
+                Log.info("placing brick at (%d,%d)", target->x, target->y);
+                place_brick(target, RED, sandbox);
+                state = RESTING;
+                target = nullptr;
+                return;
+            }
+            if (!move_toward(target, sandbox, walls_are_blocking)) {
+                maybe_stuck(sandbox);
                 target = find_open_plan(plan, sandbox);
-            }
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("targetting (%d,%d)\n", target->x, target->y);
-            #endif
-            if (target) {
-                if (adjacent(target)) {
-                    // found it
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.printf("placing brick at (%d,%d)\n", target->x, target->y);
-                    #endif
-                    place_brick(target, RED, sandbox);
-                    state = RESTING;
-                } else {
-                    if (!move_toward(target, sandbox, walls_are_blocking)) {
-                        maybe_stuck(sandbox);
-                        target = find_open_plan(plan, sandbox);
-                    } else {
-                        not_stuck();
-                    }
-                }
             } else {
-                // no plan spots, but I'm holding one.
-                state = DUMPING;
+                not_stuck();
             }
-        }
+        } // build(plan, sandbox)
         
-        
+
+        void start_cleaning(Dot* plan[], Dot* sandbox[]) {
+            Dot* target = find_loose_brick(plan, sandbox);
+            state = CLEANING;
+        } // start_cleaning(plan, sandbox)
+
+
         void clean(Dot* plan[], Dot* sandbox[]) {
+            Log.info("Clean()");
+            // TODO: validate target
             Dot* target = find_loose_brick(plan, sandbox);
             if (target) {
-                #ifdef PRINTF_DEBUGGER
-                    Serial.printf("maybe cleaning (%d,%d)\n", target->x, target->y);
-                #endif
+                Log.info("maybe cleaning (%d,%d)", target->x, target->y);
                 if (adjacent(target) && is_brick(target)) { 
                     // found it
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.println("picking up");
-                    #endif
+                    Log.info("picking up");
                     pick_up(target, sandbox);
                     target = nullptr;
                     state = DUMPING;
+                    return;
                 } else {
                     if (move_toward(target, sandbox, walls_are_blocking)) {
                         not_stuck();
@@ -693,12 +771,10 @@ class Fraggle: public Ant {
                     }
                 }
             } else {
-                #ifdef PRINTF_DEBUGGER
-                    Serial.println("nothing to clean; resting");
-                #endif
+                Log.info("nothing to clean; resting");
                 state = RESTING;
             }
-        }
+        } // void clean(plan, sandbox)
 
 
         Dot* first_available(Dot* bin[], Dot* sandbox[]) {
@@ -708,27 +784,33 @@ class Fraggle: public Ant {
                 }
             }
             return nullptr;
-        }
+        } // Dot* first_available(bin, sandbox)
 
         
+        void start_dumping(Dot* bin[], Dot* sandbox[]) {
+            target = first_available(bin, sandbox);
+            state = DUMPING;
+        } // start_dumping(bin, sandbox)
+
+
         void dump(Dot* bin[], Dot* sandbox[]) {
+            Log.info("Dump()");
+
             // target invalid if nullptr, not a bin location, or occupied
             if (! target || !in(target, bin) || in(target, sandbox)) {
                 target = first_available(bin, sandbox);
             }
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("dump target: (%d,%d)", target->x, target->y);
-            #endif
+            
+            Log.info("dump target: (%d,%d)", target->x, target->y);
             if (adjacent(target) && !in(target, sandbox)) {
-                #ifdef PRINTF_DEBUGGER
-                    Serial.println("dumping here!");
-                #endif
+                Log.info("dumping here!");
                 Dot* rubbish = activate(sandbox);
                 rubbish->x = target->x;
                 rubbish->y = target->y;
                 rubbish->color = DARKRED;
                 target = nullptr;
                 state = RESTING;
+                return;
             }
             if (move_toward(target, sandbox, walls_are_blocking)) {
                 not_stuck();
@@ -755,26 +837,24 @@ class Fraggle: public Ant {
         
         void rest(Dot* plan[], Dot* sandbox[]) {
             state = RESTING;
-            #ifdef PRINTF_DEBUGGER
-                Serial.println("resting.  Picking open plan, sandbox to check for open plan spots");
-            #endif
+            //TODO target = nullptr;
+            
+            Log.info("resting.  Picking open plan, sandbox to check for open plan spots");
             int i = pick_closeish_open(plan, sandbox);
             if (i != -1) {
                 // plan missing bricks; fetch & build
-                #ifdef PRINTF_DEBUGGER
-                    Serial.printf("found %d; fetching\n", i);
-                #endif
+                Log.info("found %d; fetching", i);
+                start_fetching(plan, sandbox);
+                return;
+                //TODO target = nullptr;
                 state = FETCHING;
             } else {
-                #ifdef PRINTF_DEBUGGER
-                    Serial.println("looking for RED bricks in sandbox, not plan");
-                #endif
+                Log.info("looking for RED bricks in sandbox, not plan");
                 if ((i = pick_closeish_open(sandbox, plan, RED)) != -1) {
                     // if bricks not on plan, clean
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.printf("found %d; cleaning\n", i);
-                    #endif
+                    Log.info("found %d; cleaning", i);
                     state = CLEANING;            
+                    //TODO target = nullptr;
                 } else if (P(10)) {
                     wander(sandbox);
                 } else {
@@ -787,9 +867,10 @@ class Fraggle: public Ant {
 
         // the bin is ONLY a set of locations, in priority, order, for dumping
         void run(Dot* plan[], Dot* sandbox[], Dot* bin[]) {
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("Fraggle[%d](%d, %d):%d\n", id, x, y, state);
-            #endif
+            if (! pacer->isExpired()) {
+                return;
+            }
+            Log.info("Fraggle[%d](%d, %d):%d\n", id, x, y, state);
             switch (state) {
                 case SPAZZING:
                     color = YELLOW;

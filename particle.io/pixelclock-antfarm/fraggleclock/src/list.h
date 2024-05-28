@@ -70,15 +70,40 @@ void deactivate(Dot* needle, Dot* haystack[]) {
     }
 }
 
+/*
+ * ins
+ *
+ * in(needle, haystack): 
+ *    returns a pointer to the first thing at needle's 
+ *    loction which is in the haystack
+ *    may return needle!
+ *
+ * in(needle, haystack, color):
+ *   returns a pointer to the first thing at needle's
+ *   location of color which is in the haystack
+ *   Use this if you want to find something "at needle's location"
+ *   but definitely not needle
+ *
+ * in(x, y, haystack):
+ *   return true if anything exists at location (x, y)
+ */
+
 
 // true (ptr) if needle is active in haystack
 Dot* in(Dot* needle, Dot* haystack[]) {
     for (int i = 0; i < MAX_DOTS; i++) {
-        if (needle != haystack[i] 
-            && haystack[i]->active 
-            && needle->equals(haystack[i])) {
-            return haystack[i];
+        if (haystack[i]->active) {
+            if (needle == haystack[i]
+                || needle->equals(haystack[i])) {
+                return haystack[i];
+            }
         }
+        // WTH
+        // if (needle != haystack[i] 
+        //     && haystack[i]->active 
+        //     && needle->equals(haystack[i])) {
+        //     return haystack[i];
+        // }
     }
     return nullptr;
 }

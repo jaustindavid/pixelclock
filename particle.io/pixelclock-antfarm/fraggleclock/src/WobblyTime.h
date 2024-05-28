@@ -41,7 +41,7 @@
 
 int rando(int rmin, int rmax) {
     float r = 0.000001 * random(0, 1000000);
-    return rmin + (int)(r*r*r*(rmax - rmin));
+    return constrain(rmin + (int)(r*r*r*(rmax - rmin)), rmin, rmax);
 }
 
 
@@ -162,6 +162,7 @@ int WobblyTime::setAdvance(String s) {
         dT = constrain(t, MIN_ADVANCE, MAX_ADVANCE);
         target_offset = constrain(t, MIN_ADVANCE, MAX_ADVANCE);
     }
+    return dT;
     return fakeTime - Time.now();
 }
 

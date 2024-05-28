@@ -17,7 +17,8 @@ SYSTEM_THREAD(ENABLED);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
+// SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock
@@ -190,7 +191,7 @@ void make_sandbox() {
  *
  */
 
-#define NUMBER_OF_FRAGGLES 1
+#define NUMBER_OF_FRAGGLES 2
 
 void make_fraggles() {
     #ifdef PRINTF_DEBUGGER
@@ -219,22 +220,17 @@ void make_fraggles() {
 
 
 void maybe_adjust_one_brick() {
-    #ifdef PRINTF_DEBUGGER
-        Serial.println("maybe adjusting one...");
-    #endif
+    Log.trace("maybe adjusting one...");
     Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
     if (!in(&proxy, sandbox)) {
-        #ifdef PRINTF_DEBUGGER
-            Serial.println("adding one");
-        #endif
+        Log.info("adding one");
         // bin bottom-right is empty; add
-        print_list(sandbox);
+        // print_list(sandbox);
         Dot* brick = activate(sandbox);
-        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
         brick->set_color(DARKRED);
         brick->x = proxy.x;
         brick->y = proxy.y;
-        print_list(sandbox);
+        // print_list(sandbox);
     }
     
     // scan the bin top row; remove any bricks
@@ -243,7 +239,7 @@ void maybe_adjust_one_brick() {
         proxy.y = MATRIX_Y - 3;
         Dot* brick;
         if ((brick = in(&proxy, sandbox)) && (brick->get_color() == DARKRED)) {
-            // Serial.printf("removing: x=%d\n", x);
+            Log.info("removing: x=%d", x);
             deactivate(brick, sandbox);
         }
     }
@@ -322,7 +318,6 @@ void loop_doozers() {
         maybe_check_brick_pile(sandbox);
     }
     
-    Doozer *doozer;
     for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
         Doozer* doozer = (Doozer*)sandbox[i];
         doozer->run(food, sandbox);
@@ -656,7 +651,7 @@ void setup() {
     chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
     // cook();
     
-    prefill(food, sandbox);
+    // prefill(food, sandbox);
 
     Serial.print(" initialization complete; free mem == ");
     Serial.println(System.freeMemory());
@@ -664,41 +659,20 @@ void setup() {
 
 
 void loop() {
-    uint32_t freemem = System.freeMemory();
     if (second.isExpired()) {
-        Serial.print("free memory: ");
-        Serial.println(freemem);
+        Log.info("free memory: %lu", System.freeMemory());
         chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
 
-        if (Particle.connected()) {
-            Particle.syncTime();
-            dst.check();
-        }
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
         luna_brite = luna->get_brightness();
         display_brite = display.set_brightness(luna_brite);
     }
-    /*
-    if (minute.isExpired()) {
-        if (wTime.metric()) {
-            Particle.publish("tick", 
-                String::format("wobbly %02d.%02d, actual %02d:%02d, free %u, %u uptime", 
-                            wTime.hour(), wTime.minute(), 
-                            Time.hour(), Time.minute(),
-                            System.freeMemory(), millis()/60000));
-        } else {
-            Particle.publish("tick", 
-                String::format("wobbly %02d:%02d, actual %02d:%02d, free %u, %u uptime", 
-                            wTime.hour(), wTime.minute(), 
-                            Time.hour(), Time.minute(),
-                            System.freeMemory(), millis()/60000));
-        }
-    }
-    */
     if (daily.isExpired()) {
         if (!Particle.connected()) {
             Particle.connect();
-            delay(1000); // Wait for connection attempt
+            delay(10000); // Wait for connection attempt
+            Particle.syncTime();
+            dst.check();
         }
     }
     
@@ -720,11 +694,4 @@ void loop() {
     // first few things in the sandbox are always cursors
     display.render(sandbox, 2);
     display.show(show_timer);
-    
-    /*
-    if (minute.isExpired()) {
-        String str = String::format("%d %c", weatherGFX->icon_i, weatherGFX->icon_c);
-        Particle.publish("weather icon", str);
-    }
-    */
 } // loop()

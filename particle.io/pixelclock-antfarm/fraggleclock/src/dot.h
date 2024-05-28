@@ -41,12 +41,15 @@ class Dot {
             uint8_t r = (color & RED) >> 16;
             uint8_t g = (color & GREEN) >> 8;
             uint8_t b = (color & BLUE);
-            Serial.printf("Before: (%d,%d,%d)", r, g, b);
+            Log.trace("lighten(%d): before: (%d,%d,%d)", amt, r, g, b);
             r = max(0, r-amt);
             g = max(0, g-amt);
             b = max(0, b-amt);
             color = (r<<16) | (g<<8) | (b);
-            Serial.printf("; after: (%ld,%ld,%ld)\n", (color & RED) >> 16, (color & GREEN) >> 8, (color & BLUE));
+            Log.trace("; after: (%ld,%ld,%ld)", 
+                        (color & RED) >> 16, 
+                        (color & GREEN) >> 8, 
+                        (color & BLUE));
         }
         
         

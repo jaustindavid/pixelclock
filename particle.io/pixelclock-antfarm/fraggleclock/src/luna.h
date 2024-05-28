@@ -104,9 +104,7 @@ int Luna::get_brightness() {
     sensor_value = analogRead(pin);
     int tmp = constrain(powMap(sensor_value, 2, dim_sensor, bright_sensor, LOWER_BRIGHT, UPPER_BRIGHT),
                                LOWER_BRIGHT, UPPER_BRIGHT);
-    #ifdef PRINTF_DEBUGGER
-        Serial.printf("luna: sensor_value=%d, tmp=%d\n", sensor_value, tmp);
-    #endif
+    Log.trace("luna: sensor_value=%d, tmp=%d", sensor_value, tmp);
     if (sensor_value > 0 && hysteresis->isExpired() && abs(tmp - brightness) > 2) {
         brightness = tmp;
     }
