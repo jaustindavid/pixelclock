@@ -7,7 +7,7 @@
 
 #define TURTLE_SPEED 750 // ms per step or pick/place
 
-#undef PRINTF_DEBUGGER
+#define DEBUG_LEVEL 2
 
 /*
     A Turtle is a smarter (?) Fraggle.
@@ -70,7 +70,202 @@ class Turtle: public Fraggle {
         }
 
 
+        // find the lowest value in distances[][] around (xp, yp)
+        byte min_distance(byte xp, byte yp, byte distances[16][16]) {
+            byte r = 99;
+            for (int i = max(xp - 1, 0); i <= min(xp + 1, 15); i++) {
+                for (int j = max(yp - 1, 0); j <= min(yp + 1, 15); j++) {
+                    r = min(r, distances[i][j]);
+                    #if DEBUG_LEVEL > 3
+                    Log.info("peeking (%d,%d); r=%d", i, j, r);
+                    #endif
+                }
+            }
+            return r;
+        } // byte min_distance(xp, yp, distances)
+
+
+        // mark the distances adjacent to cursor
+        void mark_adjacent(Dot *cursor, 
+                           Dot* sandbox[50], 
+                           byte distances[16][16]) {
+            byte i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    #if DEBUG_LEVEL > 3
+                    Log.info("marking adjacent: (%d,%d)", i, j);
+                    #endif
+                    if (!in(i, j, sandbox)) {
+                        distances[i][j] = min_distance(i, j, distances) + 1;
+                        #if DEBUG_LEVEL > 3
+                        Log.info("d(%d,%d) = %d", i, j, distances[i][j]);
+                        #endif
+                    } else {
+                        #if DEBUG_LEVEL > 3
+                        Log.info("... in sandbox");
+                        #endif
+                    }
+                }
+            }
+        } // mark_adjancent(curson, sandbox, distances)
+
+
+        // if possible, move cursor to an adjacent spot 
+        // which has a distance, but not yet visited
+        bool nearby_unvisited(Dot *cursor, 
+                              byte distances[16][16], 
+                              bool visited[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (!visited[i][j] && distances[i][j] < 99) {
+                        cursor->x = i;
+                        cursor->y = j;
+                        return true;
+                    }
+                }
+            }
+            Log.error("REACHED UNREACHABLE CODE AGAIN");
+            #if DEBUG_LEVEL > 3
+            print_distances(distances);
+            #endif
+            // delay(10000);
+            return false;
+        } // bool nearby_unvisited(cursor, distances, visited)
+ 
+
+
+
+        // print the distances[][] matrix
+        void print_distances(byte distances[16][16]) {
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    Serial.printf(" %02d ", min(distances[x][y], 99));
+                }
+                Serial.println();
+            }
+        } // print_distances(distances)
+
+
+        void visit_cells(byte radius, 
+                         Dot* sandbox[],
+                         bool visited[16][16],
+                         byte distances[16][16]) {
+            #if DEBUG_LEVEL > 3
+            Log.info("visiting (%d,%d), r=%d", x, y, radius);
+            #endif
+            int i, j;
+            Dot cursor = Dot(x, y, BLACK);
+            #if DEBUG_LEVEL > 3
+            Log.info("i,j = (%d,%d)", x-radius, y-radius);
+            #endif
+            for (i = max(0, x - radius); 
+                 i <= min(MATRIX_X - 1, x + radius); 
+                 i++) {
+                for (j = max(0, y - radius); 
+                     j <= min(MATRIX_Y - 1, y + radius); 
+                     j++) {
+                    if (!visited[i][j]) {
+                        #if DEBUG_LEVEL > 3
+                        Log.info("checking (%d,%d)", i, j);
+                        #endif
+                        cursor.x = i;
+                        cursor.y = j;
+                        mark_adjacent(&cursor, sandbox, distances);
+                        visited[i][j] = true;
+                    } else {
+                        #if DEBUG_LEVEL > 3
+                        Log.info("not checking (%d,%d)", i, j);
+                        #endif
+                    }
+                }
+            }
+        } // visit_cells(radius, sandbox, visited, distances)
+
+
+        // move cursor one step closer to 0
+        void step_home(Dot* cursor, byte distances[16][16]) {
+            int i, j;
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (distances[i][j] < distances[cursor->x][cursor->y]) {
+                        cursor->x = i;
+                        cursor->y = j;
+                        return;
+                    }
+                }
+            }
+            Log.error("REACHED UNREACHABLE CODE");
+            delay(5000);
+        } // step_home(cursor, distances)
+
+
     public:
+        // take one step toward the spot, while avoiding everything in sandbox
+        bool move_toward(Dot* spot, 
+                         Dot* sandbox[],
+                         bool junk = true) override {
+            Log.info("moving (%d,%d) -> (%d,%d)",
+                     x, y, spot->x, spot->y);
+
+            if (adjacent(spot)) {
+                Log.info("shotcut, jumping to adjacent target");
+                x = spot->x;
+                y = spot->y;
+                return true;
+            }
+            byte distances[16][16];
+            bool visited[16][16];
+            int i, j;
+            Dot cursor;
+            byte radius;
+            byte iq = 16;
+
+            Log.trace("initializaing distances");
+            for (i = 0; i < 16; i++) {
+                for (j = 0; j < 16; j++) {
+                    distances[i][j] = 99;
+                    visited[i][j] = false;
+                }
+            }
+
+            distances[x][y] = 0;
+            cursor.x = x;
+            cursor.y = y;
+
+            radius = 1;
+            while (radius < iq) {
+                #if DEBUG_LEVEL > 2
+                Log.info("Checking radius=%d", radius);
+                #endif
+                visit_cells(radius, sandbox, visited, distances);
+                #if DEBUG_LEVEL > 3
+                print_distances(distances);
+                #endif
+                radius ++;
+            }
+
+            print_distances(distances);
+
+            if (visited[spot->x][spot->y]) {
+                Dot cursor = Dot(spot->x, spot->y, BLACK);
+                while (distances[cursor.x][cursor.y] > 1) {
+                    step_home(&cursor, distances);
+                    Log.info("backtrace: (%d,%d), d=%d", 
+                             cursor.x, cursor.y, 
+                             distances[cursor.x][cursor.y]);
+                }
+                x = cursor.x;
+                y = cursor.y;
+                Log.info("Path found!!! (%d,%d)", x, y);
+                return true;
+            } 
+
+            Log.info("deferring to Ant::");
+            return Ant::move_toward(target, sandbox);
+        } // walk_toward(target, sandbox)
+
+
         Turtle() : Fraggle() {
             color = GREEN;
             step_timer = new SimpleTimer(TURTLE_SPEED);
@@ -90,7 +285,8 @@ class Turtle: public Fraggle {
                     place_brick(target, RED, sandbox);
                     state = RESTING;
                 } else {
-                    step_toward(target);
+                    // step_toward(target);
+                    move_toward(target, sandbox);
                 }
             }
         }
@@ -104,7 +300,8 @@ class Turtle: public Fraggle {
                     deactivate(target_i, sandbox);
                     state = RESTING;
                 } else {
-                    step_toward(target);
+                    // step_toward(target);
+                    move_toward(target, sandbox);
                 }
             }
         }
@@ -113,9 +310,7 @@ class Turtle: public Fraggle {
         
         void rest(Dot* plan[], Dot* sandbox[]) {
             state = RESTING;
-            #ifdef PRINTF_DEBUGGER
-                Serial.println("resting.  Looking for tracks in sandbox, not plan");
-            #endif
+            Log.info("resting.  Looking for tracks in sandbox, not plan");
             int i;
             if ((i = pick_closest_open(sandbox, plan, RED)) != -1) {
                 // if tracks not on plan, clean
@@ -151,9 +346,7 @@ class Turtle: public Fraggle {
             if (! step_timer->isExpired()) {
                 return;
             }
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("Turtle[%d](%d, %d):%d\n", id, x, y, state);
-            #endif
+            Log.info("Turtle[%d](%d, %d):%d\n", id, x, y, state);
             color = GREEN;
             switch (state) {
                 case SPAZZING:

@@ -17,8 +17,8 @@ SYSTEM_THREAD(ENABLED);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-// SerialLogHandler logHandler(LOG_LEVEL_INFO);
-SerialLogHandler logHandler(LOG_LEVEL_WARN);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
+// SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock
@@ -409,7 +409,12 @@ void loop_doozers() {
 
 
 int toggle_mode(String data) {
-    mode = (mode + 1) % 4;
+    int m = data.toInt();
+    if (m >= 0 && m < 4) {
+        mode = m;
+    } else {
+        mode = (mode + 1) % 4;
+    }
     write_mode();
     read_mode();
     display.clear();
@@ -626,6 +631,21 @@ void watchdogHandler() {
 }
 
 
+void test_turtle() {
+  Log.info("testing turtle");
+  Turtle* turtle = (Turtle*)sandbox[0];
+  Dot target = Dot(8, 8, BLACK);
+  while (turtle->x != 8 
+         && turtle->y != 8) {
+    turtle->move_toward(&target, sandbox);
+    display.clear();
+    display.render(sandbox);
+    display.render(sandbox, 1);
+    display.show(show_timer);
+  }
+} // test_turtle()
+
+
 void setup() {
     
     Serial.begin(115200);
@@ -651,10 +671,11 @@ void setup() {
     chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
     // cook();
     
-    // prefill(food, sandbox);
+    prefill(food, sandbox);
 
     Serial.print(" initialization complete; free mem == ");
     Serial.println(System.freeMemory());
+    test_turtle();
 } // setup()
 
 

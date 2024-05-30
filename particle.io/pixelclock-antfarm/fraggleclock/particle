@@ -1,0 +1,6 @@
+Script started on Wed May 29 00:51:13 2024
+Command: serial monitor --follow
+script: serial: No such file or directory
+
+Command exit status: 1
+Script done on Wed May 29 00:51:13 2024
