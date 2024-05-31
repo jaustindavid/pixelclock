@@ -102,7 +102,10 @@ class Doozer: public Turtle {
                 return;
             }
 
-            step_toward(target);
+            // step_toward(target);
+            if (!move_toward(target, sandbox)) {
+                wander(sandbox);
+            }
             return;
         }  // void fetch(Dot* plan[], Dot* sandbox[])
 
@@ -125,7 +128,10 @@ class Doozer: public Turtle {
                 return;
             }
 
-            step_toward(target);
+            // step_toward(target);
+            if (!move_toward(target, sandbox)) {
+                wander(sandbox);
+            }
             return;
         }
 
@@ -162,7 +168,10 @@ class Doozer: public Turtle {
 
             Log.info("stepping (%d,%d) -> (%d,%d)", 
                       x, y, target->x, target->y);
-            step_toward(target);
+            // step_toward(target);
+            if (!move_toward(target, sandbox)) {
+                wander(sandbox);
+            }
             return;
         } // void clean(Dot* plan[], Dot* sandbox)
 
@@ -216,7 +225,10 @@ class Doozer: public Turtle {
                 return;
             }
 
-            step_toward(target);
+            // step_toward(target);
+            if (!move_toward(target, sandbox)) {
+                wander(sandbox);
+            }
             return;
         } // void dump(Dot* sandbox[])
 
@@ -277,6 +289,21 @@ class Doozer: public Turtle {
             step_timer->setInterval(WALK_SPEED);
             rest_timer = new SimpleTimer(REST_SPEED);
         }; // constructor
+
+
+        int set_iq(String data) {
+            int new_iq = data.toInt();
+            if (new_iq > 0) {
+                iq = new_iq;
+            }
+            return iq;
+        }
+
+
+        void setup() {
+            String function_name = String::format("set_iq_%d", id);
+            Particle.function(function_name, &Doozer::set_iq, this);
+        }
 
 
         void run(Dot* plan[], Dot* sandbox[]) override {

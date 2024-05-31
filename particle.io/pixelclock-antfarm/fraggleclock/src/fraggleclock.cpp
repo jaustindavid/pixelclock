@@ -26,7 +26,7 @@ SerialLogHandler logHandler(LOG_LEVEL_INFO);
  * NB / food for thought: there's not a GREAT reason to create/destroy objects, 
  * vs activating / deactivating static objects.
  *
- * ps tried this, it'as fast as h*ck
+ * ps tried this, it's fast as h*ck
  * 
  * dot: 
  *   a sprite
@@ -299,7 +299,15 @@ void make_doozers() {
     #ifdef PRINTF_DEBUGGER
         Serial.println("Making doozers");
     #endif
-    for (int i = 0; i < MAX_DOTS; i++) {
+    sandbox[0] = new Doozer();
+    // ((Doozer*)sandbox[0])->setup();
+    for (int i = 1; i < NUMBER_OF_DOOZERS; i++) {
+        sandbox[i] = new Doozer();
+        Doozer* d = (Doozer *)sandbox[i];
+        d->iq = 3;
+        // d->setup();
+    }
+    for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
         if (i < NUMBER_OF_DOOZERS) {
             sandbox[i] = new Doozer();
             sandbox[i]->x = i;
@@ -308,6 +316,12 @@ void make_doozers() {
             sandbox[i] = new Dot();
         }
     }
+/*
+    for (int i = 1; i < NUMBER_OF_DOOZERS; i++) {
+        Doozer* d = (Doozer *)sandbox[i];
+        d->iq = 0;
+    }
+    */
 }
 
 
@@ -671,11 +685,11 @@ void setup() {
     chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
     // cook();
     
-    prefill(food, sandbox);
+    // prefill(food, sandbox);
 
     Serial.print(" initialization complete; free mem == ");
     Serial.println(System.freeMemory());
-    test_turtle();
+    // test_turtle();
 } // setup()
 
 
@@ -713,6 +727,6 @@ void loop() {
     display.render(sandbox);
     display.render(pinger.pings(), pinger.npings());
     // first few things in the sandbox are always cursors
-    display.render(sandbox, 2);
+    // display.render(sandbox, 5);
     display.show(show_timer);
 } // loop()

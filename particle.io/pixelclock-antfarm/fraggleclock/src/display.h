@@ -135,7 +135,6 @@ class Display {
         void render(Dot* dots[]) {
             render(dots, MAX_DOTS);
             return;
-            // for (int cursor = first(dots); cursor != -1; cursor = next(cursor, dots)) {
             for (int cursor = 0; cursor < MAX_DOTS; cursor++) {
                 if (dots[cursor]->active) {
                     paint(dots[cursor]);
@@ -143,9 +142,13 @@ class Display {
             }
         }
         
+
+        // renders the first n dots
+        // backwards, so the lowest-numbered ones are "top"
         void render(Dot* dots[], int ndots) {
             // for (int cursor = first(dots); cursor != -1; cursor = next(cursor, dots)) {
-            for (int cursor = 0; cursor < ndots; cursor++) {
+            // for (int cursor = 0; cursor < ndots; cursor++) {
+            for (int cursor = ndots-1; cursor >= 0; cursor--) {
                 if (dots[cursor]->active) {
                     paint(dots[cursor]);
                 }

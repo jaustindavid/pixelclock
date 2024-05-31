@@ -137,27 +137,33 @@ class Ant : public Dot {
 
         int d(int src, int dst) {
             if (dst > src && P(75)) {
+                Log.trace("d(%d,%d)-> 1", src, dst);
                 return 1;
-            } else if (src > dst && P(75)) {
+            } else if (src >= dst && P(75)) {
+                Log.trace("d(%d,%d)-> -1", src, dst);
                 return -1;
             }
+            Log.trace("d(%d,%d)-> 0", src, dst);
             return 0;
         }
-        
+
 
         // attempt to move toward spot among the sandbox
         // true if successful
         virtual bool move_toward(Dot* spot, 
                                  Dot* sandbox[], 
                                  bool walls_are_blocking = true) {
-            Log.info("moving from (%d,%d)->", x, y);
+            Log.info("moving from (%d,%d)->(%d,%d)", x, y, spot->x, spot->y);
+            Log.trace("walls? %c", walls_are_blocking ? 'y':'n');
             int i = 0, dx = 0, dy = 0;
             Dot proto = Dot();
             while (i < 8) {
                 dx = d(x, spot->x);
                 dy = d(y, spot->y);
+                Log.trace("dx,dy = %d,%d", dx, dy);
                 proto.x = constrain(x+dx, 0, MATRIX_X-1);
                 proto.y = constrain(y+dy, 0, MATRIX_Y-1);
+
                 if (!walls_are_blocking || !in(&proto, sandbox)) {
                     x = proto.x;
                     y = proto.y;
@@ -174,10 +180,6 @@ class Ant : public Dot {
                 return jump(spot, sandbox);
             } 
         }
-
-
-
-
 
 
         void seek(Dot* food[], Dot* sandbox[]) {
@@ -238,13 +240,13 @@ class Queen : public Ant {
     private:
         SimpleTimer* birth_control;
         
+
     public:
         Queen() : Ant() {
             color = Q_RESTING;
             active = true;
             birth_control = new SimpleTimer(1000);
         }
-
 
 
         void eat_one(Dot* sandbox[]) {
@@ -313,384 +315,384 @@ class Queen : public Ant {
  *   -1: no mess
  */
 
-class Fraggle: public Ant {
-    protected:
-        Dot* target;
-        uint8_t state, prev_state;
-        int8_t patience;
-        bool walls_are_blocking;
-        SimpleTimer *pacer;
-    
+  class Fraggle: public Ant {
+      protected:
+          Dot* target;
+          uint8_t state, prev_state;
+          int8_t patience;
+          bool walls_are_blocking;
+          SimpleTimer *pacer;
+      
 
-        // adjust candidate to be a cell adjacent to me and not otherwise
-        // represented in sandbox.  returns True if such exists
-        virtual bool randomize(Dot* candidate, Dot* sandbox[]) override {
-            int i = 0;
-            while (i < 16) {
-                candidate->x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
-                candidate->y = constrain(y+random(-1, 2), 0, MATRIX_Y-2);
-                 if (!in(candidate, sandbox)) { 
-                    return true;
-                 }
-                 i++;
-            }
-            return false;
-        }
+          // adjust candidate to be a cell adjacent to me and not otherwise
+          // represented in sandbox.  returns True if such exists
+          virtual bool randomize(Dot* candidate, Dot* sandbox[]) override {
+              int i = 0;
+              while (i < 16) {
+                  candidate->x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
+                  candidate->y = constrain(y+random(-1, 2), 0, MATRIX_Y-2);
+                   if (!in(candidate, sandbox)) { 
+                      return true;
+                   }
+                   i++;
+              }
+              return false;
+          }
 
-    
-        // returns 1 brick, or nullptr
-        Dot* find_loose_brick(Dot* plan[], Dot* sandbox[]) {
-            Log.info("finding loose brick");
-            // TODO: return an adjacent if available
-            int i = pick_closeish_open(sandbox, plan, RED);
-            if (i == -1) {
-               i = pick_closeish_open(sandbox, plan, DARKRED);
-            }
-            if (i != -1) {
-                Log.info("picked %d (%d,%d), 0x%06x", i,
-                         sandbox[i]->x, sandbox[i]->y, sandbox[i]->color);
-                return sandbox[i];
-            }
-            return nullptr;
-        }
-        
-        
-        bool is_brick(Dot* target) {
-            return (target 
-                    && (target->get_color() == RED) 
-                    || (target->get_color() == DARKRED));
-        }
-        
-        
-        // returns 1 brick, or nullptr
-        Dot* adjacent_loose_brick(Dot* plan[], Dot* sandbox[]) {
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("Scanning for a loose brick near (%d,%d)\n", x, y);
-            #endif
-            Dot candidate = Dot(x, y, color);
-            for (int i = 0; i < 10; i++) {
-                candidate.x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
-                candidate.y = constrain(y+random(-1, 2), 0, MATRIX_Y-1);
-                #ifdef PRINTF_DEBUGGER
-                    Serial.printf("candidate: (%d,%d)\n", candidate.x, candidate.y);
-                #endif
-                if (!in(&candidate, plan)) {
-                    #ifdef PRINTF_DEBUGGER
-                        Serial.println("not in plan...");
-                    #endif
-                    Dot* possible_brick = in(&candidate, sandbox);
-                    #ifdef PRINTF_DEBUGGER
-                        if (possible_brick) {
-                            Serial.printf("possible match: (%d,%d)\n", possible_brick->x, possible_brick->y);
-                        }
-                    #endif
-                    if (is_brick(possible_brick)) {
-                        #ifdef PRINTF_DEBUGGER
-                            Serial.println("hit!!");
-                        #endif
-                        return possible_brick;
-                    }
-                }
-            }
-            return nullptr;
-        }
-        
-        
-        // returns a plan location, or nullptr
-        Dot* find_open_plan(Dot* plan[], Dot* sandbox[]) {
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("Fraggle(%d,%d) finding open plan spot\n", x, y);
-            #endif
-            // TODO: prefer adjacent
-            int i = pick_closeish_open(plan, sandbox);
-            #ifdef PRINTF_DEBUGGER
-                Serial.printf("found %d: (%d,%d)\n", i, plan[i]->x, plan[i]->y);
-            #endif
-            if (i != -1) {
-                return plan[i];
-            }
-            return nullptr;
-        }
+      
+          // returns 1 brick, or nullptr
+          Dot* find_loose_brick(Dot* plan[], Dot* sandbox[]) {
+              Log.info("finding loose brick");
+              // TODO: return an adjacent if available
+              int i = pick_closeish_open(sandbox, plan, RED);
+              if (i == -1) {
+                 i = pick_closeish_open(sandbox, plan, DARKRED);
+              }
+              if (i != -1) {
+                  Log.info("picked %d (%d,%d), 0x%06x", i,
+                           sandbox[i]->x, sandbox[i]->y, sandbox[i]->color);
+                  return sandbox[i];
+              }
+              return nullptr;
+          }
+          
+          
+          bool is_brick(Dot* target) {
+              return (target 
+                      && (target->get_color() == RED) 
+                      || (target->get_color() == DARKRED));
+          }
+          
+          
+          // returns 1 brick, or nullptr
+          Dot* adjacent_loose_brick(Dot* plan[], Dot* sandbox[]) {
+              #ifdef PRINTF_DEBUGGER
+                  Serial.printf("Scanning for a loose brick near (%d,%d)\n", x, y);
+              #endif
+              Dot candidate = Dot(x, y, color);
+              for (int i = 0; i < 10; i++) {
+                  candidate.x = constrain(x+random(-1, 2), 0, MATRIX_X-1);
+                  candidate.y = constrain(y+random(-1, 2), 0, MATRIX_Y-1);
+                  #ifdef PRINTF_DEBUGGER
+                      Serial.printf("candidate: (%d,%d)\n", candidate.x, candidate.y);
+                  #endif
+                  if (!in(&candidate, plan)) {
+                      #ifdef PRINTF_DEBUGGER
+                          Serial.println("not in plan...");
+                      #endif
+                      Dot* possible_brick = in(&candidate, sandbox);
+                      #ifdef PRINTF_DEBUGGER
+                          if (possible_brick) {
+                              Serial.printf("possible match: (%d,%d)\n", possible_brick->x, possible_brick->y);
+                          }
+                      #endif
+                      if (is_brick(possible_brick)) {
+                          #ifdef PRINTF_DEBUGGER
+                              Serial.println("hit!!");
+                          #endif
+                          return possible_brick;
+                      }
+                  }
+              }
+              return nullptr;
+          }
+          
+          
+          // returns a plan location, or nullptr
+          Dot* find_open_plan(Dot* plan[], Dot* sandbox[]) {
+              #ifdef PRINTF_DEBUGGER
+                  Serial.printf("Fraggle(%d,%d) finding open plan spot\n", x, y);
+              #endif
+              // TODO: prefer adjacent
+              int i = pick_closeish_open(plan, sandbox);
+              #ifdef PRINTF_DEBUGGER
+                  Serial.printf("found %d: (%d,%d)\n", i, plan[i]->x, plan[i]->y);
+              #endif
+              if (i != -1) {
+                  return plan[i];
+              }
+              return nullptr;
+          }
 
-        
-        
-        void place_brick(Dot* target, color_t color, Dot* sandbox[]) {
-            Dot* brick = activate(sandbox);
-            brick->set_color(color);
-            brick->x = target->x;
-            brick->y = target->y;
-        }
-
-
-        void pick_up(Dot* brick, Dot* sandbox[]) {
-            deactivate(brick, sandbox);
-        }
+          
+          
+          void place_brick(Dot* target, color_t color, Dot* sandbox[]) {
+              Dot* brick = activate(sandbox);
+              brick->set_color(color);
+              brick->x = target->x;
+              brick->y = target->y;
+          }
 
 
-        void not_stuck() {
-            patience = 10;
-        }
-        
-        
-        void maybe_stuck(Dot* sandbox[]) {
-            patience --;
-            Log.info("patience: %d\n", patience);
-            if (patience == 5) {
-                if (P(10) && jump(target, sandbox)) {
-                    return;
-                } else {
-                    // force a new target
-                    target = nullptr;
-                }
-            } else if (patience <= 0) {
-                prev_state = state;
-                state = SPAZZING;
-                // target = new Dot();
-                // target->x = x;
-                // target->y = y;
-            }
-        }
-        
-        
-        
-    public:
-        Fraggle(): Ant(), state(RESTING), walls_are_blocking(true) {
-            active = true;
-            patience = 10;
-            // Particle.function("fraggle_walls", &Fraggle::toggle_walls, this);
-            pacer = new SimpleTimer(FRAGGLE_SPEED);
-        } // Fraggle()
+          void pick_up(Dot* brick, Dot* sandbox[]) {
+              deactivate(brick, sandbox);
+          }
 
 
-        void start_fetching(Dot* plan[], Dot* sandbox[]) {
-            target = find_loose_brick(plan, sandbox);
-            if (target) {
-                Log.info("starting fetch; target=(%d,%d)", 
-                         target->x, target->y);
-                state = FETCHING;
-            } else {
-                Log.info("didn't find a target; resting");
-                state = RESTING;
-            }
-        } // start_fetching(plan, sandbox)
+          void not_stuck() {
+              patience = 10;
+          }
+          
+          
+          void maybe_stuck(Dot* sandbox[]) {
+              patience --;
+              Log.info("patience: %d\n", patience);
+              if (patience == 5) {
+                  if (P(10) && jump(target, sandbox)) {
+                      return;
+                  } else {
+                      // force a new target
+                      target = nullptr;
+                  }
+              } else if (patience <= 0) {
+                  prev_state = state;
+                  state = SPAZZING;
+                  // target = new Dot();
+                  // target->x = x;
+                  // target->y = y;
+              }
+          }
+          
+          
+          
+      public:
+          Fraggle(): Ant(), state(RESTING), walls_are_blocking(true) {
+              active = true;
+              patience = 10;
+              // Particle.function("fraggle_walls", &Fraggle::toggle_walls, this);
+              pacer = new SimpleTimer(FRAGGLE_SPEED);
+          } // Fraggle()
 
 
-        // I seek an open brick (not in the plan)
-        void fetch(Dot* plan[], Dot* sandbox[]) {
-            color = BLUE;
-            Log.info("fetching");
-            // an invalid target is nullptr, is in the plan, is not in the sandbox, or is not a brick
-            if (!target) {
-                Log.info("no target");
-            }
-
-            Log.info("checking target (%d,%d)", target->x, target->y);
-
-            if (in(target, plan)) {
-                Log.info("target in plan");
-            }
-
-            if (!in(target, sandbox)) {
-                Log.info("target not in sandbox");
-            }
-
-            if (!is_brick(target)) {
-                Log.info("target is not a brick");
-            }
-
-            if (!target 
-                || in(target, plan) 
-                || !in(target, sandbox) 
-                || !is_brick(target)) {
-                Log.info("no target");
-                state = RESTING;
-                return;
-            }
-            Log.info("fetching brick(%d,%d): d=%4.1f", 
-                target->x, target->y, distance_to(target));
-            if (adjacent(target) && is_brick(target)) { 
-                // found it
-                Log.info("picking up");
-                pick_up(target, sandbox);
-                start_building(plan, sandbox);
-                return;
-                // TODO start_building()
-                target = nullptr;
-                state = BUILDING;
-                return;
-            }
-            Log.info("moving toward that brick");
-            if (move_toward(target, sandbox, walls_are_blocking)) {
-                Log.info("success: (%d,%d)\n", x, y);
-            } else {
-                Log.info("I might be stuck?");
-                target = adjacent_loose_brick(plan, sandbox);
-                if (target) {
-                    Log.info("found a brick(%d,%d)\n", target->x, target->y);
-                    not_stuck();
-                } else {
-                    maybe_stuck(sandbox);
-                }
-            }
-        } // fetch(plan, sandbox)
-        
-
-        void start_building(Dot* plan[], Dot* sandbox[]) {
-            target = find_open_plan(plan, sandbox);
-            if (target) {
-                Log.info("starting build with target=(%d,%d)", 
-                         target->x, target->y);
-                state = BUILDING;
-            } else {
-                state = RESTING;
-            }
-        } // start_building(plan, sandbox)
+          void start_fetching(Dot* plan[], Dot* sandbox[]) {
+              target = find_loose_brick(plan, sandbox);
+              if (target) {
+                  Log.info("starting fetch; target=(%d,%d)", 
+                           target->x, target->y);
+                  state = FETCHING;
+              } else {
+                  Log.info("didn't find a target; resting");
+                  state = RESTING;
+              }
+          } // start_fetching(plan, sandbox)
 
 
-        /*
-         * I have a brick, and need to put it on a plan spot
-         * if no plan spots, put it in the bin
-         * 
-         * target: the intended location for my brick
-         */
-        void build(Dot* plan[], Dot* sandbox[]) {
-            Log.info("building");
-            if (! target) {
-                Log.info("no target");
-            }
+          // I seek an open brick (not in the plan)
+          void fetch(Dot* plan[], Dot* sandbox[]) {
+              color = BLUE;
+              Log.info("fetching");
+              // an invalid target is nullptr, is in the plan, is not in the sandbox, or is not a brick
+              if (!target) {
+                  Log.info("no target");
+              }
 
-            if (in(target, sandbox) ) {
-                Log.info("target already in sandbox");
-            }
+              Log.info("checking target (%d,%d)", target->x, target->y);
 
-            if (! target || in(target, sandbox)) {
-                Log.info("no target, or in sandbox; dump");
-                start_dumping(plan, sandbox);
-                return;
-            }
-            Log.info("targetting (%d,%d)", target->x, target->y);
-            if (adjacent(target)) {
-                // found it
-                Log.info("placing brick at (%d,%d)", target->x, target->y);
-                place_brick(target, RED, sandbox);
-                state = RESTING;
-                target = nullptr;
-                return;
-            }
-            if (!move_toward(target, sandbox, walls_are_blocking)) {
-                maybe_stuck(sandbox);
-                target = find_open_plan(plan, sandbox);
-            } else {
-                not_stuck();
-            }
-        } // build(plan, sandbox)
-        
+              if (in(target, plan)) {
+                  Log.info("target in plan");
+              }
 
-        void start_cleaning(Dot* plan[], Dot* sandbox[]) {
-            Dot* target = find_loose_brick(plan, sandbox);
-            state = CLEANING;
-        } // start_cleaning(plan, sandbox)
+              if (!in(target, sandbox)) {
+                  Log.info("target not in sandbox");
+              }
 
+              if (!is_brick(target)) {
+                  Log.info("target is not a brick");
+              }
 
-        void clean(Dot* plan[], Dot* sandbox[]) {
-            Log.info("Clean()");
-            // TODO: validate target
-            Dot* target = find_loose_brick(plan, sandbox);
-            if (target) {
-                Log.info("maybe cleaning (%d,%d)", target->x, target->y);
-                if (adjacent(target) && is_brick(target)) { 
-                    // found it
-                    Log.info("picking up");
-                    pick_up(target, sandbox);
-                    target = nullptr;
-                    state = DUMPING;
-                    return;
-                } else {
-                    if (move_toward(target, sandbox, walls_are_blocking)) {
-                        not_stuck();
-                    } else {
-                        maybe_stuck(sandbox);
-                    }
-                }
-            } else {
-                Log.info("nothing to clean; resting");
-                state = RESTING;
-            }
-        } // void clean(plan, sandbox)
+              if (!target 
+                  || in(target, plan) 
+                  || !in(target, sandbox) 
+                  || !is_brick(target)) {
+                  Log.info("no target");
+                  state = RESTING;
+                  return;
+              }
+              Log.info("fetching brick(%d,%d): d=%4.1f", 
+                  target->x, target->y, distance_to(target));
+              if (adjacent(target) && is_brick(target)) { 
+                  // found it
+                  Log.info("picking up");
+                  pick_up(target, sandbox);
+                  start_building(plan, sandbox);
+                  return;
+                  // TODO start_building()
+                  target = nullptr;
+                  state = BUILDING;
+                  return;
+              }
+              Log.info("moving toward that brick");
+              if (move_toward(target, sandbox, walls_are_blocking)) {
+                  Log.info("success: (%d,%d)\n", x, y);
+              } else {
+                  Log.info("I might be stuck?");
+                  target = adjacent_loose_brick(plan, sandbox);
+                  if (target) {
+                      Log.info("found a brick(%d,%d)\n", target->x, target->y);
+                      not_stuck();
+                  } else {
+                      maybe_stuck(sandbox);
+                  }
+              }
+          } // fetch(plan, sandbox)
+          
 
-
-        Dot* first_available(Dot* bin[], Dot* sandbox[]) {
-            for (int i = 0; i < MAX_DOTS; i++) {
-                if (bin[i]->active && !in(bin[i], sandbox)) {
-                    return bin[i];
-                }
-            }
-            return nullptr;
-        } // Dot* first_available(bin, sandbox)
-
-        
-        void start_dumping(Dot* bin[], Dot* sandbox[]) {
-            target = first_available(bin, sandbox);
-            state = DUMPING;
-        } // start_dumping(bin, sandbox)
+          void start_building(Dot* plan[], Dot* sandbox[]) {
+              target = find_open_plan(plan, sandbox);
+              if (target) {
+                  Log.info("starting build with target=(%d,%d)", 
+                           target->x, target->y);
+                  state = BUILDING;
+              } else {
+                  state = RESTING;
+              }
+          } // start_building(plan, sandbox)
 
 
-        void dump(Dot* bin[], Dot* sandbox[]) {
-            Log.info("Dump()");
+          /*
+           * I have a brick, and need to put it on a plan spot
+           * if no plan spots, put it in the bin
+           * 
+           * target: the intended location for my brick
+           */
+          void build(Dot* plan[], Dot* sandbox[]) {
+              Log.info("building");
+              if (! target) {
+                  Log.info("no target");
+              }
 
-            // target invalid if nullptr, not a bin location, or occupied
-            if (! target || !in(target, bin) || in(target, sandbox)) {
-                target = first_available(bin, sandbox);
-            }
-            
-            Log.info("dump target: (%d,%d)", target->x, target->y);
-            if (adjacent(target) && !in(target, sandbox)) {
-                Log.info("dumping here!");
-                Dot* rubbish = activate(sandbox);
-                rubbish->x = target->x;
-                rubbish->y = target->y;
-                rubbish->color = DARKRED;
-                target = nullptr;
-                state = RESTING;
-                return;
-            }
-            if (move_toward(target, sandbox, walls_are_blocking)) {
-                not_stuck();
-            } else {
-                maybe_stuck(sandbox);
-            }
-        }
-        
-        
-        void spaz(Dot* sandbox[]) {
-            // if (distance_to(target) >= 3) {
-            if (patience >= 10) {
-                // done spazzing
-                state = prev_state;
-                // delete target;
-            } else {
-                if (P(50)) {
-                    ++patience;
-                }
-                wander(sandbox);
-            }
-        }
-        
-        
-        void rest(Dot* plan[], Dot* sandbox[]) {
-            state = RESTING;
-            //TODO target = nullptr;
-            
-            Log.info("resting.  Picking open plan, sandbox to check for open plan spots");
-            int i = pick_closeish_open(plan, sandbox);
-            if (i != -1) {
-                // plan missing bricks; fetch & build
-                Log.info("found %d; fetching", i);
-                start_fetching(plan, sandbox);
-                return;
-                //TODO target = nullptr;
-                state = FETCHING;
-            } else {
+              if (in(target, sandbox) ) {
+                  Log.info("target already in sandbox");
+              }
+
+              if (! target || in(target, sandbox)) {
+                  Log.info("no target, or in sandbox; dump");
+                  start_dumping(plan, sandbox);
+                  return;
+              }
+              Log.info("targetting (%d,%d)", target->x, target->y);
+              if (adjacent(target)) {
+                  // found it
+                  Log.info("placing brick at (%d,%d)", target->x, target->y);
+                  place_brick(target, RED, sandbox);
+                  state = RESTING;
+                  target = nullptr;
+                  return;
+              }
+              if (!move_toward(target, sandbox, walls_are_blocking)) {
+                  maybe_stuck(sandbox);
+                  target = find_open_plan(plan, sandbox);
+              } else {
+                  not_stuck();
+              }
+          } // build(plan, sandbox)
+          
+
+          void start_cleaning(Dot* plan[], Dot* sandbox[]) {
+              Dot* target = find_loose_brick(plan, sandbox);
+              state = CLEANING;
+          } // start_cleaning(plan, sandbox)
+
+
+          void clean(Dot* plan[], Dot* sandbox[]) {
+              Log.info("Clean()");
+              // TODO: validate target
+              Dot* target = find_loose_brick(plan, sandbox);
+              if (target) {
+                  Log.info("maybe cleaning (%d,%d)", target->x, target->y);
+                  if (adjacent(target) && is_brick(target)) { 
+                      // found it
+                      Log.info("picking up");
+                      pick_up(target, sandbox);
+                      target = nullptr;
+                      state = DUMPING;
+                      return;
+                  } else {
+                      if (move_toward(target, sandbox, walls_are_blocking)) {
+                          not_stuck();
+                      } else {
+                          maybe_stuck(sandbox);
+                      }
+                  }
+              } else {
+                  Log.info("nothing to clean; resting");
+                  state = RESTING;
+              }
+          } // void clean(plan, sandbox)
+
+
+          Dot* first_available(Dot* bin[], Dot* sandbox[]) {
+              for (int i = 0; i < MAX_DOTS; i++) {
+                  if (bin[i]->active && !in(bin[i], sandbox)) {
+                      return bin[i];
+                  }
+              }
+              return nullptr;
+          } // Dot* first_available(bin, sandbox)
+
+          
+          void start_dumping(Dot* bin[], Dot* sandbox[]) {
+              target = first_available(bin, sandbox);
+              state = DUMPING;
+          } // start_dumping(bin, sandbox)
+
+
+          void dump(Dot* bin[], Dot* sandbox[]) {
+              Log.info("Dump()");
+
+              // target invalid if nullptr, not a bin location, or occupied
+              if (! target || !in(target, bin) || in(target, sandbox)) {
+                  target = first_available(bin, sandbox);
+              }
+              
+              Log.info("dump target: (%d,%d)", target->x, target->y);
+              if (adjacent(target) && !in(target, sandbox)) {
+                  Log.info("dumping here!");
+                  Dot* rubbish = activate(sandbox);
+                  rubbish->x = target->x;
+                  rubbish->y = target->y;
+                  rubbish->color = DARKRED;
+                  target = nullptr;
+                  state = RESTING;
+                  return;
+              }
+              if (move_toward(target, sandbox, walls_are_blocking)) {
+                  not_stuck();
+              } else {
+                  maybe_stuck(sandbox);
+              }
+          }
+          
+          
+          void spaz(Dot* sandbox[]) {
+              // if (distance_to(target) >= 3) {
+              if (patience >= 10) {
+                  // done spazzing
+                  state = prev_state;
+                  // delete target;
+              } else {
+                  if (P(50)) {
+                      ++patience;
+                  }
+                  wander(sandbox);
+              }
+          }
+          
+          
+          void rest(Dot* plan[], Dot* sandbox[]) {
+              state = RESTING;
+              //TODO target = nullptr;
+              
+              Log.info("resting.  Picking open plan, sandbox to check for open plan spots");
+              int i = pick_closeish_open(plan, sandbox);
+              if (i != -1) {
+                  // plan missing bricks; fetch & build
+                  Log.info("found %d; fetching", i);
+                  start_fetching(plan, sandbox);
+                  return;
+                  //TODO target = nullptr;
+                  state = FETCHING;
+              } else {
                 Log.info("looking for RED bricks in sandbox, not plan");
                 if ((i = pick_closeish_open(sandbox, plan, RED)) != -1) {
                     // if bricks not on plan, clean

@@ -184,29 +184,33 @@ class Turtle: public Fraggle {
 
 
         // move cursor one step closer to 0
-        void step_home(Dot* cursor, byte distances[16][16]) {
+        bool step_home(Dot* cursor, byte distances[16][16]) {
             int i, j;
             for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
                 for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
                     if (distances[i][j] < distances[cursor->x][cursor->y]) {
                         cursor->x = i;
                         cursor->y = j;
-                        return;
+                        return true;
                     }
                 }
             }
             Log.error("REACHED UNREACHABLE CODE");
-            delay(5000);
+            // delay(5000);
+            return false;
         } // step_home(cursor, distances)
 
 
     public:
+        byte iq = 25;
+
+
         // take one step toward the spot, while avoiding everything in sandbox
         bool move_toward(Dot* spot, 
                          Dot* sandbox[],
                          bool junk = true) override {
-            Log.info("moving (%d,%d) -> (%d,%d)",
-                     x, y, spot->x, spot->y);
+            Log.info("moving (%d,%d) -> (%d,%d), iq=%d",
+                     x, y, spot->x, spot->y, iq);
 
             if (adjacent(spot)) {
                 Log.info("shotcut, jumping to adjacent target");
@@ -219,7 +223,6 @@ class Turtle: public Fraggle {
             int i, j;
             Dot cursor;
             byte radius;
-            byte iq = 16;
 
             Log.trace("initializaing distances");
             for (i = 0; i < 16; i++) {
@@ -250,7 +253,10 @@ class Turtle: public Fraggle {
             if (visited[spot->x][spot->y]) {
                 Dot cursor = Dot(spot->x, spot->y, BLACK);
                 while (distances[cursor.x][cursor.y] > 1) {
-                    step_home(&cursor, distances);
+                    if (! step_home(&cursor, distances)) {
+                        Log.info("no path home; deferring to Ant::");
+                        return Ant::move_toward(spot, sandbox);
+                    }
                     Log.info("backtrace: (%d,%d), d=%d", 
                              cursor.x, cursor.y, 
                              distances[cursor.x][cursor.y]);
@@ -262,7 +268,7 @@ class Turtle: public Fraggle {
             } 
 
             Log.info("deferring to Ant::");
-            return Ant::move_toward(target, sandbox);
+            return Ant::move_toward(spot, sandbox);
         } // walk_toward(target, sandbox)
 
 
