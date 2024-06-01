@@ -349,7 +349,7 @@ class Queen : public Ant {
                  i = pick_closeish_open(sandbox, plan, DARKRED);
               }
               if (i != -1) {
-                  Log.info("picked %d (%d,%d), 0x%06x", i,
+                  Log.info("picked %d (%d,%d), 0x%06lx", i,
                            sandbox[i]->x, sandbox[i]->y, sandbox[i]->color);
                   return sandbox[i];
               }
@@ -359,8 +359,8 @@ class Queen : public Ant {
           
           bool is_brick(Dot* target) {
               return (target 
-                      && (target->get_color() == RED) 
-                      || (target->get_color() == DARKRED));
+                      && ((target->get_color() == RED) 
+                          || (target->get_color() == DARKRED)));
           }
           
           
@@ -589,7 +589,7 @@ class Queen : public Ant {
           
 
           void start_cleaning(Dot* plan[], Dot* sandbox[]) {
-              Dot* target = find_loose_brick(plan, sandbox);
+              target = find_loose_brick(plan, sandbox);
               state = CLEANING;
           } // start_cleaning(plan, sandbox)
 

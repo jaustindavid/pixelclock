@@ -96,7 +96,9 @@ class Doozer: public Turtle {
 
             if ((equals(target) || adjacent(target)) 
                 && is_brick(target)) {
+                Log.info("Picking up (%d,%d)", target->x, target->y);
                 pick_up(target, sandbox);
+                print_sandbox(sandbox);
                 target = nullptr;
                 state = BUILDING;
                 return;
@@ -151,12 +153,12 @@ class Doozer: public Turtle {
                 return;
             }
 
-            Log.info("want to clean (%d,%d) 0x%06x", 
+            Log.info("want to clean (%d,%d) 0x%06lx", 
                      target->x, target->y, target->color);
             Log.info("adjacent? %c", adjacent(target) ? 'y':'n');
             Log.info("brick? %c", is_brick(target) ? 'y':'n');
-            Log.info("color 0x%06x? %c", RED, target->color == RED ? 'y':'n');
-            Log.info("color 0x%06x? %c", DARKRED, target->color == DARKRED ? 'y':'n');
+            Log.info("color 0x%06lx? %c", RED, target->color == RED ? 'y':'n');
+            Log.info("color 0x%06lx? %c", DARKRED, target->color == DARKRED ? 'y':'n');
 
             if ((adjacent(target) || equals(target)) && is_brick(target)) {
                 Log.info("adjacent; dumping");
@@ -203,10 +205,12 @@ class Doozer: public Turtle {
 
         void dump(Dot* sandbox[]) {
             Log.info("dumping...");
-            if (! target
-                || !is_bin(target)
-                || in(target, sandbox)) {
+            if (! target) {
+                Log.info("before best_bin_location");
+                print_sandbox(sandbox);
                 target = best_bin_location(sandbox);
+                Log.info("after best_bin_location");
+                print_sandbox(sandbox);
             }
 
             if (! target) {
@@ -217,9 +221,8 @@ class Doozer: public Turtle {
 
             Log.info("dump target (%d,%d)", target->x, target->y);
 
-            if ((equals(target) || adjacent(target))
-                && !is_brick(target)) {
-                target->color = DARKRED;
+            if (equals(target) || adjacent(target)) {
+                target->set_color(DARKRED);
                 target = nullptr;
                 state = RESTING;
                 return;

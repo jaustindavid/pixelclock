@@ -140,11 +140,25 @@ class Turtle: public Fraggle {
         void print_distances(byte distances[16][16]) {
             for (int y = 0; y < 16; y++) {
                 for (int x = 0; x < 16; x++) {
-                    Serial.printf(" %02d ", min(distances[x][y], 99));
+                    if (distances[x][y] < 99) {
+                        Serial.printf(" %02d ", distances[x][y]);
+                    } else {
+                        Serial.printf(" __ ");
+                    }
                 }
                 Serial.println();
             }
         } // print_distances(distances)
+
+
+        void print_sandbox(Dot* sandbox[]) {
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    Serial.printf(in(x, y, sandbox) ? " ## " : " __ ");
+                }
+                Serial.println();
+            }
+        } // print_sandbox(sandbox)
 
 
         void visit_cells(byte radius, 
@@ -255,6 +269,7 @@ class Turtle: public Fraggle {
                 while (distances[cursor.x][cursor.y] > 1) {
                     if (! step_home(&cursor, distances)) {
                         Log.info("no path home; deferring to Ant::");
+                        print_sandbox(sandbox);
                         return Ant::move_toward(spot, sandbox);
                     }
                     Log.info("backtrace: (%d,%d), d=%d", 
@@ -267,7 +282,8 @@ class Turtle: public Fraggle {
                 return true;
             } 
 
-            Log.info("deferring to Ant::");
+            Log.info("dest not visited; deferring to Ant::");
+            print_sandbox(sandbox);
             return Ant::move_toward(spot, sandbox);
         } // walk_toward(target, sandbox)
 

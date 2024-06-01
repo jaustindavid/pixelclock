@@ -264,7 +264,7 @@ void loop_fraggles() {
  *
  */
 
-#define NUMBER_OF_DOOZERS 2
+#define NUMBER_OF_DOOZERS 4
 
 void maybe_check_brick_pile(Dot* sandbox[]) {
     Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
@@ -304,7 +304,7 @@ void make_doozers() {
     for (int i = 1; i < NUMBER_OF_DOOZERS; i++) {
         sandbox[i] = new Doozer();
         Doozer* d = (Doozer *)sandbox[i];
-        d->iq = 3;
+        d->iq = 0;
         // d->setup();
     }
     for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
