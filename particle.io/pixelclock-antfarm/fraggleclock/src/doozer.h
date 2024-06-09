@@ -26,6 +26,37 @@ class Doozer: public Turtle {
     private:
         Dot* target;
         SimpleTimer *rest_timer;
+        byte min_iq;
+
+
+        void check_progress() {
+            static byte prev_state = RESTING;
+            static float distance = 0;
+            
+            // definitely reset if resting or new state
+            if (RESTING || (state != prev_state)) {
+                iq = min_iq;
+                distance = 0;
+                if (target && (state != RESTING)) {
+                    distance = distance_to(target);
+                }
+                prev_state = state;
+                return;
+            }
+
+            // only smarten on the 8s
+            if (Time.minute() % 10 != 8) {
+                return;
+            }
+
+            float new_distance = distance_to(target);
+            if (new_distance >= distance_to(target)
+                && (iq < 25)) {
+                iq = min(iq+1, 25);
+                Log.info("smartening: iq=%d", iq);
+            }
+            distance = new_distance;
+        } // check_progress()
 
 
         /* 
@@ -203,6 +234,8 @@ class Doozer: public Turtle {
         } // Dot* best_bin_location(Dot* sandbox[])
 
 
+
+
         void dump(Dot* sandbox[]) {
             Log.info("dumping...");
             if (! target) {
@@ -232,6 +265,7 @@ class Doozer: public Turtle {
             if (!move_toward(target, sandbox)) {
                 wander(sandbox);
             }
+            // check_progress();
             return;
         } // void dump(Dot* sandbox[])
 
@@ -289,31 +323,30 @@ class Doozer: public Turtle {
         Doozer() : Turtle() {
             color = MIDWHITE;
             state = RESTING;
+            delay(WALK_SPEED/2);
+            Log.info("creating doozer at %lu", millis());
             step_timer->setInterval(WALK_SPEED);
             rest_timer = new SimpleTimer(REST_SPEED);
+            iq = min_iq;
         }; // constructor
 
 
-        int set_iq(String data) {
-            int new_iq = data.toInt();
+        void set_iq(int new_iq) {
             if (new_iq > 0) {
-                iq = new_iq;
+                iq = min_iq = new_iq;
             }
-            return iq;
-        }
-
-
-        void setup() {
-            String function_name = String::format("set_iq_%d", id);
-            Particle.function(function_name, &Doozer::set_iq, this);
         }
 
 
         void run(Dot* plan[], Dot* sandbox[]) override {
+            static unsigned long last_rested = 0;
+            // delay(1000);
             if (! step_timer->isExpired()) {
+                Log.trace("doozer run() fini");
                 return;
             }
-            Log.info("Doozer[%d](%d, %d):%d", id, x, y, state);
+            Log.info("Doozer[%d](%d, %d):%d @ %lu", id, x, y, state, millis());
+            // delay(1000);
             switch (state) {
               case FETCHING:
                 color = GREEN;
@@ -335,8 +368,16 @@ class Doozer: public Turtle {
               default:
                 color = MIDWHITE;
                 rest(plan, sandbox);
+                last_rested = millis();
             }
-        }
+
+            // if at least 10 minutes since last rest, bump IQ
+            if (millis() - last_rested > 10*60*1000) {
+                iq = 25;
+            } else {
+                iq = 0;
+            }
+        } // run(plan, sandbox)
 };
 
 #endif

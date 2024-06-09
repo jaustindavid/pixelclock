@@ -17,8 +17,9 @@ SYSTEM_THREAD(ENABLED);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-SerialLogHandler logHandler(LOG_LEVEL_INFO);
-// SerialLogHandler logHandler(LOG_LEVEL_WARN);
+// SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+// SerialLogHandler logHandler(LOG_LEVEL_INFO);
+SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock
@@ -193,7 +194,8 @@ void make_sandbox() {
 
 #define NUMBER_OF_FRAGGLES 2
 
-void make_fraggles() {
+/*
+void Fmake_fraggles() {
     #ifdef PRINTF_DEBUGGER
         Serial.println("Making fraggles");
     #endif
@@ -219,7 +221,7 @@ void make_fraggles() {
 }
 
 
-void maybe_adjust_one_brick() {
+void Fmaybe_adjust_one_brick() {
     Log.trace("maybe adjusting one...");
     Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
     if (!in(&proxy, sandbox)) {
@@ -246,7 +248,7 @@ void maybe_adjust_one_brick() {
 }
 
 
-void loop_fraggles() {
+void Floop_fraggles() {
     static SimpleTimer second(1000);
     if (second.isExpired()) {
         maybe_adjust_one_brick();
@@ -295,18 +297,68 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
 }
 
 
-void make_doozers() {
-    #ifdef PRINTF_DEBUGGER
-        Serial.println("Making doozers");
-    #endif
-    sandbox[0] = new Doozer();
-    // ((Doozer*)sandbox[0])->setup();
-    for (int i = 1; i < NUMBER_OF_DOOZERS; i++) {
+void make_fraggles() {
+    Log.info("Making fraggles");
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        Log.info("making %d at %lu", i, millis());
         sandbox[i] = new Doozer();
-        Doozer* d = (Doozer *)sandbox[i];
-        d->iq = 0;
+        // delay(1000/(NUMBER_OF_FRAGGLES+1));
+        // Doozer* f = (Doozer *)sandbox[i];
+        // f->iq = 0;
+    }
+    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
+        sandbox[i] = new Dot();
+    }
+}
+
+
+void loop_fraggles() {
+    // Log.trace("loop_fraggles 0");
+    // delay(1000);
+
+    static SimpleTimer sec(1000);
+
+    // Log.trace("loop_fraggles 1");
+    // delay(1000);
+    if (sec.isExpired()) {
+        // Log.trace("loop_fraggles 2");
+        // delay(1000);
+        maybe_check_brick_pile(sandbox);
+    }
+    // Log.trace("loop_fraggles 3");
+    // delay(1000);
+    
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        // Log.trace("loop_fraggles: i=%d", i);
+        // delay(1000);
+        Doozer* doozer = (Doozer*)sandbox[i];
+        // Log.trace("inner loop_fraggles");
+        // delay(1000);
+        // if (!doozer) {
+        //     Log.trace("doozer/fraggle #%d is nullptr", i);
+        //     continue;
+        // }
+        doozer->run(food, sandbox);
+        // Log.trace("inner loop_fraggles done");
+        // delay(1000);
+    }
+
+    // Log.trace("loop_fraggles out");
+    // delay(1000);
+} // loop_fraggles()
+
+
+
+void make_doozers() {
+    Log.trace("Making doozers");
+    Doozer* d;
+    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
+        sandbox[i] = new Doozer();
+        d = (Doozer *)sandbox[i];
         // d->setup();
     }
+    d = (Doozer *)sandbox[0];
+    d->set_iq(25);
     for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
         if (i < NUMBER_OF_DOOZERS) {
             sandbox[i] = new Doozer();
@@ -316,12 +368,6 @@ void make_doozers() {
             sandbox[i] = new Dot();
         }
     }
-/*
-    for (int i = 1; i < NUMBER_OF_DOOZERS; i++) {
-        Doozer* d = (Doozer *)sandbox[i];
-        d->iq = 0;
-    }
-    */
 }
 
 
@@ -594,6 +640,8 @@ void setup_whatever_mode() {
 
 
 void loop_whatever_mode() {
+    // Log.trace("loop_whatever_mode: mode=%d", mode);
+    // delay(1000);
     
     switch (mode) {
         case TURTLE_MODE:
@@ -614,7 +662,7 @@ void loop_whatever_mode() {
                 ant->run(food, sandbox);
             }
     }
-}
+} // loop_whatever_mode()
 
 
 void prefill(Dot* food[], Dot* sandbox[]) {
@@ -687,22 +735,27 @@ void setup() {
     
     // prefill(food, sandbox);
 
-    Serial.print(" initialization complete; free mem == ");
-    Serial.println(System.freeMemory());
+    Log.warn("initialization complete; free mem == %ld", System.freeMemory());
     // test_turtle();
 } // setup()
 
 
 void loop() {
+    // Log.trace("loop 1");
     if (second.isExpired()) {
         Log.info("free memory: %lu", System.freeMemory());
         chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
+        // Log.trace("loop s1");
 
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
         luna_brite = luna->get_brightness();
+        // Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
         display_brite = display.set_brightness(luna_brite);
+        // Log.trace("loop s3; display_brite = %d", display_brite);
+        // delay(1000);
     }
     if (daily.isExpired()) {
+        // Log.trace("loop d1");
         if (!Particle.connected()) {
             Particle.connect();
             delay(10000); // Wait for connection attempt
@@ -711,11 +764,18 @@ void loop() {
         }
     }
     
+    // Log.trace("loop 2");
+    // delay(1000);
     // Particle.publish("beep"); 
     // delay(10000);
     loop_whatever_mode();
     
+    // Log.trace("loop 3");
+    // delay(1000);
     display.clear();
+    
+    // Log.trace("loop 4");
+    // delay(1000);
     if (show_weather) {
         update_weather();
         weatherGFX->run(weather.icon_str);
@@ -729,4 +789,5 @@ void loop() {
     // first few things in the sandbox are always cursors
     // display.render(sandbox, 5);
     display.show(show_timer);
+    Log.info("loop finished @ %ld", millis());
 } // loop()

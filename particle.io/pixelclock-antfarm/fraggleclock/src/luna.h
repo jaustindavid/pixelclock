@@ -48,6 +48,7 @@ Luna::Luna(int new_pin, int newAddress) {
     pinMode(A2, OUTPUT);
     digitalWrite(A2, LOW);
     pinMode(pin, INPUT);
+    brightness = 0;
     hysteresis = new SimpleTimer(5*1000);
     last_read = 1;
     read_data();
@@ -102,9 +103,10 @@ void Luna::write_data() {
 // returns [0..99]
 int Luna::get_brightness() {
     sensor_value = analogRead(pin);
+    Log.trace("luna: sensor_value=%d", sensor_value);
     int tmp = constrain(powMap(sensor_value, 2, dim_sensor, bright_sensor, LOWER_BRIGHT, UPPER_BRIGHT),
                                LOWER_BRIGHT, UPPER_BRIGHT);
-    Log.trace("luna: sensor_value=%d, tmp=%d", sensor_value, tmp);
+    Log.trace("tmp=%d", tmp);
     if (sensor_value > 0 && hysteresis->isExpired() && abs(tmp - brightness) > 2) {
         brightness = tmp;
     }
