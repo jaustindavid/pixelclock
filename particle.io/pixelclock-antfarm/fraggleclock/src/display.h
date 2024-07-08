@@ -16,7 +16,7 @@
 #undef PRINTF_DEBUGGER
 
 #ifndef MIN_BRIGHTNESS
-    #define MIN_BRIGHTNESS 4
+    #define MIN_BRIGHTNESS 8
 #endif
 
 #ifndef MAX_BRIGHTNESS
@@ -28,7 +28,7 @@ class Display {
     private:
         color_t fg[MATRIX_X*MATRIX_Y], bg[MATRIX_X*MATRIX_Y];
         Adafruit_NeoPixel *neopixels;
-        int brightness;
+        int brightness, brightness_target;
 
         int txlate(Dot* dot) {
             int pixel = 0;
@@ -59,8 +59,17 @@ class Display {
         }
         
         
+        #define HYSTERESIS 2
         int set_brightness(int b) {
-            brightness = map(b, 0, 100, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+            int new_brightness = map(b, 0, 100, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+            if (abs(new_brightness - brightness_target) > HYSTERESIS) {
+                brightness_target = new_brightness;
+            }
+            if (brightness_target > brightness) {
+                brightness += 1;
+            } else if (brightness_target < brightness) {
+                brightness -= 1;
+            }
             #ifdef PRINTF_DEBUGGER
                 Serial.printf("setting brightness to %d\n", brightness);
             #endif
