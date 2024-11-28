@@ -37,7 +37,7 @@ class Chef {
     private:
         int last_hh, last_mm;
         String chef_time;
-        int mode;
+        int chaos_mode;
         WobblyTimer *chaotic_timer;
         int font[12][5] = {
             // 0
@@ -115,7 +115,7 @@ class Chef {
             };
 
 
-        // maybe returns an updated value for mode
+        // maybe returns an updated value for chaos_mode
         // 50%: normal
         // 25%: overflow
         // 15%: ampm
@@ -136,20 +136,20 @@ class Chef {
                     return MODE_FRACTIONAL;
                 }
             }
-            return mode;
+            return chaos_mode;
         } // int be_chaotic(wTime)
 
 
-        // increments mode
+        // increments chaos_mode
         int beChaos(String param) {
-            mode = (mode+1) % MODE_MAX;
+           chaos_mode = (chaos_mode+1) % MODE_MAX;
             last_mm = -1;
-            return mode;
+            return chaos_mode;
         }
 
 
     public:
-        Chef() : last_hh(-1), last_mm(-1), mode(MODE_NORMAL) {
+        Chef() : last_hh(-1), last_mm(-1), chaos_mode(MODE_NORMAL) {
           chef_time = "00:00";
           // 1-7 days
           chaotic_timer = new WobblyTimer(24*60*60*1000, 7*24*60*60*1000); 
@@ -323,10 +323,10 @@ class Chef {
                 clear_dots(food);
                 if (mm == 0 
                     && chaotic_timer->isExpired()) {
-                    mode = be_chaotic(wTime);
+                   chaos_mode = be_chaotic(wTime);
                 }
 
-                switch (mode) {
+                switch (chaos_mode) {
                     case MODE_AMPM:
                         cook_ampm(food, wTime);
                         break;
