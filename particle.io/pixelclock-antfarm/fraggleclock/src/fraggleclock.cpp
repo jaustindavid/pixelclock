@@ -110,6 +110,7 @@ SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
 SimpleTimer every50(100);
 SimpleTimer second(1000);
 SimpleTimer minute(60*1000);
+SimpleTimer hourly(60*60*1000);
 SimpleTimer daily(24*60*60*1000);
 Dot* food[MAX_DOTS];
 Dot* sandbox[MAX_DOTS];
@@ -160,9 +161,6 @@ void setup_dst() {
     dst.automatic(true);
     dst.check();
 } // setup_dst()
-
-
-
 
 
 
@@ -497,6 +495,7 @@ int toggle_show_weather(String data) {
     return show_weather ? 1:0;
 }
 
+
 /*
  * Weather
  *
@@ -708,6 +707,23 @@ void test_turtle() {
 } // test_turtle()
 
 
+void maybe_reconnect() {
+  if (!Particle.connected()) {
+      WiFi.off();
+      delay(30*1000);
+      WiFi.on(); 
+      delay(30*1000);
+      Particle.connect();
+      delay(10000); // Wait for connection attempt
+  }
+
+  if (Particle.connected()) {
+      Particle.syncTime();
+      dst.check();
+  }
+} // maybe_reconnect()
+
+
 void setup() {
     
     Serial.begin(115200);
@@ -730,7 +746,7 @@ void setup() {
     setup_whatever_mode();
 
     chef.setup();
-    chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
+    chef.cook(food, wTime);
     // cook();
     
     // prefill(food, sandbox);
@@ -744,7 +760,7 @@ void loop() {
     // Log.trace("loop 1");
     if (second.isExpired()) {
         Log.info("free memory: %lu", System.freeMemory());
-        chef.cook(food, wTime.hour(), wTime.minute(), wTime.metric());
+        chef.cook(food, wTime);
         // Log.trace("loop s1");
 
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
@@ -754,14 +770,9 @@ void loop() {
         // Log.trace("loop s3; display_brite = %d", display_brite);
         // delay(1000);
     }
-    if (daily.isExpired()) {
+    if (hourly.isExpired()) {
         // Log.trace("loop d1");
-        if (!Particle.connected()) {
-            Particle.connect();
-            delay(10000); // Wait for connection attempt
-            Particle.syncTime();
-            dst.check();
-        }
+        maybe_reconnect();
     }
     
     // Log.trace("loop 2");
