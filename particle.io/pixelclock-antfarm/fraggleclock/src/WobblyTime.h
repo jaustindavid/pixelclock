@@ -30,12 +30,6 @@
  * TODO: add a few particle functions for console interaction
  */
  
-#define CHAOS_NONE     0
-#define CHAOS_AMPM     1
-#define CHAOS_OVERFLOW 2
-#define CHAOS_METRIC   3
-#define NCHAOS         4
-
 
 #undef DEBUG_WT
 
@@ -80,10 +74,6 @@ class WobblyTime {
         int address, MAX_ADVANCE, MIN_ADVANCE, dT, target_offset;
         time_t fakeTime, lastTick, lockout;
         SimpleTimer *tickTimer; 
-        // WobblyTimer *chaotic_timer;
-        bool enableMetricTime, displayMetricTime;
-        int chaos_mode;
-        byte max_chaos;
         int hhmm;
 
         void init(int, int);
@@ -98,9 +88,6 @@ class WobblyTime {
         void read_data();
         void write_data();
         int sync(String);
-        int toggleMetricTime(String);
-        int setMaxChaos(String);
-        // int be_chaotic();
 
     public:
         WobblyTime(int);
@@ -109,50 +96,20 @@ class WobblyTime {
         byte hour();
         byte minute();
         byte second();
-        bool metric();
 };
 
 
 WobblyTime::WobblyTime(int newAddress) {
     address = newAddress;
-    chaos_mode = max_chaos = 0;
-    enableMetricTime = true;
-    displayMetricTime = false;
     read_data();
     dT = rando(MIN_ADVANCE, MAX_ADVANCE);
     target_offset = rando(MIN_ADVANCE, MAX_ADVANCE);
     fakeTime = Time.now() + rando(MIN_ADVANCE, MAX_ADVANCE);
     tickTimer = new SimpleTimer(1000);
-    // chaotic_timer = new WobblyTimer(24*60*60*1000, 7*24*60*60*1000); // 1-7 days
     lockout = lastTick = Time.now();
     hhmm = 0;
     printStatus();
 } // init(min, max)
-
-
-/*
- *   50%: no chaos
- *   25%: AM <-> PM
- *   15%: overflow
- *   rest: metric time
- *
-int WobblyTime::be_chaotic() {
-    // only check at top of hour
-    if (Time.minute() == 0 && chaotic_timer->isExpired()) {
-        int p = random(100);
-        if (p > 50) {
-            return CHAOS_NONE;
-        } else if (p > 25 && max_chaos >= CHAOS_AMPM) {
-            return CHAOS_AMPM;
-        } else if (p > 10 && max_chaos >= CHAOS_OVERFLOW) {
-            return CHAOS_OVERFLOW;
-        } else if (max_chaos >= CHAOS_METRIC) {
-            return CHAOS_METRIC;
-        }
-    }
-    return chaos_mode;
-}
-*/
 
 
 int WobblyTime::setAdvance(String s) {
@@ -164,7 +121,7 @@ int WobblyTime::setAdvance(String s) {
     }
     return dT;
     return fakeTime - Time.now();
-}
+} // int setAdvance(s)
 
 
 // sets a time hh:mm; for debugging,
@@ -188,9 +145,6 @@ void WobblyTime::setup() {
     Particle.function("wt_max_advance", &WobblyTime::setMaxAdvance, this);
     Particle.function("wt_time", &WobblyTime::setTime, this);
     Particle.variable("wt_hhmm", this->hhmm);
-    // Particle.function("wt_sync", &WobblyTime::sync, this);
-    // Particle.function("wt_chaos", &WobblyTime::setMaxChaos, this);
-    // Particle.variable("wt_chaosmode", this->chaos_mode);
 } // setup()
 
 
@@ -253,12 +207,8 @@ void WobblyTime::read_data() {
     if (abs(MAX_ADVANCE) > 3600) {
         MAX_ADVANCE = 300;
     }
-    a += sizeof(MAX_ADVANCE);
-    // EEPROM.get(a, max_chaos);
-    // if (max_chaos < 0 || max_chaos >= NCHAOS) {
-    //     max_chaos = 0;
-    // }
-}
+    // a += sizeof(MAX_ADVANCE);
+} // read_data()
 
 
 void WobblyTime::write_data() {
@@ -267,8 +217,7 @@ void WobblyTime::write_data() {
     a += sizeof(MIN_ADVANCE);
     EEPROM.put(a, MAX_ADVANCE);
     // a += sizeof(MAX_ADVANCE);
-    // EEPROM.put(a, max_chaos);
-}
+} // write_data()
 
 
 int WobblyTime::setMinAdvance(String data) {
@@ -278,7 +227,7 @@ int WobblyTime::setMinAdvance(String data) {
         write_data();
     }
     return MIN_ADVANCE;
-}
+} // int setMinAdvance(data)
 
 
 int WobblyTime::setMaxAdvance(String data) {
@@ -288,19 +237,7 @@ int WobblyTime::setMaxAdvance(String data) {
         write_data();
     }
     return MAX_ADVANCE;
-}
-
-
-/*
-int WobblyTime::setMaxChaos(String s) {
-    long t = s.toInt();
-    if (t) {
-        chaos_mode = max_chaos = t % NCHAOS;
-        write_data();
-    } 
-    return max_chaos;
-} // setMaxChaos
-*/
+} // int setMaxAdvance(data)
 
 
 void WobblyTime::update() {
@@ -308,33 +245,6 @@ void WobblyTime::update() {
     // updateAdvance();
     h = Time.hour(fakeTime);
     m = Time.minute(fakeTime);
-
-    /*
-    chaos_mode = be_chaotic();
-    switch (chaos_mode) {
-        case CHAOS_AMPM:
-            if (h < 12) {
-                h += 12;
-            } else {
-                h -= 12;
-            }
-            break;
-        case CHAOS_OVERFLOW:
-            if (m < 10) {
-                m += 60;
-                if (h>0) {
-                    h -= 1;
-                } else {
-                    h = 23;
-                }
-            }
-            break;
-        case CHAOS_METRIC:
-            m = map(m, 0, 59, 0, 99);
-            break;
-    }
-    */
-
     s = Time.second(fakeTime);
     hhmm = 100 * h + m;
 } // update()
@@ -370,18 +280,11 @@ byte WobblyTime::second() {
 } // byte second()
 
 
-/*
-bool WobblyTime::metric() {
-    return chaos_mode == CHAOS_METRIC;
-}
-*/
-
-
 void WobblyTime::printStatus() {
     Serial.printf("Wobbly Time: %02d:%02d:%02d, delta %llds; actual %02d:%02d:%02d\n", 
                     hour(), minute(), second(),
                     fakeTime - Time.now(), 
                     Time.hour(), Time.minute(), Time.second());
-}
+} // printStatus()
 
 #endif
