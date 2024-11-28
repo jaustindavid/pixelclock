@@ -165,3 +165,5 @@ cython_debug/
 *.swp
 particle.io/pixelclock-antfarm/fraggleclock/src/ow_api.h
 *.txt
+particle.io/pixelclock-antfarm/fraggleclock/t.c
+particle.io/pixelclock-antfarm/fraggleclock/t
