@@ -187,112 +187,11 @@ void make_sandbox() {
 
 /*
  * FRAGGLES
+ * ... actually just simpler Doozers
  *
  */
 
 #define NUMBER_OF_FRAGGLES 2
-
-/*
-void Fmake_fraggles() {
-    #ifdef PRINTF_DEBUGGER
-        Serial.println("Making fraggles");
-    #endif
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        sandbox[i] = new Fraggle();
-    }
-    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
-        sandbox[i] = new Dot();
-    }
-    
-    for (int i = 0; i < MAX_DOTS; i++) {
-        bin[i] = new Dot();
-    }
-    
-    // create the bin in first->last priority order
-    for (int j = MATRIX_Y-2; j >= MATRIX_Y-3; j--) {
-        for (int i = MATRIX_X - 1; i >= 0; i--) {
-            Dot* dot = activate(bin);
-            dot->x = i;
-            dot->y = j;
-        }
-    }
-}
-
-
-void Fmaybe_adjust_one_brick() {
-    Log.trace("maybe adjusting one...");
-    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
-    if (!in(&proxy, sandbox)) {
-        Log.info("adding one");
-        // bin bottom-right is empty; add
-        // print_list(sandbox);
-        Dot* brick = activate(sandbox);
-        brick->set_color(DARKRED);
-        brick->x = proxy.x;
-        brick->y = proxy.y;
-        // print_list(sandbox);
-    }
-    
-    // scan the bin top row; remove any bricks
-    for (int x = 0; x < MATRIX_X; x++) {
-        proxy.x = x;
-        proxy.y = MATRIX_Y - 3;
-        Dot* brick;
-        if ((brick = in(&proxy, sandbox)) && (brick->get_color() == DARKRED)) {
-            Log.info("removing: x=%d", x);
-            deactivate(brick, sandbox);
-        }
-    }
-}
-
-
-void Floop_fraggles() {
-    static SimpleTimer second(1000);
-    if (second.isExpired()) {
-        maybe_adjust_one_brick();
-    }
-    Fraggle *fraggle;
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-      fraggle = (Fraggle*)sandbox[i];
-      fraggle->run(food, sandbox, bin);
-    }
-  }
-
-
-/*
- * DOOZERS
- *
- */
-
-#define NUMBER_OF_DOOZERS 4
-
-void maybe_check_brick_pile(Dot* sandbox[]) {
-    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
-    if (!in(&proxy, sandbox)) {
-        #ifdef PRINTF_DEBUGGER
-            Serial.println("adding one");
-        #endif
-        // print_list(sandbox);
-        Dot* brick = activate(sandbox);
-        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
-        brick->set_color(DARKRED);
-        brick->x = proxy.x;
-        brick->y = proxy.y;
-        // print_list(sandbox);
-    }
-
-    // scan the bin top row; remove any bricks
-    proxy.y = MATRIX_Y - 3;
-    for (int x = 0; x < MATRIX_X; x++) {
-        proxy.x = x;
-        Dot* brick;
-        if ((brick = in(&proxy, sandbox)) && 
-            (brick->get_color() == DARKRED)) {
-            // Serial.printf("removing: x=%d\n", x);
-            deactivate(brick, sandbox);
-        }
-    }
-}
 
 
 void make_fraggles() {
@@ -307,7 +206,7 @@ void make_fraggles() {
     for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
         sandbox[i] = new Dot();
     }
-}
+} // make_fraggles()
 
 
 void loop_fraggles() {
@@ -346,17 +245,58 @@ void loop_fraggles() {
 } // loop_fraggles()
 
 
+/*
+ * DOOZERS
+ *
+ */
+
+#define NUMBER_OF_DOOZERS 4
+
+void maybe_check_brick_pile(Dot* sandbox[]) {
+    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
+    if (!in(&proxy, sandbox)) {
+        #ifdef PRINTF_DEBUGGER
+            Serial.println("adding one");
+        #endif
+        // print_list(sandbox);
+        Dot* brick = activate(sandbox);
+        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
+        brick->set_color(DARKRED);
+        brick->x = proxy.x;
+        brick->y = proxy.y;
+        // print_list(sandbox);
+    }
+
+    // scan the bin top row; remove any bricks
+    proxy.y = MATRIX_Y - 3;
+    for (int x = 0; x < MATRIX_X; x++) {
+        proxy.x = x;
+        Dot* brick;
+        if ((brick = in(&proxy, sandbox)) && 
+            (brick->get_color() == DARKRED)) {
+            // Serial.printf("removing: x=%d\n", x);
+            deactivate(brick, sandbox);
+        }
+    }
+}
+
+
+
 
 void make_doozers() {
     Log.trace("Making doozers");
     Doozer* d;
+    // make NUMBER_OF_DOOZERS Doozer()s
     for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
         sandbox[i] = new Doozer();
         d = (Doozer *)sandbox[i];
         // d->setup();
     }
+    // first one is smarter
     d = (Doozer *)sandbox[0];
     d->set_iq(25);
+
+    // make Dots for the rest
     for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
         if (i < NUMBER_OF_DOOZERS) {
             sandbox[i] = new Doozer();
@@ -366,7 +306,7 @@ void make_doozers() {
             sandbox[i] = new Dot();
         }
     }
-}
+} // loop_fraggles()
 
 
 void loop_doozers() {
@@ -380,7 +320,7 @@ void loop_doozers() {
         Doozer* doozer = (Doozer*)sandbox[i];
         doozer->run(food, sandbox);
     }
-}
+} // loop_doozers()
 
 
   /*
@@ -430,7 +370,7 @@ void loop_doozers() {
       if (EEPROM.read(addy) != show_weather) {
           EEPROM.write(addy, show_weather);
       }
-  }
+  } // write_mode()
 
 
   void read_mode() {
@@ -463,12 +403,13 @@ void loop_doozers() {
     show_food = EEPROM.read(addy);
     addy += sizeof(show_food);
     show_weather = EEPROM.read(addy);
-}
+} // read_mode()
 
 
+// if given 0 or nonsense, just increments
 int toggle_mode(String data) {
     int m = data.toInt();
-    if (m >= 0 && m < 4) {
+    if (m > 0 && m < 4) {
         mode = m;
     } else {
         mode = (mode + 1) % 4;
@@ -479,21 +420,21 @@ int toggle_mode(String data) {
     display.show();
     System.reset();
     return mode;
-}
+} // toggle_mode(s)
 
 
 int toggle_show_food(String data) {
     show_food = !show_food;
     write_mode();
     return show_food ? 1:0;
-}
+} // toggle_show_food(s)
 
 
 int toggle_show_weather(String data) {
     show_weather = !show_weather;
     write_mode();
     return show_weather ? 1:0;
-}
+} // toggle_show_weateher()
 
 
 /*
@@ -503,11 +444,13 @@ int toggle_show_weather(String data) {
 
 float feels_like() {
     return weather.feels_like();
-}
+} // feels_like()
+
 
 int icon() {
     return weather.icon();
-}
+} // icon()
+
 
 // dots at the bottom left (icon), right (feelslike)
 void setup_weather() {
@@ -518,7 +461,7 @@ void setup_weather() {
     weather.setup();
     weatherGFX = new WeatherGFX(&wTime);
     weatherGFX->setup();
-}
+} // setup_weather()
 
 
 void update_weather() {
@@ -549,17 +492,18 @@ void update_weather() {
             icon_dot->set_color(LIGHTBLUE);
     }
     display.paint(icon_dot);
-}
+} // update_weather()
 
 
 /*
  * Luna
  * 
  */
+
 void setup_luna() {
     luna = new Luna(A1, LUNA_ADDY);
     luna->setup();
-}
+} // setup_luna()
 
 
 /*
@@ -577,7 +521,7 @@ int set_backup_ssid(String data) {
     Serial.println(backupSSID);
     storeString(WIFI_ADDY, backupSSID);
     return backupSSID.length();
-}
+} // set_backup_ssid(data)
 
 
 int set_backup_passwd(String data) {
@@ -586,7 +530,7 @@ int set_backup_passwd(String data) {
     Serial.println(backupPasswd);
     storeString(WIFI_ADDY+50, backupPasswd);
     return backupSSID.length();
-}
+} // set_backup_passwd(data)
 
 
 void try_backup_network() {
@@ -600,14 +544,14 @@ void try_backup_network() {
         WiFi.setCredentials(backupSSID, backupPasswd);
         WiFi.connect();
     }
-}
+} // try_backup_network()
 
 
 void setup_wifi() {
     Particle.function("backup_ssid", set_backup_ssid);
     Particle.function("backup_passwd", set_backup_passwd);
     try_backup_network();
-}
+} // setup_wifi()
 
 
 void setup_cloud() {
@@ -617,7 +561,7 @@ void setup_cloud() {
     Particle.variable("show_food", show_food);
     Particle.function("toggle_show_food", toggle_show_food);
     Particle.function("toggle_show_weather", toggle_show_weather);
-}
+} // setup_cloud()
 
 
 void setup_whatever_mode() {
@@ -635,7 +579,7 @@ void setup_whatever_mode() {
         default:
             make_sandbox();
     }
-}
+} // setup_whatever_mode()
 
 
 void loop_whatever_mode() {
