@@ -185,65 +185,6 @@ void make_sandbox() {
 }
 
 
-/*
- * FRAGGLES
- * ... actually just simpler Doozers
- *
- */
-
-#define NUMBER_OF_FRAGGLES 2
-
-
-void make_fraggles() {
-    Log.info("Making fraggles");
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        Log.info("making %d at %lu", i, millis());
-        sandbox[i] = new Doozer();
-        // delay(1000/(NUMBER_OF_FRAGGLES+1));
-        // Doozer* f = (Doozer *)sandbox[i];
-        // f->iq = 0;
-    }
-    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
-        sandbox[i] = new Dot();
-    }
-} // make_fraggles()
-
-
-void loop_fraggles() {
-    // Log.trace("loop_fraggles 0");
-    // delay(1000);
-
-    static SimpleTimer sec(1000);
-
-    // Log.trace("loop_fraggles 1");
-    // delay(1000);
-    if (sec.isExpired()) {
-        // Log.trace("loop_fraggles 2");
-        // delay(1000);
-        maybe_check_brick_pile(sandbox);
-    }
-    // Log.trace("loop_fraggles 3");
-    // delay(1000);
-    
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        // Log.trace("loop_fraggles: i=%d", i);
-        // delay(1000);
-        Doozer* doozer = (Doozer*)sandbox[i];
-        // Log.trace("inner loop_fraggles");
-        // delay(1000);
-        // if (!doozer) {
-        //     Log.trace("doozer/fraggle #%d is nullptr", i);
-        //     continue;
-        // }
-        doozer->run(food, sandbox);
-        // Log.trace("inner loop_fraggles done");
-        // delay(1000);
-    }
-
-    // Log.trace("loop_fraggles out");
-    // delay(1000);
-} // loop_fraggles()
-
 
 /*
  * DOOZERS
@@ -321,6 +262,66 @@ void loop_doozers() {
         doozer->run(food, sandbox);
     }
 } // loop_doozers()
+
+
+/*
+ * FRAGGLES
+ * ... actually just simpler Doozers
+ *
+ */
+
+#define NUMBER_OF_FRAGGLES 2
+
+
+void make_fraggles() {
+    Log.info("Making fraggles");
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        Log.info("making %d at %lu", i, millis());
+        sandbox[i] = new Doozer();
+        // delay(1000/(NUMBER_OF_FRAGGLES+1));
+        // Doozer* f = (Doozer *)sandbox[i];
+        // f->iq = 0;
+    }
+    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
+        sandbox[i] = new Dot();
+    }
+} // make_fraggles()
+
+
+void loop_fraggles() {
+    // Log.trace("loop_fraggles 0");
+    // delay(1000);
+
+    static SimpleTimer sec(1000);
+
+    // Log.trace("loop_fraggles 1");
+    // delay(1000);
+    if (sec.isExpired()) {
+        // Log.trace("loop_fraggles 2");
+        // delay(1000);
+        maybe_check_brick_pile(sandbox);
+    }
+    // Log.trace("loop_fraggles 3");
+    // delay(1000);
+    
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        // Log.trace("loop_fraggles: i=%d", i);
+        // delay(1000);
+        Doozer* doozer = (Doozer*)sandbox[i];
+        // Log.trace("inner loop_fraggles");
+        // delay(1000);
+        // if (!doozer) {
+        //     Log.trace("doozer/fraggle #%d is nullptr", i);
+        //     continue;
+        // }
+        doozer->run(food, sandbox);
+        // Log.trace("inner loop_fraggles done");
+        // delay(1000);
+    }
+
+    // Log.trace("loop_fraggles out");
+    // delay(1000);
+} // loop_fraggles()
 
 
   /*
