@@ -186,13 +186,88 @@ void make_sandbox() {
 
 
 /*
+ * DOOZERS
+ *
+ */
+
+#define NUMBER_OF_DOOZERS 4
+
+void maybe_check_brick_pile(Dot* sandbox[]) {
+    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
+    if (!in(&proxy, sandbox)) {
+        #ifdef PRINTF_DEBUGGER
+            Serial.println("adding one");
+        #endif
+        // print_list(sandbox);
+        Dot* brick = activate(sandbox);
+        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
+        brick->set_color(DARKRED);
+        brick->x = proxy.x;
+        brick->y = proxy.y;
+        // print_list(sandbox);
+    }
+
+    // scan the bin top row; remove any bricks
+    proxy.y = MATRIX_Y - 3;
+    for (int x = 0; x < MATRIX_X; x++) {
+        proxy.x = x;
+        Dot* brick;
+        if ((brick = in(&proxy, sandbox)) && 
+            (brick->get_color() == DARKRED)) {
+            // Serial.printf("removing: x=%d\n", x);
+            deactivate(brick, sandbox);
+        }
+    }
+} // maybe_check_brick_pile(sandbox)
+
+
+void make_doozers() {
+    Log.trace("Making doozers");
+    Doozer* d;
+    // make NUMBER_OF_DOOZERS Doozer()s
+    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
+        sandbox[i] = new Doozer();
+        d = (Doozer *)sandbox[i];
+        // d->setup();
+    }
+    // first one is smarter
+    d = (Doozer *)sandbox[0];
+    d->set_iq(25);
+
+    // make Dots for the rest
+    for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
+        if (i < NUMBER_OF_DOOZERS) {
+            sandbox[i] = new Doozer();
+            sandbox[i]->x = i;
+            sandbox[i]->y = i;
+        } else {
+            sandbox[i] = new Dot();
+        }
+    }
+} // loop_fraggles()
+
+
+void loop_doozers() {
+    static SimpleTimer second(1000);
+    if (second.isExpired()) {
+        // maybe_adjust_one_brick();
+        maybe_check_brick_pile(sandbox);
+    }
+    
+    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
+        Doozer* doozer = (Doozer*)sandbox[i];
+        doozer->run(food, sandbox);
+    }
+} // loop_doozers()
+
+
+/*
  * FRAGGLES
  * ... actually just simpler Doozers
  *
  */
 
 #define NUMBER_OF_FRAGGLES 2
-
 
 void make_fraggles() {
     Log.info("Making fraggles");
@@ -243,84 +318,6 @@ void loop_fraggles() {
     // Log.trace("loop_fraggles out");
     // delay(1000);
 } // loop_fraggles()
-
-
-/*
- * DOOZERS
- *
- */
-
-#define NUMBER_OF_DOOZERS 4
-
-void maybe_check_brick_pile(Dot* sandbox[]) {
-    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
-    if (!in(&proxy, sandbox)) {
-        #ifdef PRINTF_DEBUGGER
-            Serial.println("adding one");
-        #endif
-        // print_list(sandbox);
-        Dot* brick = activate(sandbox);
-        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
-        brick->set_color(DARKRED);
-        brick->x = proxy.x;
-        brick->y = proxy.y;
-        // print_list(sandbox);
-    }
-
-    // scan the bin top row; remove any bricks
-    proxy.y = MATRIX_Y - 3;
-    for (int x = 0; x < MATRIX_X; x++) {
-        proxy.x = x;
-        Dot* brick;
-        if ((brick = in(&proxy, sandbox)) && 
-            (brick->get_color() == DARKRED)) {
-            // Serial.printf("removing: x=%d\n", x);
-            deactivate(brick, sandbox);
-        }
-    }
-}
-
-
-
-
-void make_doozers() {
-    Log.trace("Making doozers");
-    Doozer* d;
-    // make NUMBER_OF_DOOZERS Doozer()s
-    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
-        sandbox[i] = new Doozer();
-        d = (Doozer *)sandbox[i];
-        // d->setup();
-    }
-    // first one is smarter
-    d = (Doozer *)sandbox[0];
-    d->set_iq(25);
-
-    // make Dots for the rest
-    for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
-        if (i < NUMBER_OF_DOOZERS) {
-            sandbox[i] = new Doozer();
-            sandbox[i]->x = i;
-            sandbox[i]->y = i;
-        } else {
-            sandbox[i] = new Dot();
-        }
-    }
-} // loop_fraggles()
-
-
-void loop_doozers() {
-    static SimpleTimer second(1000);
-    if (second.isExpired()) {
-        // maybe_adjust_one_brick();
-        maybe_check_brick_pile(sandbox);
-    }
-    
-    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
-        Doozer* doozer = (Doozer*)sandbox[i];
-        doozer->run(food, sandbox);
-    }
-} // loop_doozers()
 
 
   /*
