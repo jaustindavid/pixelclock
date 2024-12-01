@@ -44,27 +44,43 @@ class WobblyTimer {
         uint32_t _min_interval, _max_interval;
         SimpleTimer *_timer;
         
-        void reset_timer() {
-            uint32_t interval = map(random(100000), 0, 100000, _min_interval, _max_interval);
-            Particle.publish("wobblytimer", String::format("interval: %5.2f h", interval/(3600*1000)));
-            _timer->setInterval(interval); 
-            _timer->reset();
-        }
-        
+
 
     public:
+
         WobblyTimer(uint32_t min_interval, uint32_t max_interval) {
+            _min_interval = min_interval;
+            _max_interval = max_interval;
             _timer = new SimpleTimer(99);
-            reset_timer();
-        }
+            reset();
+        } // constructor
         
+
         bool isExpired() {
             if (_timer->isExpired()) {
-                reset_timer();
+                reset();
                 return true;
             }
             return false;
-        }
+        } // bool isExpired()
+        
+
+        void reset() {
+            uint32_t interval = map(random(100000), 
+                                    0, 100000, 
+                                    _min_interval, _max_interval);
+            Particle.publish("wobblytimer", 
+                             String::format("interval: %ld", interval));
+            _timer->setInterval(interval); 
+            _timer->reset();
+        } // reset()
+        
+
+        void publish() {
+            Particle.publish("wobblytimer", 
+                String::format("min: %ld, max: %ld", 
+                               _min_interval, _max_interval));
+        } // publish()
 }; 
 
 
