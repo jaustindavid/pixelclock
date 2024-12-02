@@ -57,7 +57,7 @@ class Pinger {
                 graph[GRAPH_MAX]->set_color(Adafruit_NeoPixel::Color(r, g, 0));
             }
            //  Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
-        }
+        } // update_graph()
         
         
     public:
@@ -74,30 +74,39 @@ class Pinger {
                     graph[i]->active = false;
                 }
             }
-        }
+        } // Pinger()
 
 
         ~Pinger() {
             delete ping_timer;
-        }
+        } // ~Pinger()
         
+
+        void loop() {
+            if (ping_timer->isExpired()) {
+                // Serial.println("pinger: updating graph");
+                // Serial.printf("graph: [%d,%d]\n", GRAPH_MIN, GRAPH_MAX);
+                update_graph();
+            }
+        } // loop()
+
         
         // return a graph of ping data
         Dot** pings() {
-            // Serial.println("getting pings");
-            if (ping_timer->isExpired()) {
+            Serial.println("getting pings");
+            if (false && ping_timer->isExpired()) {
                 // Serial.println("pinger: updating graph");
                 // Serial.printf("graph: [%d,%d]\n", GRAPH_MIN, GRAPH_MAX);
                 update_graph();
             }
             
             return &graph[GRAPH_MIN];
-        }
+        } // Dot** pings()
 
 
         int npings() {
             return GRAPH_MAX - GRAPH_MIN + 1;
-        }
+        } // npings()
 };
 
 #endif

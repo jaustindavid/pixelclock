@@ -461,6 +461,7 @@ class Queen : public Ant {
               patience = 10;
               // Particle.function("fraggle_walls", &Fraggle::toggle_walls, this);
               pacer = new SimpleTimer(FRAGGLE_SPEED);
+              target = nullptr;
           } // Fraggle()
 
 

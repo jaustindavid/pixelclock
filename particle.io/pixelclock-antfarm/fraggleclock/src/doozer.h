@@ -110,10 +110,21 @@ class Doozer: public Turtle {
 
 
         void fetch(Dot* plan[], Dot* sandbox[]) {
+            Log.trace("fetch()");
+            Log.trace("target? %c", target == nullptr ? 'y' : 'n');
+            if(target) {
+              Log.trace("in(target, plan) ? %c", in(target, plan) ? 'y' : 'n');
+              Log.trace("!in(target, sandbox) ? %c", !in(target, sandbox) ? 'y' : 'n');
+              Log.trace("!is_brick(target) ? %c", !is_brick(target) ? 'y' : 'n');
+            }
+            Log.trace("boop");
             if (! target 
                 || in(target, plan) 
                 || !in(target, sandbox) 
                 || !is_brick(target)) {
+                Log.trace("fetch() -> find_loose_brick()");
+                Log.trace("boop");
+
                 target = find_loose_brick(plan, sandbox);
             }
 
@@ -129,7 +140,7 @@ class Doozer: public Turtle {
                 && is_brick(target)) {
                 Log.info("Picking up (%d,%d)", target->x, target->y);
                 pick_up(target, sandbox);
-                print_sandbox(sandbox);
+                // print_sandbox(sandbox);
                 target = nullptr;
                 state = BUILDING;
                 return;
@@ -240,10 +251,10 @@ class Doozer: public Turtle {
             Log.info("dumping...");
             if (! target) {
                 Log.info("before best_bin_location");
-                print_sandbox(sandbox);
+                // print_sandbox(sandbox);
                 target = best_bin_location(sandbox);
                 Log.info("after best_bin_location");
-                print_sandbox(sandbox);
+                // print_sandbox(sandbox);
             }
 
             if (! target) {
@@ -328,6 +339,7 @@ class Doozer: public Turtle {
             step_timer->setInterval(WALK_SPEED);
             rest_timer = new SimpleTimer(REST_SPEED);
             iq = min_iq;
+            target = nullptr;
         }; // constructor
 
 
@@ -350,6 +362,7 @@ class Doozer: public Turtle {
             switch (state) {
               case FETCHING:
                 color = GREEN;
+                Log.trace("fetching");
                 fetch(plan, sandbox);
                 break;
               case BUILDING:

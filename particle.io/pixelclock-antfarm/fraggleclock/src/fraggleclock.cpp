@@ -17,9 +17,9 @@ SYSTEM_THREAD(ENABLED);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-// SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+ SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 // SerialLogHandler logHandler(LOG_LEVEL_INFO);
-SerialLogHandler logHandler(LOG_LEVEL_WARN);
+// SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock
@@ -256,8 +256,12 @@ void loop_doozers() {
     
     for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
         Doozer* doozer = (Doozer*)sandbox[i];
+        Log.trace("doozer run()");
         doozer->run(food, sandbox);
+        Log.trace("doozer ran()");
     }
+
+    Log.trace("loop_doozers end");
 } // loop_doozers()
 
 
@@ -669,7 +673,7 @@ void setup() {
     Serial.begin(115200);
 
     #ifdef PRINTF_DEBUGGER
-        waitFor(Serial.isConnected, 30000);
+        waitFor(Serial.isConnected, 40000);
         Serial.println("Beginning display.init()");
     #endif
 
@@ -699,23 +703,23 @@ void setup() {
 void loop() {
     // Log.trace("loop 1");
     if (second.isExpired()) {
-        Log.info("free memory: %lu", System.freeMemory());
+        Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
-        // Log.trace("loop s1");
+        Log.trace("loop s1");
 
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
         luna_brite = luna->get_brightness();
-        // Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
+        Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
         display_brite = display.set_brightness(luna_brite);
-        // Log.trace("loop s3; display_brite = %d", display_brite);
+        Log.trace("loop s3; display_brite = %d", display_brite);
         // delay(1000);
     }
     if (hourly.isExpired()) {
-        // Log.trace("loop d1");
+        Log.trace("loop d1");
         maybe_reconnect();
     }
     
-    // Log.trace("loop 2");
+    Log.trace("loop 2");
     // delay(1000);
     // Particle.publish("beep"); 
     // delay(10000);
@@ -727,11 +731,13 @@ void loop() {
     
     // Log.trace("loop 4");
     // delay(1000);
+
     if (show_weather) {
         update_weather();
         weatherGFX->run(weather.icon_str);
         display.render(weatherGFX->peers);
     }
+    
     if (show_food) {
         display.render(food);
     }

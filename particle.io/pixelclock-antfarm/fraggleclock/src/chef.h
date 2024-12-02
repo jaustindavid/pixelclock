@@ -322,6 +322,7 @@ class Chef {
             // right shift by 1/2: ss += 3600/(2*denominator);
             // right-shift by 1
             int numerator = (60*mm + ss)*denominator/3600 + 1;
+            // numerator = map(mm, 0, 59, 1, denominator);
             int denom = denominator;
 
             /*
@@ -363,7 +364,7 @@ class Chef {
             }
 
             Particle.publish("chaos test", s);
-        }
+        } // test_chaos
 
 
     /*
@@ -420,8 +421,8 @@ class Chef {
                  chaos_mode(MODE_NORMAL) {
           chef_time = "00:00";
           // 1-7 days
-          // chaotic_timer = new WobblyTimer(24*60*60*1000, 7*24*60*60*1000); 
-          chaotic_timer = new WobblyTimer(1*60*1000, 5*60*1000); 
+          chaotic_timer = new WobblyTimer(24*60*60*1000, 7*24*60*60*1000); 
+          // chaotic_timer = new WobblyTimer(1*60*1000, 5*60*1000); 
           mode_tracker = reset_tracker();
         };
         

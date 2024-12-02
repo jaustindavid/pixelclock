@@ -143,7 +143,7 @@ class Turtle: public Fraggle {
                     if (distances[x][y] < 99) {
                         Serial.printf(" %02d ", distances[x][y]);
                     } else {
-                        Serial.printf(" __ ");
+                        Serial.printf(" ,, ");
                     }
                 }
                 Serial.println();
@@ -262,14 +262,16 @@ class Turtle: public Fraggle {
                 radius ++;
             }
 
+            #if DEBUG_LEVEL > 2
             print_distances(distances);
+            #endif
 
             if (visited[spot->x][spot->y]) {
                 Dot cursor = Dot(spot->x, spot->y, BLACK);
                 while (distances[cursor.x][cursor.y] > 1) {
                     if (! step_home(&cursor, distances)) {
                         Log.info("no path home; deferring to Ant::");
-                        print_sandbox(sandbox);
+                        // print_sandbox(sandbox);
                         return Ant::move_toward(spot, sandbox);
                     }
                     Log.info("backtrace: (%d,%d), d=%d", 
@@ -283,7 +285,7 @@ class Turtle: public Fraggle {
             } 
 
             Log.info("dest not visited; deferring to Ant::");
-            print_sandbox(sandbox);
+            // print_sandbox(sandbox);
             return Ant::move_toward(spot, sandbox);
         } // walk_toward(target, sandbox)
 

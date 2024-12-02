@@ -91,8 +91,15 @@ void deactivate(Dot* needle, Dot* haystack[]) {
 
 // true (ptr) if needle is active in haystack
 Dot* in(Dot* needle, Dot* haystack[]) {
+    if (! needle) {
+      return nullptr;
+      Log.trace("in(needle, haystack) called with nullptr, wth");
+    }
+    Log.trace("checking in(needle, haystack)");
     for (int i = 0; i < MAX_DOTS; i++) {
-        if (haystack[i]->active) {
+        if (haystack[i] == nullptr) {
+            Log.trace("haystack[%d] == nullptr?", i);
+        } else if (haystack[i]->active) {
             if (needle == haystack[i]
                 || needle->equals(haystack[i])) {
                 return haystack[i];
