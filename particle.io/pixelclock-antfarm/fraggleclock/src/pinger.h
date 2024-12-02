@@ -93,8 +93,8 @@ class Pinger {
         
         // return a graph of ping data
         Dot** pings() {
-            Serial.println("getting pings");
-            if (false && ping_timer->isExpired()) {
+            Log.trace("getting pings");
+            if (ping_timer->isExpired()) {
                 // Serial.println("pinger: updating graph");
                 // Serial.printf("graph: [%d,%d]\n", GRAPH_MIN, GRAPH_MAX);
                 update_graph();
