@@ -166,6 +166,16 @@ class WeatherGFX {
         WobblyTime* wTime;
         
 
+        void setMode(int newMode) {
+            mode = newMode;
+            for (int i = 0; i < 8; i++) {
+                WeatherBug* bug = (WeatherBug*)peers[i];
+                bug->setMode(newMode);
+                bug->y = i;
+            }
+        }
+
+
         void update(String icon) {
             icon_s = icon;
             int i = icon_s.toInt();
@@ -192,7 +202,7 @@ class WeatherGFX {
         
     public:
         Dot* peers[MAX_DOTS];
-        int mode = LIGHTNING_MODE;
+        int mode;
         int icon_i;
         char icon_c;
         
@@ -201,21 +211,22 @@ class WeatherGFX {
             for (int i = 0; i < 8; i++) {
                 peers[i] = new WeatherBug(peers, wTime);
                 WeatherBug* bug = (WeatherBug*)peers[i];
-                bug->setMode(LIGHTNING_MODE);
             }
             for (int i = 8; i < MAX_DOTS; i++) {
                 peers[i] = new Dot();
             }
             icon_i = 1;
             icon_c = 'd';
-        }
+            setMode(SUNNY_MODE);
+        } // WeatherGFX()
         
         
         void setup() {
             // Particle.function("gfx_mode", &WeatherGFX::updateMode, this);
             Particle.variable("gfx_icon", this->icon_s);
             Particle.variable("gfx_mode", this->mode);
-        }
+            Particle.variable("gfx_i", this->icon_i);
+        } // setup()
 
 /*
         int updateMode(String data) {
@@ -224,15 +235,6 @@ class WeatherGFX {
             return mode;
         }
 */
-
-        void setMode(int newMode) {
-            mode = newMode;
-            for (int i = 0; i < 8; i++) {
-                WeatherBug* bug = (WeatherBug*)peers[i];
-                bug->setMode(newMode);
-                bug->y = i;
-            }
-        }
         
         
         void run(String icon) {

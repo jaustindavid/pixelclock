@@ -121,6 +121,7 @@ Dot* icon_dot;
 
 bool show_food;
 bool show_weather;
+bool reboot_me = false; // used for a mode switch
 
 
 WobblyTime wTime(WT_ADDY);
@@ -190,7 +191,7 @@ void make_sandbox() {
  *
  */
 
-#define NUMBER_OF_DOOZERS 4
+#define NUMBER_OF_DOOZERS 3
 
 void maybe_check_brick_pile(Dot* sandbox[]) {
     Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
@@ -417,11 +418,20 @@ int toggle_mode(String data) {
     }
     write_mode();
     read_mode();
-    display.clear();
-    display.show();
-    System.reset();
+    reboot_me = true;
     return mode;
 } // toggle_mode(s)
+
+
+// waits 5s, then reboots
+void maybe_reboot() {
+    if (reboot_me) {
+      delay(5000);
+      display.clear();
+      display.show();
+      System.reset();
+    }
+} // maybe_reboot()
 
 
 int toggle_show_food(String data) {
@@ -746,5 +756,6 @@ void loop() {
     // first few things in the sandbox are always cursors
     // display.render(sandbox, 5);
     display.show(show_timer);
+    maybe_reboot();
     Log.info("loop finished @ %ld", millis());
 } // loop()

@@ -126,7 +126,7 @@ class Chef {
 
         // true if s secs have elapsed since reset of t
         bool elapsed(tracker t, int s) {
-            return s < (millis() - t)/1000;
+            return s < (int)((millis() - t)/1000);
         } // bool elapsed(s, t)
 
 

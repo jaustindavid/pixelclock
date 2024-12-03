@@ -46,6 +46,11 @@ class OpenWeather {
             http.get(request, response, headers);
             Serial.print("Application>\tResponse status: ");
             Serial.println(response.status);
+            Particle.publish("openweather",
+                String::format("%d: http://%s%s", 
+                        response.status,
+                        request.hostname.c_str(), 
+                        request.path.c_str()));
             unsigned long elapsed = millis() - start;
             Serial.printf("%ld ms\n", elapsed);
         
@@ -63,6 +68,8 @@ class OpenWeather {
             if (error) {
                 Serial.print(F("deserializeJson() failed: "));
                 Serial.println(error.c_str());
+                Particle.publish("openweather", 
+                    String::format("Error: %s", error.c_str()));
                 return;
             }
         
@@ -71,6 +78,9 @@ class OpenWeather {
             icon_str = String((const char *)doc["weather"][0]["icon"]);
             _icon = icon_str.toInt();
             Serial.printf("feels like %5.2f, icon: %s=>%d\n", _feels_like_temp, icon_str.c_str(), _icon);
+            Particle.publish("openweather", 
+                String::format("feels like %5.2f, icon: %s=>%d\n", 
+                        _feels_like_temp, icon_str.c_str(), _icon));
             last_update = millis();
         }
         
