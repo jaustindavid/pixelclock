@@ -72,6 +72,9 @@
 #define POOL_TARGET 2 // sandbox index for a pool node
 #define POOL_COLOR (Adafruit_NeoPixel::Color(32, 32, 192))
 
+#define TRASH_X 0
+#define TRASH_Y 14
+
 class Raccoon: public Turtle {
   private:
     Dot* target;
@@ -207,22 +210,37 @@ class Raccoon: public Turtle {
       // are there any DIRTY dots
       int i = pick_any(sandbox, DIRTY_COLOR);
       if (i != -1) {
-        Log.info("found some dirty; cleaning\n", i);
+        Log.info("found some dirty; cleaning");
         start_cleaning(plan, sandbox);
         return;
       }
 
+
       // are there any MISSING dots
       i = pick_closeish_open(plan, sandbox);
       if (i != -1) {
-        Log.info("found %d missing; washing\n", i);
-        start_washing(plan, sandbox);
+        // Log.info("found %d missing; washing\n", i);
+        // start_washing(plan, sandbox);
+        Log.info("found %d missing; refilling trash\n", i);
+        refill_trash(sandbox);
+        // it will get cleaned on the next loop
       }
 
       if (rest_timer->isExpired()) {
         wander(sandbox);
       }
     } // rest(plan, sandbox)
+
+
+    // refill the trash "pile" as needed
+    void refill_trash(Dot* sandbox[]) {
+      if (!in(TRASH_X, TRASH_Y, sandbox)) {
+        Dot* trash = activate(sandbox);
+        trash->set_color(DIRTY_COLOR);
+        trash->x = TRASH_X;
+        trash->y = TRASH_Y;
+      }
+    } // refill_trash(sandbox)
 
 
   public:
@@ -304,6 +322,9 @@ class Raccoon: public Turtle {
 }; // class Raccoon
 
 
+
+
+  // update any not-in-plan dots as "dirty"
   void dirty_all_the_things(Dot* plan[], Dot* sandbox[]) {
     for (int i = NRACCOONS+2; i < MAX_DOTS; i++) {
       // if a thing is active and not in the plan, mark it dirty
@@ -314,4 +335,35 @@ class Raccoon: public Turtle {
     }
   } // dirty_all_the_things(sandbox, plan)
 
+
+  void make_raccoons(Dot* sandbox[]) {
+    sandbox[0] = new Raccoon();
+    // pool, for washing
+    sandbox[1] = new Dot(14, 14, POOL_COLOR);
+    sandbox[1]->active = true;
+    sandbox[2] = new Dot(15, 14, POOL_COLOR);
+    sandbox[2]->active = true;
+    // trashcan, which always has ... trash
+    sandbox[3] = new Dot(0, 14, DIRTY_COLOR);
+    sandbox[3]->active = true;
+    sandbox[4] = new Dot(1, 14, DIRTY_COLOR);
+    sandbox[4]->active = true;
+    for (int i = NRACCOONS + 4; i < MAX_DOTS; i++) {
+      if (i < NRACCOONS) {
+      } else {
+        sandbox[i] = new Dot();
+      }
+    }
+  } // make_raccoons()
+
+
+  void loop_raccoons(Dot* plan[], Dot* sandbox[]) {
+    // in raccoon mode, food-not-in-plan is "dirty"
+    dirty_all_the_things(plan, sandbox);
+
+    for (int i = 0; i < NRACCOONS; i++) {
+      Raccoon* raccoon = (Raccoon*)sandbox[i];
+      raccoon->run(plan, sandbox);
+    }
+  } // loop_raccoons()
 #endif

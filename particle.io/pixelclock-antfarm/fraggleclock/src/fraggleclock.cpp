@@ -363,7 +363,7 @@ void loop_fraggles() {
    */
 
 
-  void make_raccoons(Dot* sandbox[]) {
+  void Fmake_raccoons(Dot* sandbox[]) {
     for (int i = 0; i < MAX_DOTS; i++) {
       if (i < NRACCOONS) {
         sandbox[i] = new Raccoon();
@@ -382,7 +382,7 @@ void loop_fraggles() {
   } // make_raccoons()
  
   
-  void loop_raccoons() {
+  void Floop_raccoons(Dot* plan[], Dot* sandbox[]) {
     // in raccoon mode, food-not-in-plan is "dirty"
     dirty_all_the_things(food, sandbox);
 
@@ -654,7 +654,7 @@ void loop_whatever_mode() {
             loop_doozers();
             break;
         case RACCOON_MODE:
-            loop_raccoons();
+            loop_raccoons(food, sandbox);
             break;
         default:
             Ant* ant;
