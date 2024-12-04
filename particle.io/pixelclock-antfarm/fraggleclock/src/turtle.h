@@ -215,6 +215,26 @@ class Turtle: public Fraggle {
         } // step_home(cursor, distances)
 
 
+        // move cursor one step closer to 0, but ... shuffle
+        bool shuffle_home(Dot* cursor, byte distances[16][16]) {
+          int i, j, k;
+          for (k = 0; k < 5; k++) {
+            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
+                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+                    if (distances[i][j] < distances[cursor->x][cursor->y]
+                        && P(25)) {
+                        cursor->x = i;
+                        cursor->y = j;
+                        return true;
+                    }
+                }
+            }
+          }
+          Log.error("no path found shuffling home...");
+          return false;
+        } // shuffle_home(cursor, distances)
+
+
     public:
         byte iq = 25;
 
@@ -270,7 +290,7 @@ class Turtle: public Fraggle {
             if (visited[spot->x][spot->y]) {
                 Dot cursor = Dot(spot->x, spot->y, BLACK);
                 while (distances[cursor.x][cursor.y] > 1) {
-                    if (! step_home(&cursor, distances)) {
+                    if (! shuffle_home(&cursor, distances)) {
                         Log.info("no path home; deferring to Ant::");
                         // print_sandbox(sandbox);
                         return Ant::move_toward(spot, sandbox);
@@ -290,7 +310,7 @@ class Turtle: public Fraggle {
             // Log.info("dest not visited; deferring to Ant::");
             // print_sandbox(sandbox);
             return Ant::move_toward(spot, sandbox);
-        } // walk_toward(target, sandbox)
+        } // move_toward(target, sandbox)
 
 
         Turtle() : Fraggle() {
