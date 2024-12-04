@@ -133,6 +133,8 @@ class Raccoon: public Turtle {
         // swish around a lil
         if (swish == 0 || (millis() - swish > 150)) {
           x = (x == 14 ? 15 : 14);
+          y = 13; // just snap to the right place... 
+                  // in case we walked in low
           swish = millis();
         }
       }
