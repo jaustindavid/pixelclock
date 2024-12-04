@@ -219,7 +219,9 @@ class Raccoon: public Turtle {
         start_washing(plan, sandbox);
       }
 
-      wander(sandbox);
+      if (rest_timer->isExpired()) {
+        wander(sandbox);
+      }
     } // rest(plan, sandbox)
 
 
