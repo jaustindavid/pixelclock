@@ -223,11 +223,12 @@ class Turtle: public Fraggle {
         bool move_toward(Dot* spot, 
                          Dot* sandbox[],
                          bool junk = true) override {
-            Log.info("moving (%d,%d) -> (%d,%d), iq=%d",
-                     x, y, spot->x, spot->y, iq);
+            
+            // Log.trace("moving (%d,%d) -> (%d,%d), iq=%d",
+            //         x, y, spot->x, spot->y, iq);
 
             if (adjacent(spot)) {
-                Log.info("shotcut, jumping to adjacent target");
+                // Log.info("shotcut, jumping to adjacent target");
                 x = spot->x;
                 y = spot->y;
                 return true;
@@ -238,7 +239,7 @@ class Turtle: public Fraggle {
             Dot cursor;
             byte radius;
 
-            Log.trace("initializaing distances");
+            // Log.trace("initializaing distances");
             for (i = 0; i < 16; i++) {
                 for (j = 0; j < 16; j++) {
                     distances[i][j] = 99;
@@ -274,17 +275,19 @@ class Turtle: public Fraggle {
                         // print_sandbox(sandbox);
                         return Ant::move_toward(spot, sandbox);
                     }
+                    /*
                     Log.info("backtrace: (%d,%d), d=%d", 
                              cursor.x, cursor.y, 
                              distances[cursor.x][cursor.y]);
+                    */
                 }
                 x = cursor.x;
                 y = cursor.y;
-                Log.info("Path found!!! (%d,%d)", x, y);
+                // Log.info("Path found!!! (%d,%d)", x, y);
                 return true;
             } 
 
-            Log.info("dest not visited; deferring to Ant::");
+            // Log.info("dest not visited; deferring to Ant::");
             // print_sandbox(sandbox);
             return Ant::move_toward(spot, sandbox);
         } // walk_toward(target, sandbox)

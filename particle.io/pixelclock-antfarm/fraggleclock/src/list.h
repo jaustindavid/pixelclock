@@ -95,7 +95,7 @@ Dot* in(Dot* needle, Dot* haystack[]) {
       return nullptr;
       Log.trace("in(needle, haystack) called with nullptr, wth");
     }
-    Log.trace("checking in(needle, haystack)");
+    // Log.trace("checking in(needle, haystack)");
     for (int i = 0; i < MAX_DOTS; i++) {
         if (haystack[i] == nullptr) {
             Log.trace("haystack[%d] == nullptr?", i);

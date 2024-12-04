@@ -32,6 +32,8 @@
 #define MODE_FRACTIONAL 4
 #define MODE_MAX        5  // for incrementing
 
+#define FOOD_COLOR DARKGREEN
+
 
 class Chef {
     private:
@@ -196,11 +198,10 @@ class Chef {
                         #ifdef PRINTF_DEBUGGER
                             Serial.printf("found pixel at (%d,%d)\n", 3-x, y);
                         #endif
-                        // food->add(new Dot(3-x+dx, y+dy, GREEN));
                         Dot* dot = activate(food);
                         dot->x = 3-x+dx;
                         dot->y = y+dy;
-                        dot->color = GREEN;
+                        dot->color = FOOD_COLOR;
                     }
                 }
             }

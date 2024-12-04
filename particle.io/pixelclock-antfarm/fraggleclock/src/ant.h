@@ -88,7 +88,8 @@ class Ant : public Dot {
         
         // got this from Bard ~ 50/50 [edit: less, the first pass was bad]
         // find a nearby "needle" of target_color in a cell which is not occupied in "sandbox"
-        int pick_closeish_open(Dot* needle[], Dot* haystack[], color_t target_color) {
+        int pick_closeish_open(Dot* needle[], Dot* haystack[], 
+                                color_t target_color) {
             // 1. find open food
             bool open[MAX_DOTS];
             // Serial.print("open needles: ");

@@ -17,7 +17,7 @@ class Pinger {
         // each ping() call does one timed ping, returns latency (ms) or -1
         int ping() {
             // static byte strength = 0;
-            Serial.println("Pinging out...");
+            Log.warn("Pinging out...");
             static IPAddress innernet(8,8,8,8);
             unsigned long start = millis();
             if (!Particle.connected()) {
@@ -26,11 +26,11 @@ class Pinger {
             byte n = WiFi.ping(innernet, 1);
             
             if (n == 0) {
-                Serial.println("failed");
+                Log.warn("Failed");
                 return -1;
             } else {
                 int duration = (millis() - start);
-                Serial.printf("Success; duration = %d ms\n", duration);
+                Log.warn("Success; duration = %d ms\n", duration);
                 return duration;
             }
         } // ping()
@@ -93,7 +93,7 @@ class Pinger {
         
         // return a graph of ping data
         Dot** pings() {
-            Log.trace("getting pings");
+            // Log.trace("getting pings");
             if (ping_timer->isExpired()) {
                 // Serial.println("pinger: updating graph");
                 // Serial.printf("graph: [%d,%d]\n", GRAPH_MIN, GRAPH_MAX);

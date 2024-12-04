@@ -17,9 +17,9 @@ SYSTEM_THREAD(ENABLED);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-// SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 // SerialLogHandler logHandler(LOG_LEVEL_INFO);
-SerialLogHandler logHandler(LOG_LEVEL_WARN);
+// SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock
@@ -72,6 +72,7 @@ DST dst;
 #include "ant.h"
 #include "turtle.h"
 #include "doozer.h"
+#include "raccoon.h"
 #include "gfx.h"
 #include "list.h"
 #include "chef.h"
@@ -97,6 +98,8 @@ int Dot::next_id = 0;
 #define FRAGGLE_MODE 1
 #define TURTLE_MODE 2
 #define DOOZER_MODE 3
+#define RACCOON_MODE 4
+#define MAX_MODE 5
 
 uint8_t mode = ANT_MODE;
 // mode = TURTLE_MODE;
@@ -104,7 +107,7 @@ uint8_t mode = ANT_MODE;
 
 String mode_name = "Ant";
 
-#define FPS 5
+#define FPS 20
 // SimpleTimer every50(1000/10); // 10 FPS  
 SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
 SimpleTimer every50(100);
@@ -353,6 +356,43 @@ void loop_fraggles() {
       }
   }
 
+
+  /*
+   * RACCOONS
+   *
+   */
+
+
+  void make_raccoons(Dot* sandbox[]) {
+    for (int i = 0; i < MAX_DOTS; i++) {
+      if (i < NRACCOONS) {
+        sandbox[i] = new Raccoon();
+      } else {
+        sandbox[i] = new Dot();
+      }
+    }
+    sandbox[1]->active = true;
+    sandbox[1]->set_color(POOL_COLOR);
+    sandbox[1]->x = 14;
+    sandbox[1]->y = 14;
+    sandbox[2]->active = true;
+    sandbox[2]->set_color(POOL_COLOR);
+    sandbox[2]->x = 15;
+    sandbox[2]->y = 14;
+  } // make_raccoons()
+ 
+  
+  void loop_raccoons() {
+    // in raccoon mode, food-not-in-plan is "dirty"
+    dirty_all_the_things(food, sandbox);
+
+    for (int i = 0; i < NRACCOONS; i++) {
+      Raccoon* raccoon = (Raccoon*)sandbox[i];
+      raccoon->run(food, sandbox);
+    }
+  } // loop_raccoons()
+
+
   /*
    * EEPROM - burned "mode" Ants vs. Fraggles
    *
@@ -378,7 +418,7 @@ void loop_fraggles() {
   void read_mode() {
     int addy = CORE_ADDY;
     uint8_t data = EEPROM.read(addy);
-    if (data > 3) {
+    if (data >= MAX_MODE) {
         // Serial.printf("Invalid data in EEPROM: 0x%02x; re-writing 'mode'\n", data);
         mode = ANT_MODE;
         write_mode();
@@ -394,6 +434,9 @@ void loop_fraggles() {
             break;
         case FRAGGLE_MODE:
             mode_name = "Fraggle";
+            break;
+        case RACCOON_MODE:
+            mode_name = "Raccoon";
             break;
         default:
             mode_name = "Ant";
@@ -411,10 +454,10 @@ void loop_fraggles() {
 // if given 0 or nonsense, just increments
 int toggle_mode(String data) {
     int m = data.toInt();
-    if (m > 0 && m < 4) {
+    if (m > 0 && m < MAX_MODE) {
         mode = m;
     } else {
-        mode = (mode + 1) % 4;
+        mode = (mode + 1) % MAX_MODE;
     }
     write_mode();
     read_mode();
@@ -587,6 +630,9 @@ void setup_whatever_mode() {
         case DOOZER_MODE:
             make_doozers();
             break;
+        case RACCOON_MODE:
+            make_raccoons(sandbox);
+            break;
         default:
             make_sandbox();
     }
@@ -606,6 +652,9 @@ void loop_whatever_mode() {
             break;
         case DOOZER_MODE:
             loop_doozers();
+            break;
+        case RACCOON_MODE:
+            loop_raccoons();
             break;
         default:
             Ant* ant;
@@ -711,7 +760,6 @@ void setup() {
 
 
 void loop() {
-    // Log.trace("loop 1");
     if (second.isExpired()) {
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
@@ -729,19 +777,11 @@ void loop() {
         maybe_reconnect();
     }
     
-    Log.trace("loop 2");
-    // delay(1000);
-    // Particle.publish("beep"); 
-    // delay(10000);
+    // Log.trace("loop 2");
     loop_whatever_mode();
     
-    // Log.trace("loop 3");
-    // delay(1000);
     display.clear();
     
-    // Log.trace("loop 4");
-    // delay(1000);
-
     if (show_weather) {
         update_weather();
         weatherGFX->run(weather.icon_str);
@@ -757,5 +797,5 @@ void loop() {
     // display.render(sandbox, 5);
     display.show(show_timer);
     maybe_reboot();
-    Log.info("loop finished @ %ld", millis());
+    // Log.trace("loop finished @ %ld", millis());
 } // loop()
