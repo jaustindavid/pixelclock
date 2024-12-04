@@ -218,6 +218,8 @@ class Raccoon: public Turtle {
         Log.info("found %d missing; washing\n", i);
         start_washing(plan, sandbox);
       }
+
+      wander(sandbox);
     } // rest(plan, sandbox)
 
 
