@@ -62,7 +62,7 @@
 
 #define NRACCOONS 1
 
-#define WALK_SPEED  250 // ms per step
+#define WALK_SPEED  400 // ms per step
 #define REST_SPEED 1000 // ms per step
 #define DUNK_SPEED 1500 // ms per dunking
 
@@ -75,12 +75,46 @@
 #define TRASH_X 0
 #define TRASH_Y 14
 
+
+class Stopwatch {
+  private:
+    uint32_t counter;
+    uint32_t start_ms;
+
+  public:
+    Stopwatch() {
+      reset();
+    } // Stopwatch()
+
+    void reset() {
+      start_ms = 0;
+      counter = 0;
+    } // reset()
+
+    void start() {
+      start_ms = millis();
+    }  // start()
+
+    void stop() {
+      if (start_ms) {
+        counter += (millis() - start_ms);
+        start_ms = 0;
+      }
+    } // stop()
+
+    uint32_t read() {
+      return counter;
+    }
+};
+
+
 class Raccoon: public Turtle {
   private:
     Dot* target;
     SimpleTimer *rest_timer;
     SimpleTimer *dunk_timer;
     uint32_t swish;
+    Stopwatch rest_counter, run_counter;
 
 
     // returns a dot of target_color, or -1
@@ -245,6 +279,32 @@ class Raccoon: public Turtle {
     } // refill_trash(sandbox)
 
 
+    void post(String message) {
+      static unsigned long last_post = 0;
+      if (millis() - last_post > 30000) {
+        Particle.publish("raccoon", message);
+        last_post = millis();
+      }
+    } // post(message)
+
+
+    void report(int &n_runs, int &n_rests) {
+      static uint32_t last_reported = 0;
+      uint32_t elapsed = millis() - last_reported;
+      if (elapsed > 300*1000) {
+        last_reported = millis();
+        double duty_cycle = 100.0*n_runs/(n_rests+n_runs);
+        Particle.publish("raccoon", String::format(
+              "Running: %d (%5.2f/s), Resting: %d (%5.2f/s), Duty %5.2f%%", 
+              n_runs, 1000.0*n_runs/elapsed, 
+              n_rests,1000.0*n_rests/elapsed, 
+              duty_cycle));
+        n_runs = 0;
+        n_rests = 0;
+      }
+    } // report(n_runs, n_rests)
+
+
   public:
     Raccoon() : Turtle() {
       color = DARKWHITE;
@@ -258,14 +318,6 @@ class Raccoon: public Turtle {
     }
 
     
-    void post(String message) {
-      static unsigned long last_post = 0;
-      if (millis() - last_post > 30000) {
-        Particle.publish("raccoon", message);
-        last_post = millis();
-      }
-    } // post(message)
-
 
     void report_state() {
       static int prev_state = 9;
@@ -297,6 +349,7 @@ class Raccoon: public Turtle {
 
 
     void run(Dot* plan[], Dot* sandbox[]) override {
+      static int n_runs = 0, n_rests = 0;
       if (! step_timer->isExpired()) {
 	      return;
       }
@@ -305,21 +358,28 @@ class Raccoon: public Turtle {
 
       switch (state) {
         case WASHING:
+          n_runs ++;
           wash(plan, sandbox);
           break;
         case DUNKING:
+          n_runs ++;
           dunk(plan, sandbox);
           break;
         case PLACING:
+          n_runs ++;
           place(plan, sandbox);
           break;
         case CLEANING:
+          n_runs ++;
           clean(plan, sandbox);
           break;
         case RESTING:
         default:
+          n_rests ++;
           rest(plan, sandbox);
       }
+
+      report(n_runs, n_rests);
     } // run(plan, sandbox)
 }; // class Raccoon
 

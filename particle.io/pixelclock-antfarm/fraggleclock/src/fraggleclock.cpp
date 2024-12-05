@@ -107,7 +107,9 @@ uint8_t mode = ANT_MODE;
 
 String mode_name = "Ant";
 
-#define FPS 20
+#ifndef FPS
+  #define FPS 20
+#endif
 // SimpleTimer every50(1000/10); // 10 FPS  
 SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
 SimpleTimer every50(100);

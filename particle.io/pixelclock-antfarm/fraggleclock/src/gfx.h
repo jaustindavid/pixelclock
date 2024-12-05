@@ -210,7 +210,7 @@ class WeatherGFX {
             wTime = _wTime;
             for (int i = 0; i < 8; i++) {
                 peers[i] = new WeatherBug(peers, wTime);
-                WeatherBug* bug = (WeatherBug*)peers[i];
+                // WeatherBug* bug = (WeatherBug*)peers[i];
             }
             for (int i = 8; i < MAX_DOTS; i++) {
                 peers[i] = new Dot();
