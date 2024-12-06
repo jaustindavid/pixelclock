@@ -60,6 +60,7 @@ SerialLogHandler logHandler(LOG_LEVEL_TRACE);
  */
 
 
+#include "Particle.h"
 #include <particle-dst.h>
 DST dst;
 
@@ -86,7 +87,13 @@ DST dst;
 #define PRINTF_DEBUGGER
 
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
-#define PIXEL_PIN D0
+#if (PLATFORM_ID == 32)
+  #define PIXEL_PIN SPI
+  #define FPS 5
+#else // #if (PLATFORM_ID == 32)
+  #define PIXEL_PIN D0
+#endif
+
 #define PIXEL_COUNT (MATRIX_X * MATRIX_Y)
 #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel neopixels(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
@@ -768,10 +775,15 @@ void loop() {
         Log.trace("loop s1");
 
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
-        luna_brite = luna->get_brightness();
-        Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
-        display_brite = display.set_brightness(luna_brite);
-        Log.trace("loop s3; display_brite = %d", display_brite);
+
+        #if (PLATFORM_ID == 32)
+          display_brite = display.set_brightness(16);
+        #else
+          luna_brite = luna->get_brightness();
+          Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
+          display_brite = display.set_brightness(luna_brite);
+          Log.trace("loop s3; display_brite = %d", display_brite);
+        #endif
         // delay(1000);
     }
     if (hourly.isExpired()) {
