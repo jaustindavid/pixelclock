@@ -86,14 +86,20 @@ DST dst;
 
 #define PRINTF_DEBUGGER
 
-// IMPORTANT: Set pixel COUNT, PIN and TYPE
-#if (PLATFORM_ID == 32)
+
+#define PHOTON2 32
+
+#if (PLATFORM_ID == PHOTON2)
   #define PIXEL_PIN SPI
-  #define FPS 5
-#else // #if (PLATFORM_ID == 32)
+#else // 
   #define PIXEL_PIN D0
 #endif
 
+#define CDS_POWER  A0
+#define CDS_SENSE  A1
+#define CDS_GROUND A2
+
+// IMPORTANT: Set pixel COUNT, PIN and TYPE
 #define PIXEL_COUNT (MATRIX_X * MATRIX_Y)
 #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel neopixels(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
@@ -199,86 +205,6 @@ void make_sandbox() {
 
 
 /*
- * DOOZERS
- *
- */
-
-#define NUMBER_OF_DOOZERS 3
-
-void maybe_check_brick_pile(Dot* sandbox[]) {
-    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
-    if (!in(&proxy, sandbox)) {
-        #ifdef PRINTF_DEBUGGER
-            Serial.println("adding one");
-        #endif
-        // print_list(sandbox);
-        Dot* brick = activate(sandbox);
-        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
-        brick->set_color(DARKRED);
-        brick->x = proxy.x;
-        brick->y = proxy.y;
-        // print_list(sandbox);
-    }
-
-    // scan the bin top row; remove any bricks
-    proxy.y = MATRIX_Y - 3;
-    for (int x = 0; x < MATRIX_X; x++) {
-        proxy.x = x;
-        Dot* brick;
-        if ((brick = in(&proxy, sandbox)) && 
-            (brick->get_color() == DARKRED)) {
-            // Serial.printf("removing: x=%d\n", x);
-            deactivate(brick, sandbox);
-        }
-    }
-} // maybe_check_brick_pile(sandbox)
-
-
-void make_doozers() {
-    Log.trace("Making doozers");
-    Doozer* d;
-    // make NUMBER_OF_DOOZERS Doozer()s
-    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
-        sandbox[i] = new Doozer();
-        d = (Doozer *)sandbox[i];
-        // d->setup();
-    }
-    // first one is smarter
-    d = (Doozer *)sandbox[0];
-    d->set_iq(25);
-
-    // make Dots for the rest
-    for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
-        if (i < NUMBER_OF_DOOZERS) {
-            sandbox[i] = new Doozer();
-            sandbox[i]->x = i;
-            sandbox[i]->y = i;
-        } else {
-            sandbox[i] = new Dot();
-        }
-    }
-} // loop_fraggles()
-
-
-void loop_doozers() {
-    static SimpleTimer second(1000);
-    if (second.isExpired()) {
-        // maybe_adjust_one_brick();
-        maybe_check_brick_pile(sandbox);
-    }
-    
-    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
-        Doozer* doozer = (Doozer*)sandbox[i];
-        Log.trace("doozer run()");
-        doozer->run(food, sandbox);
-        Log.trace("doozer ran()");
-    }
-
-    Log.trace("loop_doozers end");
-} // loop_doozers()
-
-
-/*
  * FRAGGLES
  * ... actually just simpler Doozers
  *
@@ -286,7 +212,7 @@ void loop_doozers() {
 
 #define NUMBER_OF_FRAGGLES 2
 
-void make_fraggles() {
+void Fmake_fraggles() {
     Log.info("Making fraggles");
     for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
         Log.info("making %d at %lu", i, millis());
@@ -301,7 +227,7 @@ void make_fraggles() {
 } // make_fraggles()
 
 
-void loop_fraggles() {
+void Floop_fraggles() {
     // Log.trace("loop_fraggles 0");
     // delay(1000);
 
@@ -336,70 +262,6 @@ void loop_fraggles() {
     // delay(1000);
 } // loop_fraggles()
 
-
-  /*
-   * TURTLE(s)
-   *
-   */
-
-  #define NTURTLES 1
-
-  void setup_turtles() {
-      #ifdef PRINTF_DEBUGGER
-          Serial.println("Making turtle(s)");
-      #endif
-      for (int i = 0; i < MAX_DOTS; i++) {
-          if (i < NTURTLES) {
-              sandbox[i] = new Turtle();
-          } else {
-              sandbox[i] = new Dot();
-          }
-      }
-  }
-
-
-  void loop_turtles() {
-      for (int i = 0; i < NTURTLES; i++) {
-          Turtle* turtle = (Turtle*)sandbox[i];
-          turtle->run(food, sandbox);
-      }
-  }
-
-
-  /*
-   * RACCOONS
-   *
-   */
-
-
-  void Fmake_raccoons(Dot* sandbox[]) {
-    for (int i = 0; i < MAX_DOTS; i++) {
-      if (i < NRACCOONS) {
-        sandbox[i] = new Raccoon();
-      } else {
-        sandbox[i] = new Dot();
-      }
-    }
-    sandbox[1]->active = true;
-    sandbox[1]->set_color(POOL_COLOR);
-    sandbox[1]->x = 14;
-    sandbox[1]->y = 14;
-    sandbox[2]->active = true;
-    sandbox[2]->set_color(POOL_COLOR);
-    sandbox[2]->x = 15;
-    sandbox[2]->y = 14;
-  } // make_raccoons()
- 
-  
-  void Floop_raccoons(Dot* plan[], Dot* sandbox[]) {
-    // in raccoon mode, food-not-in-plan is "dirty"
-    dirty_all_the_things(food, sandbox);
-
-    for (int i = 0; i < NRACCOONS; i++) {
-      Raccoon* raccoon = (Raccoon*)sandbox[i];
-      raccoon->run(food, sandbox);
-    }
-  } // loop_raccoons()
 
 
   /*
@@ -564,7 +426,7 @@ void update_weather() {
  */
 
 void setup_luna() {
-    luna = new Luna(A1, LUNA_ADDY);
+    luna = new Luna(CDS_POWER, CDS_SENSE, CDS_GROUND, LUNA_ADDY);
     luna->setup();
 } // setup_luna()
 
@@ -631,13 +493,13 @@ void setup_whatever_mode() {
     make_food();
     switch (mode) {
         case TURTLE_MODE:
-            setup_turtles();
+            setup_turtles(sandbox);
             break;
         case FRAGGLE_MODE:
-            make_fraggles();
+            setup_fraggles(sandbox);
             break;
         case DOOZER_MODE:
-            make_doozers();
+            setup_doozers(sandbox);
             break;
         case RACCOON_MODE:
             make_raccoons(sandbox);
@@ -654,13 +516,13 @@ void loop_whatever_mode() {
     
     switch (mode) {
         case TURTLE_MODE:
-            loop_turtles();
+            loop_turtles(food, sandbox);
             break;
         case FRAGGLE_MODE: 
-            loop_fraggles();
+            loop_fraggles(food, sandbox);
             break;
         case DOOZER_MODE:
-            loop_doozers();
+            loop_doozers(food, sandbox);
             break;
         case RACCOON_MODE:
             loop_raccoons(food, sandbox);
@@ -776,14 +638,10 @@ void loop() {
 
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
 
-        #if (PLATFORM_ID == 32)
-          display_brite = display.set_brightness(16);
-        #else
-          luna_brite = luna->get_brightness();
-          Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
-          display_brite = display.set_brightness(luna_brite);
-          Log.trace("loop s3; display_brite = %d", display_brite);
-        #endif
+        luna_brite = luna->get_brightness();
+        Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
+        display_brite = display.set_brightness(luna_brite);
+        Log.trace("loop s3; display_brite = %d", display_brite);
         // delay(1000);
     }
     if (hourly.isExpired()) {

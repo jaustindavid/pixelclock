@@ -413,4 +413,29 @@ class Turtle: public Fraggle {
 
 };
 
+
+#define NTURTLES 1
+
+void setup_turtles(Dot* sandbox[]) {
+    #ifdef PRINTF_DEBUGGER
+        Serial.println("Making turtle(s)");
+    #endif
+    for (int i = 0; i < MAX_DOTS; i++) {
+        if (i < NTURTLES) {
+            sandbox[i] = new Turtle();
+        } else {
+            sandbox[i] = new Dot();
+        }
+    }
+} // setup_turtles(sandbox)
+
+
+void loop_turtles(Dot* food[], Dot* sandbox[]) {
+    for (int i = 0; i < NTURTLES; i++) {
+        Turtle* turtle = (Turtle*)sandbox[i];
+        turtle->run(food, sandbox);
+    }
+} // loop_turtles(food, sandbox)
+
+
 #endif

@@ -9,8 +9,10 @@
 #define WALK_SPEED  500 // ms per step
 #define REST_SPEED 1000 // ms per step
 
+
 /*
     A Doozer is a hard-workin Turtle
+    A Fraggle is a stupid doozer
    
     if track exists in sandbox but not plan
         state == CLEAN
@@ -392,5 +394,106 @@ class Doozer: public Turtle {
             }
         } // run(plan, sandbox)
 };
+
+
+#define NUMBER_OF_DOOZERS 3
+
+void maybe_check_brick_pile(Dot* sandbox[]) {
+    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
+    if (!in(&proxy, sandbox)) {
+        Log.trace("adding one");
+        // print_list(sandbox);
+        Dot* brick = activate(sandbox);
+        // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
+        brick->set_color(DARKRED);
+        brick->x = proxy.x;
+        brick->y = proxy.y;
+        // print_list(sandbox);
+    }
+
+    // scan the bin top row; remove any bricks
+    proxy.y = MATRIX_Y - 3;
+    for (int x = 0; x < MATRIX_X; x++) {
+        proxy.x = x;
+        Dot* brick;
+        if ((brick = in(&proxy, sandbox)) &&
+            (brick->get_color() == DARKRED)) {
+            // Serial.printf("removing: x=%d\n", x);
+            deactivate(brick, sandbox);
+        }
+    }
+} // maybe_check_brick_pile(sandbox)
+
+
+/*
+ * FRAGGLES
+ * ... actually just simpler Doozers
+ *
+ */
+
+#define NUMBER_OF_FRAGGLES 2
+
+void setup_fraggles(Dot* sandbox[]) {
+    Log.info("Making fraggles");
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        Log.info("making %d at %lu", i, millis());
+        sandbox[i] = new Doozer();
+    }
+    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
+        sandbox[i] = new Dot();
+    }
+} // make_fraggles()
+
+
+void loop_fraggles(Dot* food[], Dot* sandbox[]) {
+    static SimpleTimer sec(1000);
+
+    if (sec.isExpired()) {
+        maybe_check_brick_pile(sandbox);
+    }
+
+    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
+        Doozer* doozer = (Doozer*)sandbox[i];
+        doozer->run(food, sandbox);
+    }
+} // loop_fraggles()
+
+
+void setup_doozers(Dot* sandbox[]) {
+    Log.trace("Making doozers");
+    Doozer* d;
+    // make NUMBER_OF_DOOZERS Doozer()s
+    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
+        sandbox[i] = new Doozer();
+        d = (Doozer *)sandbox[i];
+        // d->setup();
+    }
+    // first one is smarter
+    d = (Doozer *)sandbox[0];
+    d->set_iq(25);
+
+    // make Dots for the rest
+    for (int i = NUMBER_OF_DOOZERS; i < MAX_DOTS; i++) {
+        sandbox[i] = new Dot();
+    }
+} // setup_doozers(sandbox)
+
+
+void loop_doozers(Dot* food[], Dot* sandbox[]) {
+    static SimpleTimer second(1000);
+    if (second.isExpired()) {
+        // maybe_adjust_one_brick();
+        maybe_check_brick_pile(sandbox);
+    }
+
+    for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
+        Doozer* doozer = (Doozer*)sandbox[i];
+        Log.trace("doozer run()");
+        doozer->run(food, sandbox);
+        Log.trace("doozer ran()");
+    }
+
+    Log.trace("loop_doozers end");
+} // loop_doozers()
 
 #endif
