@@ -167,3 +167,4 @@ particle.io/pixelclock-antfarm/fraggleclock/src/ow_api.h
 *.txt
 particle.io/pixelclock-antfarm/fraggleclock/t.c
 particle.io/pixelclock-antfarm/fraggleclock/t
+particle.io/pixelclock-antfarm/fraggleclock/src/aspect.h
