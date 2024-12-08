@@ -349,7 +349,7 @@ class Doozer: public Turtle {
             if (new_iq > 0) {
                 iq = min_iq = new_iq;
             }
-        }
+        } // set_iq(iq)
 
 
         void run(Dot* plan[], Dot* sandbox[]) override {

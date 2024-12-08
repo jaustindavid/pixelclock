@@ -34,6 +34,19 @@
 
 #define FOOD_COLOR DARKGREEN
 
+// top-left of HH and MM sections
+#if (ASPECT_RATIO == SQUARE) 
+  #define HH_X 3
+  #define HH_Y 1
+  #define MM_X HH_X
+  #define MM_Y 8
+#else
+  #define HH_X 5
+  #define HH_Y 1
+  #define MM_X 17
+  #define MM_Y HH_Y
+#endif
+
 
 class Chef {
     private:
@@ -211,10 +224,19 @@ class Chef {
         // H H
         // M M
         void cook_normal(Dot* food[], int hh, int mm) {
-            prepare(food, hh / 10, 3, 1);
-            prepare(food, hh % 10, 9, 1);
-            prepare(food, mm / 10, 3, 8);
-            prepare(food, mm % 10, 9, 8);
+            prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
+            prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
+            prepare(food, mm / 10, MM_X, MM_Y); // 3, 8);
+            prepare(food, mm % 10, MM_X+6, MM_Y); // 9, 8);
+            /*
+            #if (ASPECT_RATIO == SQUARE)
+              prepare(food, mm / 10, 3, 8);
+              prepare(food, mm % 10, 9, 8);
+            #else
+              prepare(food, mm / 10, 19, 1);
+              prepare(food, mm % 10, 25, 1);
+            #endif
+            */
             chef_time = String::format(
                 "wobbly %02d:%02d, actual %02d:%02d",
                 hh, mm, Time.hour(), Time.minute());
@@ -249,23 +271,6 @@ class Chef {
                 hh, mm, Time.hour(), Time.minute());
         } // cook_ampm(food, wTime)
         
-        /*
-        // makes a decimal to the left of normal foods
-        void decimate(Dot* food[], int dx, int dy) {
-            Dot* dot = activate(food);
-            dot->x = dx;  dot->y = dy;
-            dot->color = GREEN;
-            dot = activate(food);
-            dot->x = dx;  dot->y = dy+1;
-            dot->color = GREEN;
-            dot = activate(food);
-            dot->x = dx+1;  dot->y = dy;
-            dot->color = GREEN;
-            dot = activate(food);
-            dot->x = dx+1;  dot->y = dy+1;
-            dot->color = GREEN;
-        }
-        */
 
         //  H H
         //  . M

@@ -62,18 +62,21 @@
 
 #define NRACCOONS 1
 
-#define WALK_SPEED  400 // ms per step
-#define REST_SPEED 1000 // ms per step
-#define DUNK_SPEED 1500 // ms per dunking
+#if (ASPECT_RATIO == SQUARE)
+  #define WALK_SPEED  400 // ms per step
+  #define REST_SPEED 1000 // ms per step
+  #define DUNK_SPEED 1500 // ms per dunking
+#else
+  #define WALK_SPEED  300 // ms per step
+  #define REST_SPEED 1000 // ms per step
+  #define DUNK_SPEED 1250 // ms per dunking
+#endif
 
 #define DIRTY_COLOR (Adafruit_NeoPixel::Color(192, 64, 0))
 #define CLEAN_COLOR GREEN
 
 #define POOL_TARGET 2 // sandbox index for a pool node
 #define POOL_COLOR (Adafruit_NeoPixel::Color(32, 32, 192))
-
-#define TRASH_X 0
-#define TRASH_Y 14
 
 
 class Stopwatch {
@@ -115,6 +118,7 @@ class Raccoon: public Turtle {
     SimpleTimer *dunk_timer;
     uint32_t swish;
     Stopwatch rest_counter, run_counter;
+    int TRASH_X, TRASH_Y;
 
 
     // returns a dot of target_color, or -1
@@ -136,18 +140,24 @@ class Raccoon: public Turtle {
 
     // WASHING: run to the pool, then DUNK
     void wash(Dot* plan[], Dot* sandbox[]) {
-      Log.trace("washing");
+      Log.trace("washing @ (%d,%d)", x, y);
       if (adjacent(sandbox[POOL_TARGET]) 
           || equals(sandbox[POOL_TARGET])) {
+        Log.trace("wash: starting dunk");
         start_dunking(plan, sandbox);
         return;
       } 
 
+
+      Log.trace("washing: tryna move_toward");
       if (move_toward(sandbox[POOL_TARGET], sandbox)) {
+        Log.trace("washing: moved! now @ (%d,%d)", x, y);
         return;
       }
 
+      Log.trace("washing: move failed :( still @ (%d,%d)", x, y);
       wander(sandbox);
+      Log.trace("washing: done, now at @ (%d,%d)", x, y);
     } // wash(plan, sandbox)
 
 
@@ -166,9 +176,11 @@ class Raccoon: public Turtle {
       } else {
         // swish around a lil
         if (swish == 0 || (millis() - swish > 150)) {
-          x = (x == 14 ? 15 : 14);
-          y = 13; // just snap to the right place... 
-                  // in case we walked in low
+          x = (x == MATRIX_X-2 ? MATRIX_X-1 : MATRIX_X-2);
+          #if (ASPECT_RATIO == SQUARE)
+            y = 13; // just snap to the right place... 
+                    // in case we walked in low
+          #endif
           swish = millis();
         }
       }
@@ -226,6 +238,7 @@ class Raccoon: public Turtle {
       }
 
       Dot* target = sandbox[target_i];
+      Log.trace("brick[%d]: (%d,%d)", target_i, target->x, target->y);
       if (adjacent(target)) {
         Log.trace("brick (%d,%d): horkt", target->x, target->y);
         pick_up(target, sandbox);
@@ -275,6 +288,7 @@ class Raccoon: public Turtle {
         trash->set_color(DIRTY_COLOR);
         trash->x = TRASH_X;
         trash->y = TRASH_Y;
+        Log.trace("Trash(%d,%d): refilled", trash->x, trash->y);
       }
     } // refill_trash(sandbox)
 
@@ -306,8 +320,10 @@ class Raccoon: public Turtle {
 
 
   public:
+
     Raccoon() : Turtle() {
-      color = DARKWHITE;
+      color = // DARKWHITE;
+       (Adafruit_NeoPixel::Color(65, 65, 65));
       state = RESTING;
       step_timer->setInterval(WALK_SPEED/2);
       rest_timer = new SimpleTimer(REST_SPEED);
@@ -315,7 +331,14 @@ class Raccoon: public Turtle {
       Log.info("creating racc at %lu", millis());
       target = nullptr;
       target_i = -1;
-    }
+      TRASH_X = 0;
+      #if (ASPECT_RATIO == SQUARE) 
+        TRASH_Y = MATRIX_Y - 2;
+      #else
+        TRASH_Y = MATRIX_Y - 1;
+      #endif
+      Log.info("Raccoon; trash@(%d,%d)", TRASH_X, TRASH_Y);
+    } // Raccoon()
 
     
 
@@ -350,6 +373,7 @@ class Raccoon: public Turtle {
 
     void run(Dot* plan[], Dot* sandbox[]) override {
       static int n_runs = 0, n_rests = 0;
+      Log.trace(">>>>>>>>>> R@(%d,%d) <<<<<<<<<<", x, y);
       if (! step_timer->isExpired()) {
 	      return;
       }
@@ -401,14 +425,20 @@ class Raccoon: public Turtle {
   void make_raccoons(Dot* sandbox[]) {
     sandbox[0] = new Raccoon();
     // pool, for washing
-    sandbox[1] = new Dot(14, 14, POOL_COLOR);
+    #if (ASPECT_RATIO == SQUARE)
+      sandbox[1] = new Dot(14, 14, POOL_COLOR);
+      sandbox[2] = new Dot(15, 14, POOL_COLOR);
+      sandbox[3] = new Dot(0, 14, DIRTY_COLOR);
+      sandbox[4] = new Dot(1, 14, DIRTY_COLOR);
+    #else
+      sandbox[1] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
+      sandbox[2] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
+      sandbox[3] = new Dot(0, MATRIX_Y-1, DIRTY_COLOR);
+      sandbox[4] = new Dot(1, MATRIX_Y-1, DIRTY_COLOR);
+    #endif
     sandbox[1]->active = true;
-    sandbox[2] = new Dot(15, 14, POOL_COLOR);
     sandbox[2]->active = true;
-    // trashcan, which always has ... trash
-    sandbox[3] = new Dot(0, 14, DIRTY_COLOR);
     sandbox[3]->active = true;
-    sandbox[4] = new Dot(1, 14, DIRTY_COLOR);
     sandbox[4]->active = true;
     for (int i = NRACCOONS + 4; i < MAX_DOTS; i++) {
       if (i < NRACCOONS) {

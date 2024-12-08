@@ -71,10 +71,10 @@ class Turtle: public Fraggle {
 
 
         // find the lowest value in distances[][] around (xp, yp)
-        byte min_distance(byte xp, byte yp, byte distances[16][16]) {
+        byte min_distance(byte xp, byte yp, byte distances[MATRIX_X][MATRIX_Y]) {
             byte r = 99;
-            for (int i = max(xp - 1, 0); i <= min(xp + 1, 15); i++) {
-                for (int j = max(yp - 1, 0); j <= min(yp + 1, 15); j++) {
+            for (int i = max(xp - 1, 0); i <= min(xp + 1, MATRIX_X-1); i++) {
+                for (int j = max(yp - 1, 0); j <= min(yp + 1, MATRIX_Y-1); j++) {
                     r = min(r, distances[i][j]);
                     #if DEBUG_LEVEL > 3
                     Log.info("peeking (%d,%d); r=%d", i, j, r);
@@ -88,10 +88,12 @@ class Turtle: public Fraggle {
         // mark the distances adjacent to cursor
         void mark_adjacent(Dot *cursor, 
                            Dot* sandbox[50], 
-                           byte distances[16][16]) {
+                           byte distances[MATRIX_X][MATRIX_Y]) {
             byte i, j;
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+            for (i = max(cursor->x - 1, 0); 
+                 i <= min(cursor->x + 1, MATRIX_X-1); i++) {
+                for (j = max(cursor->y - 1, 0); 
+                     j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
                     #if DEBUG_LEVEL > 3
                     Log.info("marking adjacent: (%d,%d)", i, j);
                     #endif
@@ -113,11 +115,13 @@ class Turtle: public Fraggle {
         // if possible, move cursor to an adjacent spot 
         // which has a distance, but not yet visited
         bool nearby_unvisited(Dot *cursor, 
-                              byte distances[16][16], 
-                              bool visited[16][16]) {
+                              byte distances[MATRIX_X][MATRIX_Y], 
+                              bool visited[MATRIX_X][MATRIX_Y]) {
             int i, j;
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+            for (i = max(cursor->x - 1, 0); 
+                 i <= min(cursor->x + 1, MATRIX_X-1); i++) {
+                for (j = max(cursor->y - 1, 0); 
+                     j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
                     if (!visited[i][j] && distances[i][j] < 99) {
                         cursor->x = i;
                         cursor->y = j;
@@ -137,9 +141,9 @@ class Turtle: public Fraggle {
 
 
         // print the distances[][] matrix
-        void print_distances(byte distances[16][16]) {
-            for (int y = 0; y < 16; y++) {
-                for (int x = 0; x < 16; x++) {
+        void print_distances(byte distances[MATRIX_X][MATRIX_Y]) {
+            for (int y = 0; y < MATRIX_X; y++) {
+                for (int x = 0; x < MATRIX_Y; x++) {
                     if (distances[x][y] < 99) {
                         Serial.printf(" %02d ", distances[x][y]);
                     } else {
@@ -152,8 +156,8 @@ class Turtle: public Fraggle {
 
 
         void print_sandbox(Dot* sandbox[]) {
-            for (int y = 0; y < 16; y++) {
-                for (int x = 0; x < 16; x++) {
+            for (int y = 0; y < MATRIX_X; y++) {
+                for (int x = 0; x < MATRIX_Y; x++) {
                     Serial.printf(in(x, y, sandbox) ? " ## " : " __ ");
                 }
                 Serial.println();
@@ -163,8 +167,8 @@ class Turtle: public Fraggle {
 
         void visit_cells(byte radius, 
                          Dot* sandbox[],
-                         bool visited[16][16],
-                         byte distances[16][16]) {
+                         bool visited[MATRIX_X][MATRIX_Y],
+                         byte distances[MATRIX_X][MATRIX_Y]) {
             #if DEBUG_LEVEL > 3
             Log.info("visiting (%d,%d), r=%d", x, y, radius);
             #endif
@@ -198,10 +202,12 @@ class Turtle: public Fraggle {
 
 
         // move cursor one step closer to 0
-        bool step_home(Dot* cursor, byte distances[16][16]) {
+        bool step_home(Dot* cursor, byte distances[MATRIX_X][MATRIX_Y]) {
             int i, j;
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+            for (i = max(cursor->x - 1, 0); 
+                 i <= min(cursor->x + 1, MATRIX_X-1); i++) {
+                for (j = max(cursor->y - 1, 0); 
+                     j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
                     if (distances[i][j] < distances[cursor->x][cursor->y]) {
                         cursor->x = i;
                         cursor->y = j;
@@ -216,11 +222,13 @@ class Turtle: public Fraggle {
 
 
         // move cursor one step closer to 0, but ... shuffle
-        bool shuffle_home(Dot* cursor, byte distances[16][16]) {
+        bool shuffle_home(Dot* cursor, byte distances[MATRIX_X][MATRIX_Y]) {
           int i, j, k;
           for (k = 0; k < 5; k++) {
-            for (i = max(cursor->x - 1, 0); i <= min(cursor->x + 1, 15); i++) {
-                for (j = max(cursor->y - 1, 0); j <= min(cursor->y + 1, 15); j++) {
+            for (i = max(cursor->x - 1, 0); 
+                 i <= min(cursor->x + 1, MATRIX_X-1); i++) {
+                for (j = max(cursor->y - 1, 0); 
+                     j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
                     if (distances[i][j] < distances[cursor->x][cursor->y]
                         && P(25)) {
                         cursor->x = i;
@@ -236,13 +244,14 @@ class Turtle: public Fraggle {
 
 
     public:
-        byte iq = 25;
+        byte iq;
 
 
         // take one step toward the spot, while avoiding everything in sandbox
         bool move_toward(Dot* spot, 
                          Dot* sandbox[],
                          bool junk = true) override {
+          SimpleTimer move_budget(250); // max time allowed to find a move
             
             // Log.trace("moving (%d,%d) -> (%d,%d), iq=%d",
             //         x, y, spot->x, spot->y, iq);
@@ -253,15 +262,15 @@ class Turtle: public Fraggle {
                 y = spot->y;
                 return true;
             }
-            byte distances[16][16];
-            bool visited[16][16];
+            byte distances[MATRIX_X][MATRIX_Y];
+            bool visited[MATRIX_X][MATRIX_Y];
             int i, j;
             Dot cursor;
             byte radius;
 
             // Log.trace("initializaing distances");
-            for (i = 0; i < 16; i++) {
-                for (j = 0; j < 16; j++) {
+            for (i = 0; i < MATRIX_X; i++) {
+                for (j = 0; j < MATRIX_Y; j++) {
                     distances[i][j] = 99;
                     visited[i][j] = false;
                 }
@@ -272,9 +281,9 @@ class Turtle: public Fraggle {
             cursor.y = y;
 
             radius = 1;
-            while (radius < iq) {
+            while (radius < iq && ! move_budget.isExpired()) {
                 #if DEBUG_LEVEL > 2
-                Log.info("Checking radius=%d", radius);
+                Log.trace("Checking radius=%d", radius);
                 #endif
                 visit_cells(radius, sandbox, visited, distances);
                 #if DEBUG_LEVEL > 3
@@ -290,8 +299,9 @@ class Turtle: public Fraggle {
             if (visited[spot->x][spot->y]) {
                 Dot cursor = Dot(spot->x, spot->y, BLACK);
                 while (distances[cursor.x][cursor.y] > 1) {
-                    if (! shuffle_home(&cursor, distances)) {
-                        Log.info("no path home; deferring to Ant::");
+                    if (! shuffle_home(&cursor, distances)
+                        || move_budget.isExpired()) {
+                        Log.trace("no path home; deferring to Ant::");
                         // print_sandbox(sandbox);
                         return Ant::move_toward(spot, sandbox);
                     }
@@ -307,7 +317,7 @@ class Turtle: public Fraggle {
                 return true;
             } 
 
-            // Log.info("dest not visited; deferring to Ant::");
+            Log.trace("dest not visited; deferring to Ant::");
             // print_sandbox(sandbox);
             return Ant::move_toward(spot, sandbox);
         } // move_toward(target, sandbox)
@@ -316,7 +326,8 @@ class Turtle: public Fraggle {
         Turtle() : Fraggle() {
             color = GREEN;
             step_timer = new SimpleTimer(TURTLE_SPEED);
-        };
+            iq = MAX_IQ;
+        }
 
         
         void build(Dot* plan[], Dot* sandbox[]) {

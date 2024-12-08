@@ -26,7 +26,7 @@
 
 class Display {
     private:
-        color_t fg[MATRIX_X*MATRIX_Y], bg[MATRIX_X*MATRIX_Y];
+        color_t fg[PIXEL_COUNT], bg[PIXEL_COUNT];
         Adafruit_NeoPixel *neopixels;
         int brightness, brightness_target;
 
@@ -47,7 +47,25 @@ class Display {
     public:
         Display(Adafruit_NeoPixel *new_neopixels) {
             neopixels = new_neopixels;
-        }
+        } // Display(neopixels)
+
+
+        void test_forever() {
+          Dot dot;
+          dot.color = WHITE;
+          for (int x = 0; x < MATRIX_X; x++) {
+            for (int y = 0; y < MATRIX_Y; y++) {
+              dot.x = x; dot.y = y;
+              int i = txlate(&dot);
+              Log.trace("(%d,%d)->%d", x, y, i);
+              neopixels->setPixelColor(i, WHITE);
+              neopixels->show();
+              delay(1000);
+              neopixels->clear();
+              neopixels->show();
+            }
+          }
+        } // test_forever()
 
 
         void setup(void) {
@@ -56,7 +74,7 @@ class Display {
             memset(fg, 0, sizeof(fg));
             clear();
             Particle.variable("display_brightness", this->brightness);
-        }
+        } // setup()
         
         
         #define HYSTERESIS 2
@@ -75,38 +93,38 @@ class Display {
             #endif
             neopixels->setBrightness(brightness);
             return brightness;
-        }
+        } // set_brightness(b)
         
         
         void paint(int i, color_t color) {
             // neopixels->setPixelColor(i, color);
             fg[i] = color;
-        }
+        } // paint(i, color)
 
 
         void paint(Dot* dot) {
             paint(txlate(dot), dot->color);
-        }
+        } // paint(dot)
         
         
         void unpaint(Dot* dot) {
             paint(txlate(dot), BLACK);
-        }
+        } // unpaint(dot)
 
 
         void clear() {
             memcpy(bg, fg, sizeof(fg));
             memset(fg, 0, sizeof(fg));
             neopixels->clear();
-        }
+        } // clear()
         
 
         void show() {
-            for (int i = 0; i < MATRIX_X * MATRIX_Y; i++) {
+            for (int i = 0; i < PIXEL_COUNT; i++) {
                 neopixels->setPixelColor(i, fg[i]);
             }
             neopixels->show();
-        }
+        } // show()
         
         
         color_t wavrgb(color_t a, int weight_a, color_t b, int weight_b) {
@@ -122,21 +140,21 @@ class Display {
                         | (ba*weight_a+bb*weight_b)/(weight_a+weight_b);
             // Serial.printf(" == 0x%06x\n", ret);
             return ret;
-        }
+        } // wavrgb(a, weight, b, weight)
 
         
         // a multi-pass show(), one pass per show_timer
         void show(SimpleTimer* show_timer) {
             for (int w = 1; w < 5; w++) {
                 // unsigned long start = millis();
-                for (int i = 0; i < MATRIX_X * MATRIX_Y; i++) {
+                for (int i = 0; i < PIXEL_COUNT; i++) {
                     neopixels->setPixelColor(i, wavrgb(fg[i], w, bg[i], 5-w));
                 }
                 neopixels->show();
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
                 show_timer->wait();
             }
-        }
+        } // show(timer)
         
         
         // render() writes to the fg[] buffer;
@@ -149,7 +167,7 @@ class Display {
                     paint(dots[cursor]);
                 }
             }
-        }
+        } // render(dots)
         
 
         // renders the first n dots
@@ -162,7 +180,7 @@ class Display {
                     paint(dots[cursor]);
                 }
             }
-        }
-};
+        } // render(dots, n)
+}; // class Display
  
 #endif

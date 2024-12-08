@@ -17,6 +17,7 @@ class Ant : public Dot {
 
         // tries to jump to, or adjacent to, target
         bool jump(Dot* target, Dot* sandbox[]) {
+            Log.warn("JUMPING!!! (%d,%d)", x, y);
             Dot proxy = Dot(target->x, target->y, WHITE);
             int i = 0;
             while (i < 16) {
@@ -24,11 +25,13 @@ class Ant : public Dot {
                     if (!in(&proxy, sandbox)) {
                         x = proxy.x;
                         y = proxy.y;
+                        Log.warn("JUMPED!!! (%d,%d)", x, y);
                         return true;
                     }
                 }
                 i++;
             }
+            Log.warn("jump failed");
             return false;
         }
         

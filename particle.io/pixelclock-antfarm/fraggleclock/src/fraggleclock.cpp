@@ -17,9 +17,9 @@ SYSTEM_THREAD(ENABLED);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+// SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 // SerialLogHandler logHandler(LOG_LEVEL_INFO);
-// SerialLogHandler logHandler(LOG_LEVEL_WARN);
+SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock
@@ -80,7 +80,7 @@ DST dst;
 #include "display.h"
 #include "WobblyTime.h"
 
-#include "pinger.h"
+// #include "pinger.h"
 #include "luna.h"
 #include "open_weather.h"
 
@@ -100,7 +100,7 @@ DST dst;
 #define CDS_GROUND A2
 
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
-#define PIXEL_COUNT (MATRIX_X * MATRIX_Y)
+// #define PIXEL_COUNT 256 // moved to defs.h
 #define PIXEL_TYPE WS2812B
 Adafruit_NeoPixel neopixels(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 Display display(&neopixels);
@@ -121,7 +121,7 @@ uint8_t mode = ANT_MODE;
 String mode_name = "Ant";
 
 #ifndef FPS
-  #define FPS 20
+  #define FPS 5
 #endif
 // SimpleTimer every50(1000/10); // 10 FPS  
 SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
@@ -144,7 +144,7 @@ bool reboot_me = false; // used for a mode switch
 
 WobblyTime wTime(WT_ADDY);
 Chef chef;
-Pinger pinger;
+// Pinger pinger;
 Luna *luna;
 OpenWeather weather(WEATHER_ADDY, 15*60*1000); // 15 minute refresh period
 
@@ -283,6 +283,7 @@ void Floop_fraggles() {
       if (EEPROM.read(addy) != show_weather) {
           EEPROM.write(addy, show_weather);
       }
+      addy += sizeof(show_weather);
   } // write_mode()
 
 
@@ -461,9 +462,9 @@ int set_backup_passwd(String data) {
 void try_backup_network() {
     backupSSID = fetchString(WIFI_ADDY);
     backupPasswd = fetchString(WIFI_ADDY+50);
-    Serial.println("fetched WiFi credentials:");
-    Serial.println(backupSSID);
-    Serial.println(backupPasswd);
+    Log.info("fetched WiFi credentials: %s :: %s",
+                backupSSID.c_str(),
+                backupPasswd.c_str());
     if (! WiFi.ready()) {
         Serial.printf("connecting to WiFi SSID '%s'\n", backupSSID.c_str());
         WiFi.setCredentials(backupSSID, backupPasswd);
@@ -616,6 +617,7 @@ void setup() {
     wTime.setup();
     setup_weather();
     setup_luna();
+    // pinger.setup(MATRIX_X);
 
     setup_whatever_mode();
 
@@ -626,7 +628,7 @@ void setup() {
     // prefill(food, sandbox);
 
     Log.warn("initialization complete; free mem == %ld", System.freeMemory());
-    // test_turtle();
+    //display.test_forever();
 } // setup()
 
 
@@ -634,14 +636,14 @@ void loop() {
     if (second.isExpired()) {
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
-        Log.trace("loop s1");
+        // Log.trace("loop s1");
 
         // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
 
         luna_brite = luna->get_brightness();
-        Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
+        // Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
         display_brite = display.set_brightness(luna_brite);
-        Log.trace("loop s3; display_brite = %d", display_brite);
+        // Log.trace("loop s3; display_brite = %d", display_brite);
         // delay(1000);
     }
     if (hourly.isExpired()) {
@@ -664,10 +666,9 @@ void loop() {
         display.render(food);
     }
     display.render(sandbox);
-    display.render(pinger.pings(), pinger.npings());
+    // display.render(pinger.pings(), pinger.npings());
     // first few things in the sandbox are always cursors
     // display.render(sandbox, 5);
     display.show(show_timer);
     maybe_reboot();
-    // Log.trace("loop finished @ %ld", millis());
 } // loop()
