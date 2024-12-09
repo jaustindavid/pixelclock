@@ -230,7 +230,7 @@ class Turtle: public Fraggle {
                 for (j = max(cursor->y - 1, 0); 
                      j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
                     if (distances[i][j] < distances[cursor->x][cursor->y]
-                        && P(25)) {
+                        && P(35)) {
                         cursor->x = i;
                         cursor->y = j;
                         return true;
@@ -301,7 +301,7 @@ class Turtle: public Fraggle {
                 while (distances[cursor.x][cursor.y] > 1) {
                     if (! shuffle_home(&cursor, distances)
                         || move_budget.isExpired()) {
-                        Log.trace("no path home; deferring to Ant::");
+                        Log.info("no path home; deferring to Ant::");
                         // print_sandbox(sandbox);
                         return Ant::move_toward(spot, sandbox);
                     }
@@ -344,10 +344,12 @@ class Turtle: public Fraggle {
                     state = RESTING;
                 } else {
                     // step_toward(target);
-                    move_toward(target, sandbox);
+                    if (! move_toward(target, sandbox)) {
+                      Log.warn("failed to move toward, in Turtle::build");
+                    }
                 }
             }
-        }
+        } // build(plan, sandbox)
         
 
         void clean(Dot* plan[], Dot* sandbox[]) {
@@ -358,11 +360,13 @@ class Turtle: public Fraggle {
                     deactivate(target_i, sandbox);
                     state = RESTING;
                 } else {
-                    // step_toward(target);
                     move_toward(target, sandbox);
+                    if (! move_toward(target, sandbox)) {
+                      Log.warn("failed to move toward, in Turtle::clean");
+                    }
                 }
             }
-        }
+        } // clean(plan, sandbox)
         
         
         

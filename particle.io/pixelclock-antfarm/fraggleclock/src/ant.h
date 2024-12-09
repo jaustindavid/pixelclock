@@ -178,11 +178,11 @@ class Ant : public Dot {
             }
             Log.info(" (x,x) nm");
             
-            return false;
-            // TODO
+            // we've failed to move; 10% chance of teleportation
             if (P(10)) {
                 return jump(spot, sandbox);
             } 
+            return false;
         }
 
 

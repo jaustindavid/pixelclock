@@ -18,8 +18,8 @@ SYSTEM_THREAD(ENABLED);
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
 // SerialLogHandler logHandler(LOG_LEVEL_TRACE);
-// SerialLogHandler logHandler(LOG_LEVEL_INFO);
-SerialLogHandler logHandler(LOG_LEVEL_WARN);
+SerialLogHandler logHandler(LOG_LEVEL_INFO);
+// SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
 /*
  * A compact implementation of the pixelclock

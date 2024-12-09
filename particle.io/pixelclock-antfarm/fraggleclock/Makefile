@@ -25,3 +25,5 @@ steel_hamster: square
 pixelclock-dev: square
 	particle flash $@
 
+pixelclock-mahogany: square
+	particle flash "pixelclock mahogany"

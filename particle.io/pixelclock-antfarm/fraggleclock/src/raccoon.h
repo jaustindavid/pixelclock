@@ -140,7 +140,7 @@ class Raccoon: public Turtle {
 
     // WASHING: run to the pool, then DUNK
     void wash(Dot* plan[], Dot* sandbox[]) {
-      Log.trace("washing @ (%d,%d)", x, y);
+      Log.info("washing @ (%d,%d)", x, y);
       if (adjacent(sandbox[POOL_TARGET]) 
           || equals(sandbox[POOL_TARGET])) {
         Log.trace("wash: starting dunk");
@@ -170,7 +170,7 @@ class Raccoon: public Turtle {
 
     // DUNKING: just wait a bit
     void dunk(Dot* plan[], Dot* sandbox[]) {
-      Log.trace("dunking");
+      Log.info("dunking");
       if (dunk_timer->isExpired()) {
         start_placing(plan, sandbox);
       } else {
@@ -190,8 +190,8 @@ class Raccoon: public Turtle {
     void start_placing(Dot* plan[], Dot* sandbox[]) {
         target_i = pick_closeish_open(plan, sandbox);
         if (target_i != -1) {
-          Log.trace("Selected [%d] for placement (%d,%d)", target_i, 
-                    plan[target_i]->x, plan[target_i]->y);
+          Log.info("Selected [%d] for placement (%d,%d)", target_i, 
+                   plan[target_i]->x, plan[target_i]->y);
         }
         state = PLACING;
     } // place(plan, sandbox)
@@ -199,12 +199,13 @@ class Raccoon: public Turtle {
 
     // PLACING: put a clean food in the target
     void place(Dot* plan[], Dot* sandbox[]) {
-      Log.trace("placing; target_i = %d", target_i);
       // no target?  rest
       if (target_i == -1) {
         start_resting(plan, sandbox);
         return;
       }
+      Log.info("placing; target_i = %d (%d,%d)", 
+               target_i, plan[target_i]->x, plan[target_i]->y);
 
       Dot* target = plan[target_i];
       if (adjacent(target)) {
@@ -230,12 +231,14 @@ class Raccoon: public Turtle {
 
 
     void clean(Dot* plan[], Dot* sandbox[]) {
-      Log.trace("cleaning; target_i = %d", target_i);
       // no target?  rest
       if (target_i == -1) {
         start_resting(plan, sandbox);
         return;
       }
+
+      Log.info("cleaning; target_i = %d (%d,%d)", 
+               target_i, sandbox[target_i]->x, sandbox[target_i]->y);
 
       Dot* target = sandbox[target_i];
       Log.trace("brick[%d]: (%d,%d)", target_i, target->x, target->y);

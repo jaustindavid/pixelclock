@@ -278,35 +278,17 @@ class Chef {
             int hh = wTime.hour();
             int mm = wTime.minute();
             int m = map(mm, 0, 59, 0, 9);
-            prepare(food, hh / 10, 3, 1);
-            prepare(food, hh % 10, 9, 1);
-            // decimate(food, 5, 11);
-            prepare(food, 10, 4, 9);
-            prepare(food, m, 9, 8);
+
+            prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
+            prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
+            prepare(food, 10, MM_X+1, MM_Y+1);
+            prepare(food, mm % 10, MM_X+6, MM_Y); // 9, 8);
+                                                  //
             chef_time = String::format(
                             "metric %02d.%1d, actual %02d:%02d",
                             hh, m, Time.hour(), Time.minute());
         } // cook_metric(food, wTime)
        
-
-        /*
-        // makes a slash in the middle of M M 
-        void prep_slash(Dot* food[]) {
-            Dot* dot = activate(food);
-            dot->x = 8;  dot->y = 9; 
-            dot->color = GREEN;
-            dot = activate(food);
-            dot->x = 8;  dot->y = 10; 
-            dot->color = GREEN;
-            dot = activate(food);
-            dot->x = 7;  dot->y = 11; 
-            dot->color = GREEN;
-            dot = activate(food);
-            dot->x = 7;  dot->y = 12; 
-            dot->color = GREEN;
-        }
-        */
-
 
         int gcd(int a, int b) {
             if (b == 0) {
@@ -344,12 +326,14 @@ class Chef {
                 denom /= gcd_value;
             }
 
-            prepare(food, hh / 10, 3, 1);
-            prepare(food, hh % 10, 9, 1);
-            prepare(food, numerator, 2, 8);
-            // prep_slash(food);
-            prepare(food, 11, 6, 8);
-            prepare(food, denom, 10, 8);
+            prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
+            prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
+            // prepare(food, mm / 10, MM_X, MM_Y); // 3, 8);
+            // prepare(food, numerator, 2, 8);
+            prepare(food, numerator, MM_X-1, MM_Y); // 3, 8);
+            // prepare(food, mm % 10, MM_X+6, MM_Y); // 9, 8);
+            prepare(food, 11, MM_X+3, MM_Y); // 6, 8
+            prepare(food, denom, MM_X+7, MM_Y);
             chef_time = String::format(
                             "fractional %02d:%1d/%1d, actual %02d:%02d",
                             hh, numerator, denom,
