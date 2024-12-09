@@ -332,8 +332,8 @@ class Chef {
                 denom /= gcd_value;
             }
 
-            prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
-            prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
+            prepare(food, hh / 10, HH_X-1, HH_Y);// 3, 1);
+            prepare(food, hh % 10, HH_X+5, HH_Y); // 9, 1);
             // prepare(food, mm / 10, MM_X, MM_Y); // 3, 8);
             // prepare(food, numerator, 2, 8);
             prepare(food, numerator, MM_X-1, MM_Y); // 3, 8);
