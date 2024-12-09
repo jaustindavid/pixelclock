@@ -19,6 +19,9 @@ local:
 rachel_raccoon: widescreen
 	particle flash $@
 
+roxie_raccoon: widescreen
+	particle flash $@
+
 steel_hamster: square
 	particle flash $@
 

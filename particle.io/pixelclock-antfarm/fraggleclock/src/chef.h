@@ -277,12 +277,18 @@ class Chef {
         void cook_metric(Dot* food[], WobblyTime& wTime) {
             int hh = wTime.hour();
             int mm = wTime.minute();
-            int m = map(mm, 0, 59, 0, 9);
+            int hundredths = map(mm, 0, 59, 0, 99);
+            int m = round(0.1*hundredths);
+
+            if (m == 10) {
+              hh = (hh + 1) % 24;
+              m = 0;
+            }
 
             prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
             prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
-            prepare(food, 10, MM_X+1, MM_Y+1);
-            prepare(food, m, MM_X+6, MM_Y); // 9, 8);
+            prepare(food, 10, MM_X, MM_Y+1);
+            prepare(food, m, MM_X+5, MM_Y); // 9, 8);
                                                   //
             chef_time = String::format(
                             "metric %02d.%1d, actual %02d:%02d",
