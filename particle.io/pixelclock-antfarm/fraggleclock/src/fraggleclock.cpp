@@ -665,10 +665,9 @@ void loop() {
     if (show_food) {
         display.render(food);
     }
-    display.render(sandbox);
+
     display.render(pinger.pings(), pinger.npings());
-    // first few things in the sandbox are always cursors
-    // display.render(sandbox, 5);
+    display.render(sandbox);
     display.show(show_timer);
     maybe_reboot();
 } // loop()

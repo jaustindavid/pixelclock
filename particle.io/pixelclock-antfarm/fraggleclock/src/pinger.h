@@ -7,14 +7,17 @@
 #include "ant.h"
 
 
-#define PINGER_Y (MATRIX_Y-1)
+#define PINGER_X 2            // first spot
+#define PINGER_Y (MATRIX_Y-1) // bottom row
 #if (ASPECT_RATIO == SQUARE)
-  #define PINGER_X 1       // first spot
-  #define PINGER_WIDTH 14  // total width
+  #define PINGER_WIDTH 12  // total width
 #else
-  #define PINGER_X 3       // first spot
-  #define PINGER_WIDTH 26  // total width
+  #define PINGER_WIDTH 28  // total width
 #endif
+
+#define MAX_RGB 96
+#define REDDISH  (Adafruit_NeoPixel::Color(MAX_RGB, 0, 0))
+#define GREENISH (Adafruit_NeoPixel::Color(0, MAX_RGB, 0))
 
 // holds a graph, which is actually a set of dots
 // returns it on request
@@ -52,8 +55,8 @@ class Pinger {
                graph[i]->color = graph[i+1]->color;
             }
             int latency = ping();
-            int r = map(latency, 50, 500, 0, 255);
-            int g = map(latency, 0, 250, 255, 0);
+            int r = map(latency, 50, 500, 0, MAX_RGB);
+            int g = map(latency, 0, 250, MAX_RGB, 0);
 
             /*
             Log.trace("updating i=%d, x=%d, %s\n", 
@@ -63,10 +66,10 @@ class Pinger {
             */
             if (latency == -1 || latency > 500) {
                 // Serial.println("reddenning");
-                graph[PINGER_WIDTH-1]->set_color(RED);
+                graph[PINGER_WIDTH-1]->set_color(REDDISH);
             } else if (latency < 50) {
                 // Serial.println("greenenning");
-                graph[PINGER_WIDTH-1]->set_color(GREEN);
+                graph[PINGER_WIDTH-1]->set_color(GREENISH);
             } else { 
                 graph[PINGER_WIDTH-1]->set_color(
                     Adafruit_NeoPixel::Color(r, g, 0));
