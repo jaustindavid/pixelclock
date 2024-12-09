@@ -1,3 +1,12 @@
+photon:
+	particle compile photon
+
+photon2:
+	particle compile photon2
+
+follow:
+	particle serial monitor --follow
+
 square:
 	cp src/square-aspect.h src/aspect.h
 
@@ -7,7 +16,12 @@ widescreen:
 local:
 	particle flash --local
 
-rachel_raccoon: square
-	# cp src/square-aspect.h src/aspect.h
+rachel_raccoon: widescreen
+	particle flash $@
+
+steel_hamster: square
+	particle flash $@
+
+pixelclock-dev: square
 	particle flash $@
 

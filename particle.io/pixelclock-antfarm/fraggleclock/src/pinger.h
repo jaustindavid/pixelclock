@@ -2,17 +2,25 @@
 #define PINGER_H
 
 #include <SimpleTimer.h>
+#include "defs.h"
 #include "dot.h"
 #include "ant.h"
+
+
+#define PINGER_Y (MATRIX_Y-1)
+#if (ASPECT_RATIO == SQUARE)
+  #define PINGER_X 1       // first spot
+  #define PINGER_WIDTH 14  // total width
+#else
+  #define PINGER_X 3       // first spot
+  #define PINGER_WIDTH 26  // total width
+#endif
 
 // holds a graph, which is actually a set of dots
 // returns it on request
 class Pinger {
     private:
-        // #define GRAPH_MIN 1
-        // #define GRAPH_MAX (MATRIX_X-2)
-        int width;
-        Dot* graph[30];// [MATRIX_X];
+        Dot* graph[PINGER_WIDTH];
         SimpleTimer* ping_timer;
 
 
@@ -40,27 +48,28 @@ class Pinger {
 
         void update_graph() {
             // propagate colors to the left
-            // for (int i = GRAPH_MIN; i < GRAPH_MAX; i++) {
-            for (int i = 0; i < width; i++) {
+            for (int i = 0; i < PINGER_WIDTH-1; i++) {
                graph[i]->color = graph[i+1]->color;
             }
             int latency = ping();
             int r = map(latency, 50, 500, 0, 255);
             int g = map(latency, 0, 250, 255, 0);
 
-            // Serial.printf("updating i=%d, x=%d, %s\n", GRAPH_MAX, graph[GRAPH_MAX]->x, graph[GRAPH_MAX]->active ? "on" : "off");
+            /*
+            Log.trace("updating i=%d, x=%d, %s\n", 
+                 PINGER_WIDTH-1,
+                 graph[PINGER_WIDTH-1]->x, 
+                 graph[PINGER_WIDTH-1]->active ? "on" : "off");
+            */
             if (latency == -1 || latency > 500) {
                 // Serial.println("reddenning");
-                // graph[GRAPH_MAX]->set_color(RED);
-                graph[width]->set_color(RED);
+                graph[PINGER_WIDTH-1]->set_color(RED);
             } else if (latency < 50) {
                 // Serial.println("greenenning");
-                // graph[GRAPH_MAX]->set_color(GREEN);
-                graph[width]->set_color(GREEN);
+                graph[PINGER_WIDTH-1]->set_color(GREEN);
             } else { 
-                // Serial.printf("coloring r = %d, g = %d\n", latency, r, g);
-                // graph[GRAPH_MAX]->set_color(Adafruit_NeoPixel::Color(r, g, 0));
-                graph[width]->set_color(Adafruit_NeoPixel::Color(r, g, 0));
+                graph[PINGER_WIDTH-1]->set_color(
+                    Adafruit_NeoPixel::Color(r, g, 0));
             }
            //  Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
         } // update_graph()
@@ -72,12 +81,11 @@ class Pinger {
         } // Pinger()
 
 
-        void setup(int new_width) {
-            width = new_width;
-            for (int i = 0; i < width; i++) {
-                graph[i] = new Ant();
-                graph[i]->x = i;
-                graph[i]->y = MATRIX_Y - 1;
+        void setup() {
+            for (int i = 0; i < PINGER_WIDTH; i++) {
+                graph[i] = new Dot();
+                graph[i]->x = PINGER_X + i;
+                graph[i]->y = PINGER_Y;
                 graph[i]->color = (Adafruit_NeoPixel::Color(0, 0, (i+1)*16-1));
                 graph[i]->active = true;
             }
@@ -113,7 +121,7 @@ class Pinger {
 
         int npings() {
             // return GRAPH_MAX - GRAPH_MIN + 1;
-            return width;
+            return PINGER_WIDTH;
         } // npings()
 };
 

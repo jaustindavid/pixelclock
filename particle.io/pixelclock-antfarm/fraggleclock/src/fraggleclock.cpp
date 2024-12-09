@@ -80,7 +80,7 @@ DST dst;
 #include "display.h"
 #include "WobblyTime.h"
 
-// #include "pinger.h"
+#include "pinger.h"
 #include "luna.h"
 #include "open_weather.h"
 
@@ -144,7 +144,7 @@ bool reboot_me = false; // used for a mode switch
 
 WobblyTime wTime(WT_ADDY);
 Chef chef;
-// Pinger pinger;
+Pinger pinger;
 Luna *luna;
 OpenWeather weather(WEATHER_ADDY, 15*60*1000); // 15 minute refresh period
 
@@ -617,7 +617,7 @@ void setup() {
     wTime.setup();
     setup_weather();
     setup_luna();
-    // pinger.setup(MATRIX_X);
+    pinger.setup();
 
     setup_whatever_mode();
 
@@ -666,7 +666,7 @@ void loop() {
         display.render(food);
     }
     display.render(sandbox);
-    // display.render(pinger.pings(), pinger.npings());
+    display.render(pinger.pings(), pinger.npings());
     // first few things in the sandbox are always cursors
     // display.render(sandbox, 5);
     display.show(show_timer);
