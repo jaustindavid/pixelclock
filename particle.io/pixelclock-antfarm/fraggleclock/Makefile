@@ -25,6 +25,7 @@ ricky_raccoon: widescreen
 roxie_raccoon: widescreen
 	particle flash $@
 
+leslie: steel_hamster
 steel_hamster: square
 	particle flash $@
 
