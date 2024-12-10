@@ -10,7 +10,7 @@
 #define DEBUG_LEVEL 2
 
 /*
-    A Turtle is a smarter (?) Fraggle.
+    A Turtle is a smarter (?) Ant
    
     if track exists in sandbox but not plan
         state == CLEAN
@@ -22,12 +22,41 @@
     No restriction on where-to-walk
  */
 
-class Turtle: public Fraggle {
+#define RESTING  0
+#define FETCHING 1
+#define BUILDING 2
+#define CLEANING 3
+#define DUMPING  4
+
+class Turtle: public Ant {
     protected:
         int target_i;
         SimpleTimer* step_timer;
+        uint8_t state, prev_state;
         
+
+        bool is_brick(Dot* target) {
+          return (target
+                  && ((target->get_color() == RED)
+                  || (target->get_color() == DARKRED)));
+        } // bool is_brick(target)
+
+
+        // picks up a brick in sandbox (removes it)
+        void pick_up(Dot* brick, Dot* sandbox[]) {
+          deactivate(brick, sandbox);
+        } // pick_up(brick, sandbox)
+
+
+        // creates ("places") a brick of color at target in sandbox
+        void place_brick(Dot* target, color_t color, Dot* sandbox[]) {
+          Dot* brick = activate(sandbox);
+          brick->set_color(color);
+          brick->x = target->x;
+          brick->y = target->y;
+        } // place_brick(target, color, sandbox[])
         
+
         int pick_closest_open(Dot* needle[], Dot* haystack[], color_t target_color) {
             int best = -1;
             float best_distance = 99;
@@ -323,7 +352,7 @@ class Turtle: public Fraggle {
         } // move_toward(target, sandbox)
 
 
-        Turtle() : Fraggle() {
+        Turtle() : Ant() {
             color = GREEN;
             step_timer = new SimpleTimer(TURTLE_SPEED);
             iq = MAX_IQ;
@@ -356,7 +385,6 @@ class Turtle: public Fraggle {
             if (target_i != -1) {
                 Dot* target = sandbox[target_i];
                 if (equals(target)) {
-                    // pick_up(target_i, sandbox);
                     deactivate(target_i, sandbox);
                     state = RESTING;
                 } else {
@@ -411,9 +439,6 @@ class Turtle: public Fraggle {
             Log.info("Turtle[%d](%d, %d):%d\n", id, x, y, state);
             color = GREEN;
             switch (state) {
-                case SPAZZING:
-                    spaz(sandbox);
-                    break;
                 case BUILDING:
                     build(plan, sandbox);
                     break;

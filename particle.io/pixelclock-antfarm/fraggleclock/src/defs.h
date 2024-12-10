@@ -31,6 +31,23 @@
 #define MIN_BRIGHTNESS 4     // the LOWEST brightness to display
 #define MAX_BRIGHTNESS 64    // the HIGHEST brightness to display
 
+#define TXLATE(X, Y) (X + Y*MATRIX_Y)
+
+
+// (x, y) -> [i]
+int txlate(int x, int y) {
+    int pixel = 0;
+
+    pixel = x * MATRIX_Y;
+    if (x%2 == 0) {
+        pixel += y % MATRIX_Y;
+    } else {
+        pixel += (MATRIX_Y - 1) - (y % MATRIX_Y);
+    }
+
+    return pixel;
+} // int txlate(x, y)
+
 
 void storeString(int start_address, String data) {
     char c;
@@ -41,7 +58,7 @@ void storeString(int start_address, String data) {
         i++;
     } while (i < 50 && c);
     EEPROM.put(start_address+i, 0);
-}
+} // storeString(start_address, data)
 
 
 String fetchString(int start_address) {
@@ -54,7 +71,7 @@ String fetchString(int start_address) {
     } while (i < 50 && c);
     // buffer[i] = 0;
     return String(buffer);
-}
+} // String fetchString(start_address)
 
 
 #endif

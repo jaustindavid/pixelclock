@@ -56,9 +56,9 @@
 // resting 0
 // fetching 1
 #define PLACING BUILDING // 2
-#define WASHING SPAZZING // 3
-// cleaning 4
-#define DUNKING DUMPING // 5
+// cleaning 3
+#define DUNKING DUMPING // 4
+#define WASHING 5
 
 #define NRACCOONS 1
 

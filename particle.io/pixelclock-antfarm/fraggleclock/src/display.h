@@ -30,19 +30,6 @@ class Display {
         Adafruit_NeoPixel *neopixels;
         int brightness, brightness_target;
 
-        int txlate(Dot* dot) {
-            int pixel = 0;
-            
-            pixel = dot->x * MATRIX_Y;
-            if (dot->x%2 == 0) {
-                pixel += dot->y % MATRIX_Y;
-            } else {
-                pixel += (MATRIX_Y - 1) - (dot->y % MATRIX_Y);
-            }
-            
-            return pixel;    
-        } // int Display::txlate(Dot)
-
 
     public:
         Display(Adafruit_NeoPixel *new_neopixels) {
@@ -51,12 +38,9 @@ class Display {
 
 
         void test_forever() {
-          Dot dot;
-          dot.color = WHITE;
           for (int x = 0; x < MATRIX_X; x++) {
             for (int y = 0; y < MATRIX_Y; y++) {
-              dot.x = x; dot.y = y;
-              int i = txlate(&dot);
+              int i = txlate(x, y);
               Log.trace("(%d,%d)->%d", x, y, i);
               neopixels->setPixelColor(i, WHITE);
               neopixels->show();
@@ -103,12 +87,12 @@ class Display {
 
 
         void paint(Dot* dot) {
-            paint(txlate(dot), dot->color);
+            paint(txlate(dot->x, dot->y), dot->color);
         } // paint(dot)
         
         
         void unpaint(Dot* dot) {
-            paint(txlate(dot), BLACK);
+            paint(txlate(dot->x, dot->y), BLACK);
         } // unpaint(dot)
 
 

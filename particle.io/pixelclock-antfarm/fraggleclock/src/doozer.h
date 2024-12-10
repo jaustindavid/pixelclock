@@ -111,6 +111,19 @@ class Doozer: public Turtle {
         } // Dot* find_loose_brick(Dot* plan[], Dot* sandbox[])
 
 
+        // returns a plan location, or nullptr
+        Dot* find_open_plan(Dot* plan[], Dot* sandbox[]) {
+          Log.trace("Doozer(%d,%d) finding open plan spot\n", x, y);
+          // TODO: prefer adjacent
+          int i = pick_closeish_open(plan, sandbox);
+          Log.trace("found %d: (%d,%d)\n", i, plan[i]->x, plan[i]->y);
+          if (i != -1) {
+            return plan[i];
+          }
+          return nullptr;
+        } // Dot* find_open_plan(plan, sandbox)
+
+
         void fetch(Dot* plan[], Dot* sandbox[]) {
             Log.trace("fetch()");
             Log.trace("target? %c", target == nullptr ? 'y' : 'n');
