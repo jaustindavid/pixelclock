@@ -25,6 +25,7 @@
 #define DISPLAY_ADDY    20
 #define WT_ADDY         30
 #define WEATHER_ADDY    40
+#define PINGER_ADDY     50
 #define WIFI_ADDY       100
 
 #define MIN_BRIGHTNESS 4     // the LOWEST brightness to display
