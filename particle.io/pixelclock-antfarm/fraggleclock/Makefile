@@ -30,7 +30,8 @@ leslie: steel_hamster
 steel_hamster: square
 	particle flash $@
 
-pixelclock-dev: square
+pixelclock-dev: ronaldo_raccoon
+ronaldo_raccoon:	square
 	particle flash $@
 
 pixelclock-mahogany: rowan_raccoon
