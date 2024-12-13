@@ -184,16 +184,6 @@ class Turtle: public Ant {
         } // print_distances(distances)
 
 
-        void print_sandbox(Dot* sandbox[]) {
-            for (int y = 0; y < MATRIX_X; y++) {
-                for (int x = 0; x < MATRIX_Y; x++) {
-                    Serial.printf(in(x, y, sandbox) ? " ## " : " __ ");
-                }
-                Serial.println();
-            }
-        } // print_sandbox(sandbox)
-
-
         void visit_cells(byte radius, 
                          Dot* sandbox[],
                          bool visited[MATRIX_X][MATRIX_Y],
@@ -354,9 +344,10 @@ class Turtle: public Ant {
 
         Turtle() : Ant() {
             color = GREEN;
+            active = true;
             step_timer = new SimpleTimer(TURTLE_SPEED);
             iq = MAX_IQ;
-        }
+        } // Turtle()
 
         
         void build(Dot* plan[], Dot* sandbox[]) {

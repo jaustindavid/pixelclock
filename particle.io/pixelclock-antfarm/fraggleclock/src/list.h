@@ -173,5 +173,14 @@ void print_list(Dot* haystack[]) {
     Serial.println();
 }
 
+void print_sandbox(Dot* sandbox[]) {
+    for (int y = 0; y < MATRIX_X; y++) {
+        for (int x = 0; x < MATRIX_Y; x++) {
+            Serial.printf(in(x, y, sandbox) ? " ## " : " __ ");
+        }
+        Serial.println();
+    }
+} // print_sandbox(sandbox)
+
 
 #endif

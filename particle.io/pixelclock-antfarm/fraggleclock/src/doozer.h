@@ -93,7 +93,6 @@ class Doozer: public Turtle {
 
             // print_list(sandbox);
 
-            // stg 2: search the bin L->R, T->B
             for (cursor = first(sandbox); 
                  cursor != -1; 
                  cursor = next(cursor, sandbox)) {
@@ -126,24 +125,29 @@ class Doozer: public Turtle {
 
         void fetch(Dot* plan[], Dot* sandbox[]) {
             Log.trace("fetch()");
-            Log.trace("target? %c", target == nullptr ? 'y' : 'n');
+            Log.trace("target? %c", target != nullptr ? 'y' : 'n');
             if(target) {
               Log.trace("in(target, plan) ? %c", in(target, plan) ? 'y' : 'n');
               Log.trace("!in(target, sandbox) ? %c", !in(target, sandbox) ? 'y' : 'n');
               Log.trace("!is_brick(target) ? %c", !is_brick(target) ? 'y' : 'n');
             }
-            Log.trace("boop");
+        
             if (! target 
                 || in(target, plan) 
                 || !in(target, sandbox) 
                 || !is_brick(target)) {
                 Log.trace("fetch() -> find_loose_brick()");
-                Log.trace("boop");
 
                 target = find_loose_brick(plan, sandbox);
             }
 
             if (! target) {
+                Log.trace("fetch(): no target?");
+
+            }
+
+            if (! target) {
+                Log.trace("fetch(): STILL no target, resting");
                 // nothing to fetch; rest
                 state = RESTING;
                 return;
@@ -318,7 +322,8 @@ class Doozer: public Turtle {
             int i = pick_closeish_open(plan, sandbox);
             if (i != -1) {
                 // plan missing bricks; fetch & build
-                Log.info("found %d; fetching\n", i);
+                Log.info("found %d (%d,%d); fetching", i, 
+                    plan[i]->x, plan[i]->y);
                 state = FETCHING;
                 return;
             }
@@ -355,6 +360,8 @@ class Doozer: public Turtle {
             rest_timer = new SimpleTimer(REST_SPEED);
             iq = min_iq;
             target = nullptr;
+            x = id % 4;
+            y = id % 4;
         }; // constructor
 
 
@@ -412,9 +419,10 @@ class Doozer: public Turtle {
 #define NUMBER_OF_DOOZERS 3
 
 void maybe_check_brick_pile(Dot* sandbox[]) {
+    Log.trace("checking brick pile...");
     Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
     if (!in(&proxy, sandbox)) {
-        Log.trace("adding one");
+        Log.trace("adding one @ (%d,%d)", proxy.x, proxy.y);
         // print_list(sandbox);
         Dot* brick = activate(sandbox);
         // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
@@ -431,10 +439,12 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
         Dot* brick;
         if ((brick = in(&proxy, sandbox)) &&
             (brick->get_color() == DARKRED)) {
-            // Serial.printf("removing: x=%d\n", x);
+            Log.trace("removing one");
             deactivate(brick, sandbox);
         }
     }
+
+    // print_sandbox(sandbox);
 } // maybe_check_brick_pile(sandbox)
 
 

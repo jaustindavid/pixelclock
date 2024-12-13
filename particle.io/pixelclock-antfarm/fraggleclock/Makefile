@@ -5,6 +5,7 @@ photon2:
 	particle compile photon2
 
 follow:
+	sleep 3
 	particle serial monitor --follow
 
 square:
