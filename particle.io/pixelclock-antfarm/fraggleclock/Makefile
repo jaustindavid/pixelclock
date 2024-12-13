@@ -19,7 +19,7 @@ local:
 rachel_raccoon: widescreen
 	particle flash $@
 
-ricky_raccoon: widescreen
+ricky_raccoon: square
 	particle flash $@
 
 roxie_raccoon: widescreen
@@ -32,5 +32,6 @@ steel_hamster: square
 pixelclock-dev: square
 	particle flash $@
 
-pixelclock-mahogany: square
-	particle flash "pixelclock mahogany"
+pixelclock-mahogany: rowan_raccoon
+rowan_raccoon: square
+	particle flash $@

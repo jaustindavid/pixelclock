@@ -61,6 +61,7 @@
 #define WASHING 5
 
 #define NRACCOONS 1
+#define RACCOON_COLOR (Adafruit_NeoPixel::Color(96, 96, 96))
 
 #if (ASPECT_RATIO == SQUARE)
   #define WALK_SPEED  400 // ms per step
@@ -177,10 +178,6 @@ class Raccoon: public Turtle {
         // swish around a lil
         if (swish == 0 || (millis() - swish > 150)) {
           x = (x == MATRIX_X-2 ? MATRIX_X-1 : MATRIX_X-2);
-          #if (ASPECT_RATIO == SQUARE)
-            y = 13; // just snap to the right place... 
-                    // in case we walked in low
-          #endif
           swish = millis();
         }
       }
@@ -325,8 +322,7 @@ class Raccoon: public Turtle {
   public:
 
     Raccoon() : Turtle() {
-      color = // DARKWHITE;
-       (Adafruit_NeoPixel::Color(65, 65, 65));
+      color = RACCOON_COLOR;
       state = RESTING;
       step_timer->setInterval(WALK_SPEED/2);
       rest_timer = new SimpleTimer(REST_SPEED);
@@ -335,11 +331,7 @@ class Raccoon: public Turtle {
       target = nullptr;
       target_i = -1;
       TRASH_X = 0;
-      #if (ASPECT_RATIO == SQUARE) 
-        TRASH_Y = MATRIX_Y - 2;
-      #else
-        TRASH_Y = MATRIX_Y - 1;
-      #endif
+      TRASH_Y = MATRIX_Y - 1;
       Log.info("Raccoon; trash@(%d,%d)", TRASH_X, TRASH_Y);
     } // Raccoon()
 
@@ -382,6 +374,9 @@ class Raccoon: public Turtle {
       }
 
       report_state();
+
+      // TODO: figure out why he keeps turning GREEN
+      color = RACCOON_COLOR;
 
       switch (state) {
         case WASHING:
@@ -428,17 +423,10 @@ class Raccoon: public Turtle {
   void make_raccoons(Dot* sandbox[]) {
     sandbox[0] = new Raccoon();
     // pool, for washing
-    #if (ASPECT_RATIO == SQUARE)
-      sandbox[1] = new Dot(14, 14, POOL_COLOR);
-      sandbox[2] = new Dot(15, 14, POOL_COLOR);
-      sandbox[3] = new Dot(0, 14, DIRTY_COLOR);
-      sandbox[4] = new Dot(1, 14, DIRTY_COLOR);
-    #else
-      sandbox[1] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
-      sandbox[2] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
-      sandbox[3] = new Dot(0, MATRIX_Y-1, DIRTY_COLOR);
-      sandbox[4] = new Dot(1, MATRIX_Y-1, DIRTY_COLOR);
-    #endif
+    sandbox[1] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
+    sandbox[2] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
+    sandbox[3] = new Dot(0, MATRIX_Y-1, DIRTY_COLOR);
+    sandbox[4] = new Dot(1, MATRIX_Y-1, DIRTY_COLOR);
     sandbox[1]->active = true;
     sandbox[2]->active = true;
     sandbox[3]->active = true;

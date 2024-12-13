@@ -29,7 +29,7 @@
 #define WIFI_ADDY       100
 
 #define MIN_BRIGHTNESS 4     // the LOWEST brightness to display
-#define MAX_BRIGHTNESS 64    // the HIGHEST brightness to display
+#define MAX_BRIGHTNESS 128    // the HIGHEST brightness to display
 
 #define TXLATE(X, Y) (X + Y*MATRIX_Y)
 

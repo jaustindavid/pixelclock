@@ -15,25 +15,90 @@
 
 #undef PRINTF_DEBUGGER
 
-#ifndef MIN_BRIGHTNESS
-    #define MIN_BRIGHTNESS 8
-#endif
-
-#ifndef MAX_BRIGHTNESS
-    #define MAX_BRIGHTNESS 196
-#endif
-
 
 class Display {
     private:
         color_t fg[PIXEL_COUNT], bg[PIXEL_COUNT];
         Adafruit_NeoPixel *neopixels;
         int brightness, brightness_target;
+        int min_brightness, max_brightness;
+        bool alignment_mode;
+
+        
+        void read_eeprom() {
+          int addy = DISPLAY_ADDY;
+          int datum = EEPROM.read(addy);
+          if (datum != 255) {
+            min_brightness = datum;
+          }
+          addy += sizeof(datum);
+          datum = EEPROM.read(addy);
+          if (datum != 255) {
+            max_brightness = datum;
+          }
+        } // read_eeprom()
+
+
+        void write_eeprom() {
+          int addy = DISPLAY_ADDY;
+          if (EEPROM.read(addy) != min_brightness) {
+            EEPROM.write(addy, min_brightness);
+          }
+          addy += sizeof(max_brightness);
+          if (EEPROM.read(addy) != max_brightness) {
+            EEPROM.write(addy, max_brightness);
+          }
+        } // write_eeprom()
+
+
+        // a Particle.function to enable alignment_mode
+        int align_me(String data) {
+          alignment_mode = !alignment_mode;
+          return alignment_mode ? 1 : 0;
+        } // int align_me(data)
+
+
+        // honors alignment_mode: shows dots in the corners
+        void maybe_show_alignment() {
+          if (alignment_mode) {
+            neopixels->setPixelColor(txlate(0,0), WHITE);
+            neopixels->setPixelColor(txlate(0, MATRIX_Y-1), WHITE);
+            neopixels->setPixelColor(txlate(MATRIX_X-1, 0), WHITE);
+            neopixels->setPixelColor(txlate(MATRIX_X-1, MATRIX_Y-1), WHITE);
+          }
+        } // maybe_show_alignment()
+
+
+        // a Particle.function to set min brightness, and store it
+        int set_min_brightness(String data) {
+          int new_min_brightness = data.toInt();
+          if (new_min_brightness) {
+            min_brightness = new_min_brightness;
+            write_eeprom();
+          }
+          return min_brightness;
+        } // int set_min_brightness(data)
+
+
+        // a Particle.function to set max brightness, and store it
+        int set_max_brightness(String data) {
+          int new_max_brightness = data.toInt();
+          if (new_max_brightness) {
+            max_brightness = new_max_brightness;
+            write_eeprom();
+          }
+          return max_brightness;
+        } // int set_max_brightness(data)
 
 
     public:
         Display(Adafruit_NeoPixel *new_neopixels) {
             neopixels = new_neopixels;
+            // sensible defaults
+            alignment_mode = false;
+            min_brightness = 4;
+            max_brightness = 64; 
+            read_eeprom();
         } // Display(neopixels)
 
 
@@ -58,12 +123,17 @@ class Display {
             memset(fg, 0, sizeof(fg));
             clear();
             Particle.variable("display_brightness", this->brightness);
+            Particle.function("display_aligner", &Display::align_me, this);
+            Particle.function("display_min_brightness", 
+                &Display::set_min_brightness, this);
+            Particle.function("display_max_brightness", 
+                &Display::set_max_brightness, this);
         } // setup()
         
         
-        #define HYSTERESIS 2
+        #define HYSTERESIS 2 // just to keep it from 'hunting'
         int set_brightness(int b) {
-            int new_brightness = map(b, 0, 100, MIN_BRIGHTNESS, MAX_BRIGHTNESS);
+            int new_brightness = map(b, 0, 100, min_brightness, max_brightness);
             if (abs(new_brightness - brightness_target) > HYSTERESIS) {
                 brightness_target = new_brightness;
             }
@@ -107,6 +177,7 @@ class Display {
             for (int i = 0; i < PIXEL_COUNT; i++) {
                 neopixels->setPixelColor(i, fg[i]);
             }
+            maybe_show_alignment();
             neopixels->show();
         } // show()
         
@@ -134,6 +205,7 @@ class Display {
                 for (int i = 0; i < PIXEL_COUNT; i++) {
                     neopixels->setPixelColor(i, wavrgb(fg[i], w, bg[i], 5-w));
                 }
+                maybe_show_alignment();
                 neopixels->show();
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
                 show_timer->wait();
