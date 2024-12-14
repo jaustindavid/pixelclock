@@ -433,39 +433,43 @@ void setup_luna() {
 
 
 /*
- * WiFi (backup)
+ * WiFi (backup) and hotspot
  *
  */
 
-String backupSSID;
-String backupPasswd;
 
 
 int set_backup_ssid(String data) {
-    backupSSID = data;
-    Serial.print("Saving new backup SSID: ");
-    Serial.println(backupSSID);
+    String backupSSID = data;
+    Log.info("Saving new backup SSID: %s", backupSSID);
     storeString(WIFI_ADDY, backupSSID);
     return backupSSID.length();
 } // set_backup_ssid(data)
 
 
 int set_backup_passwd(String data) {
-    backupPasswd = data;
-    Serial.print("Saving new backup passwd: ");
-    Serial.println(backupPasswd);
+    String backupPasswd = data;
+    Log.info("Saving new backup passwd: %s", backupPasswd);
     storeString(WIFI_ADDY+50, backupPasswd);
-    return backupSSID.length();
+    return backupPasswd.length();
 } // set_backup_passwd(data)
 
 
+// toggles between the "backup" network and EMERGENCY network
 void try_backup_network() {
-    backupSSID = fetchString(WIFI_ADDY);
-    backupPasswd = fetchString(WIFI_ADDY+50);
-    Log.info("fetched WiFi credentials: %s :: %s",
+    static bool emergency_creds = false;
+    String backupSSID = String(WIFI_EMERGENCY_SSID);
+    String backupPasswd = String(WIFI_EMERGENCY_PASSWD);
+
+    if (! WiFi.ready()) {
+        if (!emergency_creds) {
+            backupSSID = fetchString(WIFI_ADDY);
+            backupPasswd = fetchString(WIFI_ADDY+50);
+            Log.info("fetched WiFi credentials: %s :: %s",
                 backupSSID.c_str(),
                 backupPasswd.c_str());
-    if (! WiFi.ready()) {
+        }
+        emergency_creds = !emergency_creds;
         Serial.printf("connecting to WiFi SSID '%s'\n", backupSSID.c_str());
         WiFi.setCredentials(backupSSID, backupPasswd);
         WiFi.connect();
@@ -474,9 +478,15 @@ void try_backup_network() {
 
 
 void setup_wifi() {
+    uint32_t start_time = millis();
     Particle.function("backup_ssid", set_backup_ssid);
     Particle.function("backup_passwd", set_backup_passwd);
-    try_backup_network();
+
+    // do this for up to 5 minutes
+    while (! WiFi.ready() 
+           && millis() - start_time < 300) {
+      try_backup_network();
+    }
 } // setup_wifi()
 
 

@@ -28,11 +28,8 @@
 #define PINGER_ADDY     50
 #define WIFI_ADDY       100
 
-#define MIN_BRIGHTNESS 4     // the LOWEST brightness to display
-#define MAX_BRIGHTNESS 128    // the HIGHEST brightness to display
-
-#define TXLATE(X, Y) (X + Y*MATRIX_Y)
-
+#define WIFI_EMERGENCY_SSID "raccoontime"
+#define WIFI_EMERGENCY_PASSWD "busyness"
 
 // (x, y) -> [i]
 int txlate(int x, int y) {

@@ -26,8 +26,11 @@
  * else if actual offset > target offset,
  *   slow down time: tick slower (33% chance tick per s)
  * else recalculate a target offset
+ *
+ * Exception: if Time() gets reset or sync'd this can get
+ * REALLY OFF.  In that case we'll snap back to the correct
+ * time
  * 
- * TODO: add a few particle functions for console interaction
  */
  
 
@@ -43,7 +46,6 @@ class WobblyTimer {
     private:
         uint32_t _min_interval, _max_interval;
         SimpleTimer *_timer;
-        
 
 
     public:
@@ -95,7 +97,7 @@ class WobblyTime {
         void init(int, int);
         void update();
         int setAdvance(String);
-        void updateAdvance();
+        bool coarse_correct();
         void tick();
         void printStatus();
         int setMinAdvance(String);
@@ -103,7 +105,6 @@ class WobblyTime {
         int setTime(String);
         void read_data();
         void write_data();
-        int sync(String);
 
     public:
         WobblyTime(int);
@@ -136,7 +137,6 @@ int WobblyTime::setAdvance(String s) {
         target_offset = constrain(t, MIN_ADVANCE, MAX_ADVANCE);
     }
     return dT;
-    return fakeTime - Time.now();
 } // int setAdvance(s)
 
 
@@ -162,15 +162,6 @@ void WobblyTime::setup() {
     Particle.function("wt_time", &WobblyTime::setTime, this);
     Particle.variable("wt_hhmm", this->hhmm);
 } // setup()
-
-
-int WobblyTime::sync(String) {
-    if (Particle.connected()) {
-        Particle.syncTime();
-        return 1;
-    }
-    return 0;
-} // sync()
 
 
 // advance up to 3x real time
@@ -215,12 +206,14 @@ void WobblyTime::tick() {
 void WobblyTime::read_data() {
     int a = address;
     EEPROM.get(a, MIN_ADVANCE);
-    if (abs(MIN_ADVANCE) > 3600) {
+    if (MIN_ADVANCE == -1 
+        || abs(MIN_ADVANCE) > 3600) {
         MIN_ADVANCE = 180;
     }
     a += sizeof(MIN_ADVANCE);
     EEPROM.get(a, MAX_ADVANCE);
-    if (abs(MAX_ADVANCE) > 3600) {
+    if (MAX_ADVANCE == -1 
+        || abs(MAX_ADVANCE) > 3600) {
         MAX_ADVANCE = 300;
     }
     // a += sizeof(MAX_ADVANCE);
@@ -256,9 +249,23 @@ int WobblyTime::setMaxAdvance(String data) {
 } // int setMaxAdvance(data)
 
 
+// RARE, but sometimes Time() can get sync'd for
+// a large correction.  If this is needed, just do it
+bool WobblyTime::coarse_correct() {
+  int actual_offset = fakeTime - Time.now();
+  if (abs(actual_offset) > 2*MAX_ADVANCE) {
+    // quick slam to proper time
+    Log.warn("WobblyTime massive correction: %ld", actual_offset);
+    fakeTime = Time.now();
+  }
+  return false;
+} // bool coarse_correct()
+
+
 void WobblyTime::update() {
-    tick();
-    // updateAdvance();
+    if (! coarse_correct()) {
+      tick();
+    }
     h = Time.hour(fakeTime);
     m = Time.minute(fakeTime);
     s = Time.second(fakeTime);
