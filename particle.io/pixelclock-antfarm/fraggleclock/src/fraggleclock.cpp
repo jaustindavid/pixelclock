@@ -89,10 +89,12 @@ DST dst;
 
 #define PHOTON2 32
 
-#if (PLATFORM_ID == PHOTON2)
-  #define PIXEL_PIN SPI
-#else // 
-  #define PIXEL_PIN D0
+#ifndef PIXEL_PIN
+  #if (PLATFORM_ID == PHOTON2)
+    #define PIXEL_PIN SPI
+  #else // 
+    #define PIXEL_PIN D0
+  #endif
 #endif
 
 #define CDS_POWER  A0

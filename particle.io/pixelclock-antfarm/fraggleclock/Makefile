@@ -4,7 +4,6 @@ photon:
 photon2:
 	particle compile photon2
 
-
 square:
 	cp src/square-aspect.h src/aspect.h
 
@@ -23,10 +22,14 @@ follow:
 rachel_raccoon: widescreen
 	particle flash $@
 
+rico_raccoon: square
+	particle flash $@
+
 ricky_raccoon: square
 	particle flash $@
 
-roxie_raccoon: widescreen
+roxie_raccoon: square
+	echo "#define PIXEL_PIN D1" >> src/aspect.h
 	particle flash $@
 
 leslie: steel_hamster
