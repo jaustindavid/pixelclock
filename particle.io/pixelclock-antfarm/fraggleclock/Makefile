@@ -4,9 +4,6 @@ photon:
 photon2:
 	particle compile photon2
 
-follow:
-	sleep 3
-	particle serial monitor --follow
 
 square:
 	cp src/square-aspect.h src/aspect.h
@@ -16,6 +13,12 @@ widescreen:
 
 local:
 	particle flash --local
+
+pause:
+	sleep 5
+
+follow:
+	particle serial monitor --follow
 
 rachel_raccoon: widescreen
 	particle flash $@

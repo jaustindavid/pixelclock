@@ -114,6 +114,12 @@ class Display {
               yprime = xprime;
               xprime = MATRIX_X - 1 - y0;
             }
+          #else
+            // 180* only
+            if (rotation % 2 == 1) {
+              xprime = MATRIX_X - 1 - x;
+              yprime = MATRIX_Y - 1 - y;
+            }
           #endif
 
           return txlate(xprime, yprime);
@@ -249,14 +255,6 @@ class Display {
         // show() will copy these to pixels, then push them
         void render(Dot* dots[]) {
             render(dots, MAX_DOTS);
-            /*
-            return;
-            for (int cursor = 0; cursor < MAX_DOTS; cursor++) {
-                if (dots[cursor]->active) {
-                    paint(dots[cursor]);
-                }
-            }
-            */
         } // render(dots)
         
 

@@ -476,15 +476,77 @@ void try_backup_network() {
 } // try_backup_network()
 
 
+void paint_connection_status(int x, int y) {
+  if (Particle.connected()) {
+    display.paint(txlate(x, y), GREEN);
+  } else if (WiFi.ready()) {
+    display.paint(txlate(x, y), YELLOW);
+  } else {
+    display.paint(txlate(x, y), RED);
+  }
+} // paint_connection_status(int x, int y)
+
+
+void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
+  SimpleTimer thirty_secs(30*1000);
+  bool lit = true;
+
+  paint_connection_status(0, y);
+  if (WIFI_SSID.length() != 0) {
+    Log.warn("Setting new WiFi creds: %s :: %s", 
+              WIFI_SSID.c_str(), WIFI_PASSWD.c_str());
+    WiFi.setCredentials(WIFI_SSID, WIFI_PASSWD);
+  }
+  Log.warn("starting Particle.connect()");
+  Particle.connect();
+  while (!thirty_secs.isExpired()
+         && ! Particle.connected()) {
+    if (lit) {
+      paint_connection_status(0, y);
+    } else {
+      display.paint(txlate(0, y), BLACK);
+    }
+    display.show();
+    delay(1000);
+  }
+
+  paint_connection_status(0, y);
+  display.show();
+} // connect_and_blink(y, WIFI_SSID, WIFI_PASSWD)
+
+
+// will try main, backup, and emergency networks
+void try_to_connect() {
+  if (Particle.connected()) {
+    return;
+  }
+
+  // first try the burned-in creds
+  Log.warn("trying default credentials...");
+  connect_and_blink(0, String(""), String(""));
+  if (Particle.connected()) {
+    Log.warn("Connected!");
+    return;
+  }
+
+} // try_to_connect()
+
+
 void setup_wifi() {
     uint32_t start_time = millis();
     Particle.function("backup_ssid", set_backup_ssid);
     Particle.function("backup_passwd", set_backup_passwd);
 
-    // do this for up to 5 minutes
-    while (! WiFi.ready() 
-           && millis() - start_time < 300) {
-      try_backup_network();
+    try_to_connect();
+
+    // wait for the remainder of 30 seconds
+    while (millis() - start_time < 30000) {
+      display.paint(txlate(1, 0), BLUE);
+      display.show();
+      delay(500);
+      display.paint(txlate(1, 0), BLACK);
+      display.show();
+      delay(500);
     }
 } // setup_wifi()
 
@@ -597,15 +659,13 @@ void maybe_reconnect() {
 void setup() {
     Serial.begin(115200);
 
-    #ifdef PRINTF_DEBUGGER
-        waitFor(Serial.isConnected, 40000);
-        Serial.println("Beginning display.init()");
-    #endif
-
-    wd = new ApplicationWatchdog(30000, watchdogHandler, 1536);
-    setup_wifi();
-    
     display.setup();
+
+    waitFor(Serial.isConnected, 10000);
+    setup_wifi(); // takes at least 30s
+                  
+    wd = new ApplicationWatchdog(30000, watchdogHandler, 1536);
+
     setup_dst();
     setup_cloud();
     setup_color();
