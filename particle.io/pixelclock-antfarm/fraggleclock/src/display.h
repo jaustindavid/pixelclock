@@ -42,23 +42,6 @@ class Display {
             max_brightness = datum.max;
             rotation = datum.rota;
           }
-          /*
-          int addy = DISPLAY_ADDY;
-          int datum = EEPROM.read(addy);
-          if (datum != 255) {
-            min_brightness = datum;
-          }
-          addy += sizeof(datum);
-          datum = EEPROM.read(addy);
-          if (datum != 255) {
-            max_brightness = datum;
-          }
-          addy += sizeof(datum);
-          datum = EEPROM.read(addy);
-          if (datum < 4) {
-            rotation = datum;
-          }
-          */
         } // read_eeprom()
 
 
@@ -69,20 +52,6 @@ class Display {
           datum.max = max_brightness;
           datum.rota = rotation;
           EEPROM.put(DISPLAY_ADDY, datum);
-          /*
-          int addy = DISPLAY_ADDY;
-          if (EEPROM.read(addy) != min_brightness) {
-            EEPROM.write(addy, min_brightness);
-          }
-          addy += sizeof(min_brightness);
-          if (EEPROM.read(addy) != max_brightness) {
-            EEPROM.write(addy, max_brightness);
-          }
-          addy += sizeof(max_brightness);
-          if (EEPROM.read(addy) != rotation) {
-            EEPROM.write(addy, rotation);
-          }
-          */
         } // write_eeprom()
 
 
@@ -138,12 +107,14 @@ class Display {
           int xprime = x, 
               yprime = y;
 
-          // apply a 90* CCW rotation to (xprime, yprime)
-          for (int i = 0; i < rotation; i++) {
-            int y0 = yprime;
-            yprime = xprime;
-            xprime = MATRIX_X - 1 - y0;
-          }
+          #if (ASPECT_RATIO == SQUARE)
+            // apply a 90* CCW rotation to (xprime, yprime)
+            for (int i = 0; i < rotation; i++) {
+              int y0 = yprime;
+              yprime = xprime;
+              xprime = MATRIX_X - 1 - y0;
+            }
+          #endif
 
           return txlate(xprime, yprime);
         } // int trans_rotate(x, y)

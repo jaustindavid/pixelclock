@@ -22,7 +22,7 @@
 
 #define CORE_ADDY       0     // byte, bool, bool == 3 bytes
 #define LUNA_ADDY       10    // int, int == 8 bytes
-#define DISPLAY_ADDY    20    // byte, byte == 2 bytes
+#define DISPLAY_ADDY    20    // 4 bytes
 #define WT_ADDY         30    // int, int == 8 bytes
 #define WEATHER_ADDY    40    // double, double = 16 bytes
 #define PINGER_ADDY     58    // bool == 1 byte

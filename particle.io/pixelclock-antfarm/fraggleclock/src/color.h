@@ -45,7 +45,7 @@ int change_color(String data) {
     return -1; // error in the first position
   }
   int r = data.toInt();
-  data = data.substring(i);
+  data = data.substring(i+1);
   int g = data.toInt();
   i = data.indexOf(" ");
   if (i == 0) {

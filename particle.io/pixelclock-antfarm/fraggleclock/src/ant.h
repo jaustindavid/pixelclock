@@ -11,7 +11,7 @@
 class Ant : public Dot {
     public:
         Ant() : Dot() {
-            color = WHITE;
+          color = MIDWHITE;
         };
 
 
@@ -208,9 +208,10 @@ class Ant : public Dot {
             // 99% chance of staying on food
             if (in(this, food) && P(99)) {
                 // I'm on food
-                // do nothing
+                color = main_color;
             } else {
                 seek(food, sandbox);
+                color = MIDWHITE;
             }
         }
         
