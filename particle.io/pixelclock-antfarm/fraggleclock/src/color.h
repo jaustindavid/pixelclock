@@ -25,4 +25,43 @@ typedef uint32_t color_t;
 #define CYAN        (Adafruit_NeoPixel::Color(0, 255, 255))
 #define MAGENTA     (Adafruit_NeoPixel::Color(255, 0, 255))
 
+color_t main_color;
+
+
+void store_color() {
+  EEPROM.put(COLOR_ADDY, main_color);
+} // store_color()
+
+
+void load_color() {
+  EEPROM.get(COLOR_ADDY, main_color);
+} // load_color()
+
+
+// data should contain 3 ints, like 128 0 0 -> reddish
+int change_color(String data) {
+  int i = data.indexOf(" ");
+  if (i == 0) {
+    return -1; // error in the first position
+  }
+  int r = data.toInt();
+  data = data.substring(i);
+  int g = data.toInt();
+  i = data.indexOf(" ");
+  if (i == 0) {
+    return -2; // error in the second position
+  }
+  data = data.substring(i);
+  int b = data.toInt();
+  main_color = Adafruit_NeoPixel::Color(r, g, b);
+  store_color();
+  return (r+1)/32*100 + (g+1)/32*10 + (b+1)/32;
+} // int change_color(data)
+
+
+void setup_color() {
+  Particle.function("change_color", change_color);
+  load_color();
+} // setup_color()
+
 #endif

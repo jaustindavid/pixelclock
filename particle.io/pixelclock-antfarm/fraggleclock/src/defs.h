@@ -20,13 +20,14 @@
 #define PRINTF_DEBUGGER
 #define MAX_DOTS 75
 
-#define CORE_ADDY       0
-#define LUNA_ADDY       10
-#define DISPLAY_ADDY    20
-#define WT_ADDY         30
-#define WEATHER_ADDY    40
-#define PINGER_ADDY     50
-#define WIFI_ADDY       100
+#define CORE_ADDY       0     // byte, bool, bool == 3 bytes
+#define LUNA_ADDY       10    // int, int == 8 bytes
+#define DISPLAY_ADDY    20    // byte, byte == 2 bytes
+#define WT_ADDY         30    // int, int == 8 bytes
+#define WEATHER_ADDY    40    // double, double = 16 bytes
+#define PINGER_ADDY     58    // bool == 1 byte
+#define WIFI_ADDY       100   // 100 bytes
+#define COLOR_ADDY      200   // 4 bytes
 
 #define WIFI_EMERGENCY_SSID "raccoontime"
 #define WIFI_EMERGENCY_PASSWD "busyness"

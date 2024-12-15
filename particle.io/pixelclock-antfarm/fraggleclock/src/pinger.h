@@ -85,18 +85,26 @@ class Pinger {
         
 
         int toggle_pinger(String data) {
+          // show_pinger = (show_pinger ? false : true);
           show_pinger = !show_pinger;
           write_eeprom();
-          return show_pinger ? 1 : 0;
+          return (int)show_pinger;
+          if (show_pinger) {
+            return 42;
+          } else {
+            return 69;
+          }
         } // toggle_pinger(data)
 
 
         void read_eeprom() {
           show_pinger = EEPROM.read(PINGER_ADDY);
+          // EEPROM.get(PINGER_ADDY, show_pinger);
         } // read_eeprom()
 
 
         void write_eeprom() {
+          EEPROM.put(PINGER_ADDY, show_pinger);
           if (EEPROM.read(PINGER_ADDY) != show_pinger) {
             EEPROM.write(PINGER_ADDY, show_pinger);
           }

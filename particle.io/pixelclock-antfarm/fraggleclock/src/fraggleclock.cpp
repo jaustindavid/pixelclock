@@ -120,10 +120,9 @@ uint8_t mode = ANT_MODE;
 
 String mode_name = "Ant";
 
-#ifndef FPS
-  #define FPS 5
-#endif
-// SimpleTimer every50(1000/10); // 10 FPS  
+// FPS == frames per loop * loops per second 
+// display.show(timer) => 4 frames
+#define FPS 8
 SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
 SimpleTimer every50(100);
 SimpleTimer second(1000);
@@ -441,7 +440,7 @@ void setup_luna() {
 
 int set_backup_ssid(String data) {
     String backupSSID = data;
-    Log.info("Saving new backup SSID: %s", backupSSID);
+    Log.info("Saving new backup SSID: %s", backupSSID.c_str());
     storeString(WIFI_ADDY, backupSSID);
     return backupSSID.length();
 } // set_backup_ssid(data)
@@ -449,7 +448,7 @@ int set_backup_ssid(String data) {
 
 int set_backup_passwd(String data) {
     String backupPasswd = data;
-    Log.info("Saving new backup passwd: %s", backupPasswd);
+    Log.info("Saving new backup passwd: %s", backupPasswd.c_str());
     storeString(WIFI_ADDY+50, backupPasswd);
     return backupPasswd.length();
 } // set_backup_passwd(data)
@@ -578,21 +577,6 @@ void watchdogHandler() {
 } // watchdogHandler()
 
 
-void test_turtle() {
-  Log.info("testing turtle");
-  Turtle* turtle = (Turtle*)sandbox[0];
-  Dot target = Dot(8, 8, BLACK);
-  while (turtle->x != 8 
-         && turtle->y != 8) {
-    turtle->move_toward(&target, sandbox);
-    display.clear();
-    display.render(sandbox);
-    display.render(sandbox, 1);
-    display.show(show_timer);
-  }
-} // test_turtle()
-
-
 void maybe_reconnect() {
   if (!Particle.connected()) {
       WiFi.off();
@@ -624,6 +608,7 @@ void setup() {
     display.setup();
     setup_dst();
     setup_cloud();
+    setup_color();
     wTime.setup();
     setup_weather();
     setup_luna();

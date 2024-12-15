@@ -21,11 +21,28 @@ class Display {
         color_t fg[PIXEL_COUNT], bg[PIXEL_COUNT];
         Adafruit_NeoPixel *neopixels;
         int brightness, brightness_target;
-        int min_brightness, max_brightness;
+        byte min_brightness, // min value for LED brightness; 0-255
+             max_brightness, // max value for LED brightness; 0-255
+             rotation;       // # 90* CW rotations to apply; 0-3
         bool alignment_mode;
 
+        struct save_data_t {
+          byte version,
+               min,
+               max,
+               rota;
+        };
         
+
         void read_eeprom() {
+          struct save_data_t datum;
+          EEPROM.get(DISPLAY_ADDY, datum);
+          if (datum.version == 0) {
+            min_brightness = datum.min;
+            max_brightness = datum.max;
+            rotation = datum.rota;
+          }
+          /*
           int addy = DISPLAY_ADDY;
           int datum = EEPROM.read(addy);
           if (datum != 255) {
@@ -36,18 +53,36 @@ class Display {
           if (datum != 255) {
             max_brightness = datum;
           }
+          addy += sizeof(datum);
+          datum = EEPROM.read(addy);
+          if (datum < 4) {
+            rotation = datum;
+          }
+          */
         } // read_eeprom()
 
 
         void write_eeprom() {
+          struct save_data_t datum;
+          datum.version = 0;
+          datum.min = min_brightness;
+          datum.max = max_brightness;
+          datum.rota = rotation;
+          EEPROM.put(DISPLAY_ADDY, datum);
+          /*
           int addy = DISPLAY_ADDY;
           if (EEPROM.read(addy) != min_brightness) {
             EEPROM.write(addy, min_brightness);
           }
-          addy += sizeof(max_brightness);
+          addy += sizeof(min_brightness);
           if (EEPROM.read(addy) != max_brightness) {
             EEPROM.write(addy, max_brightness);
           }
+          addy += sizeof(max_brightness);
+          if (EEPROM.read(addy) != rotation) {
+            EEPROM.write(addy, rotation);
+          }
+          */
         } // write_eeprom()
 
 
@@ -61,10 +96,10 @@ class Display {
         // honors alignment_mode: shows dots in the corners
         void maybe_show_alignment() {
           if (alignment_mode) {
-            neopixels->setPixelColor(txlate(0,0), WHITE);
-            neopixels->setPixelColor(txlate(0, MATRIX_Y-1), WHITE);
-            neopixels->setPixelColor(txlate(MATRIX_X-1, 0), WHITE);
-            neopixels->setPixelColor(txlate(MATRIX_X-1, MATRIX_Y-1), WHITE);
+            neopixels->setPixelColor(trans_rotate(0,0), WHITE);
+            neopixels->setPixelColor(trans_rotate(0, MATRIX_Y-1), WHITE);
+            neopixels->setPixelColor(trans_rotate(MATRIX_X-1, 0), WHITE);
+            neopixels->setPixelColor(trans_rotate(MATRIX_X-1, MATRIX_Y-1), WHITE);
           }
         } // maybe_show_alignment()
 
@@ -91,6 +126,29 @@ class Display {
         } // int set_max_brightness(data)
 
 
+        int set_rotation(String data) {
+          rotation = (rotation + 1) % 4;
+          write_eeprom();
+          return rotation;
+        } // set_rotation(junk)
+
+
+        // returns a rotated + translated (x, y) -> [i]
+        int trans_rotate(int x, int y) {
+          int xprime = x, 
+              yprime = y;
+
+          // apply a 90* CCW rotation to (xprime, yprime)
+          for (int i = 0; i < rotation; i++) {
+            int y0 = yprime;
+            yprime = xprime;
+            xprime = MATRIX_X - 1 - y0;
+          }
+
+          return txlate(xprime, yprime);
+        } // int trans_rotate(x, y)
+
+
     public:
         Display(Adafruit_NeoPixel *new_neopixels) {
             neopixels = new_neopixels;
@@ -98,6 +156,7 @@ class Display {
             alignment_mode = false;
             min_brightness = 4;
             max_brightness = 64; 
+            rotation = 0;
             read_eeprom();
         } // Display(neopixels)
 
@@ -128,6 +187,8 @@ class Display {
                 &Display::set_min_brightness, this);
             Particle.function("display_max_brightness", 
                 &Display::set_max_brightness, this);
+            Particle.function("display_rotate", 
+                &Display::set_rotation, this);
         } // setup()
         
         
@@ -157,11 +218,11 @@ class Display {
 
 
         void paint(Dot* dot) {
-            paint(txlate(dot->x, dot->y), dot->color);
+            paint(trans_rotate(dot->x, dot->y), dot->color);
         } // paint(dot)
         
         
-        void unpaint(Dot* dot) {
+        void DEADunpaint(Dot* dot) {
             paint(txlate(dot->x, dot->y), BLACK);
         } // unpaint(dot)
 
@@ -217,12 +278,14 @@ class Display {
         // show() will copy these to pixels, then push them
         void render(Dot* dots[]) {
             render(dots, MAX_DOTS);
+            /*
             return;
             for (int cursor = 0; cursor < MAX_DOTS; cursor++) {
                 if (dots[cursor]->active) {
                     paint(dots[cursor]);
                 }
             }
+            */
         } // render(dots)
         
 

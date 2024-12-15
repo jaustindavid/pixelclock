@@ -89,7 +89,8 @@ class WobblyTimer {
 class WobblyTime {
     private:
         byte h, m, s, forced_hh, forced_mm;
-        int address, MAX_ADVANCE, MIN_ADVANCE, dT, target_offset;
+        int address, dT, target_offset;
+        int MAX_ADVANCE, MIN_ADVANCE;
         time_t fakeTime, lastTick, lockout;
         SimpleTimer *tickTimer; 
         int hhmm;
@@ -255,7 +256,7 @@ bool WobblyTime::coarse_correct() {
   int actual_offset = fakeTime - Time.now();
   if (abs(actual_offset) > 2*MAX_ADVANCE) {
     // quick slam to proper time
-    Log.warn("WobblyTime massive correction: %ld", actual_offset);
+    Log.warn("WobblyTime massive correction: %d", actual_offset);
     fakeTime = Time.now();
   }
   return false;
