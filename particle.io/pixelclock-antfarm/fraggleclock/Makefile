@@ -10,6 +10,9 @@ square:
 widescreen:
 	cp src/widescreen-aspect.h src/aspect.h
 
+d1:
+	echo "#define PIXEL_PIN D1" >> src/aspect.h
+
 local:
 	particle flash --local
 
@@ -28,8 +31,7 @@ rico_raccoon: square
 ricky_raccoon: square
 	particle flash $@
 
-roxie_raccoon: square
-	echo "#define PIXEL_PIN D1" >> src/aspect.h
+roxie_raccoon: square d1
 	particle flash $@
 
 leslie: steel_hamster

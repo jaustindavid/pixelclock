@@ -111,8 +111,9 @@ class OpenWeather {
                 lattitude = (double)f;
                 write_data();
             }
+            last_update = 0; // inspire an update
             return (int)f;
-        }
+        } // int setLattitude(String data)
         
 
         int setLongitude(String data) {
@@ -121,8 +122,9 @@ class OpenWeather {
                 longitude = (double)f;
                 write_data();
             }
+            last_update = 0; // inspire an update
             return (int)f;
-        }
+        } // int setLongitude(String data)
 
 
     public:

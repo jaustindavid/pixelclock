@@ -42,7 +42,7 @@ class WeatherBug: public Ant {
             active = true;
             peers = _peers;
             wTime = _wTime;
-            x = 15;
+            x = MATRIX_X-1;
             y = 0;
         }
         

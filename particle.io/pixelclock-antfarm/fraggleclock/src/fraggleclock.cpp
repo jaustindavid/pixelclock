@@ -11,6 +11,7 @@
 
 // Let Device OS manage the connection to the Particle Cloud
 SYSTEM_MODE(AUTOMATIC);
+// SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Run the application and system concurrently in separate threads
 SYSTEM_THREAD(ENABLED);
@@ -510,6 +511,7 @@ void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
     }
     display.show();
     delay(1000);
+    ApplicationWatchdog::checkin(); // resets the AWDT count
   }
 
   paint_connection_status(0, y);
@@ -523,7 +525,8 @@ void try_to_connect() {
     return;
   }
 
-  // first try the burned-in creds
+  ApplicationWatchdog::checkin(); // resets the AWDT count
+
   Log.warn("trying default credentials...");
   connect_and_blink(0, String(""), String(""));
   if (Particle.connected()) {
@@ -531,6 +534,30 @@ void try_to_connect() {
     return;
   }
 
+  ApplicationWatchdog::checkin(); // resets the AWDT count
+
+  String backupSSID = fetchString(WIFI_ADDY);
+  String backupPasswd = fetchString(WIFI_ADDY+50);
+  Log.warn("trying backup credentials %s :: %s", 
+      backupSSID.c_str(), backupPasswd.c_str());
+  connect_and_blink(1, backupSSID, backupPasswd);
+  if (Particle.connected()) {
+    Log.warn("Connected to backup!");
+    return;
+  }
+
+  ApplicationWatchdog::checkin(); // resets the AWDT count
+
+  Log.warn("trying emergency credentials %s :: %s", 
+            WIFI_EMERGENCY_SSID, WIFI_EMERGENCY_PASSWD);
+  connect_and_blink(2, WIFI_EMERGENCY_SSID, WIFI_EMERGENCY_PASSWD);
+  if (Particle.connected()) {
+    Log.warn("Connected to emergency hotspot!");
+    return;
+  }
+
+  ApplicationWatchdog::checkin(); // resets the AWDT count
+  Log.warn("Failed to connect :(((");
 } // try_to_connect()
 
 
@@ -554,12 +581,18 @@ void setup_wifi() {
 
 
 void setup_cloud() {
+  static bool already_set = false;
+
+  if (! already_set 
+      && Particle.connected()) {
     read_mode();
     Particle.variable("mode", mode_name);
     Particle.function("toggle_mode", toggle_mode);
     Particle.variable("show_food", show_food);
     Particle.function("toggle_show_food", toggle_show_food);
     Particle.function("toggle_show_weather", toggle_show_weather);
+    already_set = true;
+  }  
 } // setup_cloud()
 
 
