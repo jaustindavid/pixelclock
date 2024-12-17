@@ -206,7 +206,8 @@ class Raccoon: public Turtle {
 
       Dot* target = plan[target_i];
       if (adjacent(target)) {
-        place_brick(target, CLEAN_COLOR, sandbox);
+        // place_brick(target, CLEAN_COLOR, sandbox);
+        place_brick(target, main_color, sandbox);
         Log.trace("brick: placed, (%d,%d)", target->x, target->y);
         start_resting(plan, sandbox);
       } else {

@@ -25,16 +25,27 @@ typedef uint32_t color_t;
 #define CYAN        (Adafruit_NeoPixel::Color(0, 255, 255))
 #define MAGENTA     (Adafruit_NeoPixel::Color(255, 0, 255))
 
-color_t main_color;
+color_t main_color = MIDGREEN;
 
+struct color_struct {
+  byte version;
+  color_t color_data;
+};
 
 void store_color() {
-  EEPROM.put(COLOR_ADDY, main_color);
+  struct color_struct datum;
+  datum.version = 1;
+  datum.color_data = main_color;
+  EEPROM.put(COLOR_ADDY, datum);
 } // store_color()
 
 
 void load_color() {
-  EEPROM.get(COLOR_ADDY, main_color);
+  struct color_struct datum;
+  EEPROM.get(COLOR_ADDY, datum);
+  if (datum.version >= 1) {
+    main_color = datum.color_data;
+  }
 } // load_color()
 
 

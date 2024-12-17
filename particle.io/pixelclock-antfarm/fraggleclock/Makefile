@@ -38,10 +38,10 @@ leslie: steel_hamster
 steel_hamster: square
 	particle flash $@
 
-pixelclock-dev: ronaldo_raccoon
 ronaldo_raccoon:	square
 	particle flash $@
 
-pixelclock-mahogany: rowan_raccoon
 rowan_raccoon: square
 	particle flash $@
+
+froge: rico_raccoon rowan_raccoon roxie_raccoon ricky_raccoon ronaldo_raccoon
