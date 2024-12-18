@@ -33,11 +33,12 @@ class Turtle: public Ant {
         int target_i;
         SimpleTimer* step_timer;
         uint8_t state, prev_state;
+        color_t brick_color;
         
 
         bool is_brick(Dot* target) {
           return (target
-                  && ((target->get_color() == RED)
+                  && ((target->get_color() == brick_color)
                   || (target->get_color() == DARKRED)));
         } // bool is_brick(target)
 
@@ -344,6 +345,7 @@ class Turtle: public Ant {
 
         Turtle() : Ant() {
             color = GREEN;
+            brick_color = RED;
             active = true;
             step_timer = new SimpleTimer(TURTLE_SPEED);
             iq = MAX_IQ;
@@ -360,7 +362,7 @@ class Turtle: public Ant {
                     #ifdef PRINTF_DEBUGGER
                         Serial.println("placing brick");
                     #endif
-                    place_brick(target, RED, sandbox);
+                    place_brick(target, brick_color, sandbox);
                     state = RESTING;
                 } else {
                     // step_toward(target);
@@ -393,7 +395,7 @@ class Turtle: public Ant {
             state = RESTING;
             Log.info("resting.  Looking for tracks in sandbox, not plan");
             int i;
-            if ((i = pick_closest_open(sandbox, plan, RED)) != -1) {
+            if ((i = pick_closest_open(sandbox, plan, brick_color)) != -1) {
                 // if tracks not on plan, clean
                 #ifdef PRINTF_DEBUGGER
                     Serial.printf("found %d (%d,%d); cleaning\n", i, sandbox[i]->x, sandbox[i]->y);
@@ -428,7 +430,10 @@ class Turtle: public Ant {
                 return;
             }
             Log.info("Turtle[%d](%d, %d):%d\n", id, x, y, state);
-            color = GREEN;
+            color = sprite_color; // GREEN;
+            if (main_color != BLACK) {
+              brick_color = main_color;
+            }
             switch (state) {
                 case BUILDING:
                     build(plan, sandbox);

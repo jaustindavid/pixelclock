@@ -34,6 +34,12 @@ ricky_raccoon: square
 roxie_raccoon: square d1
 	particle flash $@
 
+rosalyn_raccoon: square
+	particle flash $@
+
+roberta_raccoon: square
+	particle flash $@
+
 leslie: steel_hamster
 steel_hamster: square
 	particle flash $@
@@ -44,4 +50,5 @@ ronaldo_raccoon:	square
 rowan_raccoon: square
 	particle flash $@
 
-froge: rico_raccoon rowan_raccoon roxie_raccoon ricky_raccoon ronaldo_raccoon
+froge: rico_raccoon rowan_raccoon roxie_raccoon ricky_raccoon \
+	ronaldo_raccoon rosalyn_raccoon roberta_raccoon

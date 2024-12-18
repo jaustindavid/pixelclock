@@ -185,7 +185,7 @@ class Doozer: public Turtle {
             }
 
             if (adjacent(target)) {
-                place_brick(target, RED, sandbox);
+                place_brick(target, brick_color, sandbox);
                 target = nullptr;
                 state = RESTING;
                 return;
@@ -218,7 +218,8 @@ class Doozer: public Turtle {
                      target->x, target->y, target->color);
             Log.info("adjacent? %c", adjacent(target) ? 'y':'n');
             Log.info("brick? %c", is_brick(target) ? 'y':'n');
-            Log.info("color 0x%06lx? %c", RED, target->color == RED ? 'y':'n');
+            Log.info("color 0x%06lx? %c", brick_color, 
+                           target->color == brick_color ? 'y':'n');
             Log.info("color 0x%06lx? %c", DARKRED, target->color == DARKRED ? 'y':'n');
 
             if ((adjacent(target) || equals(target)) && is_brick(target)) {
@@ -328,7 +329,7 @@ class Doozer: public Turtle {
                 return;
             }
 
-            i = pick_closeish_open(sandbox, plan, RED);
+            i = pick_closeish_open(sandbox, plan, brick_color);
             if (i != -1) {
                 Log.info("found %d not in plan; cleaning\n", i);
                 state = CLEANING;
@@ -354,6 +355,7 @@ class Doozer: public Turtle {
         Doozer() : Turtle() {
             color = MIDWHITE;
             state = RESTING;
+            brick_color = RED;
             delay(WALK_SPEED/2);
             Log.info("creating doozer at %lu", millis());
             step_timer->setInterval(WALK_SPEED);
@@ -380,6 +382,11 @@ class Doozer: public Turtle {
                 return;
             }
             Log.info("Doozer[%d](%d, %d):%d @ %lu", id, x, y, state, millis());
+
+            if (main_color != BLACK) {
+              brick_color = main_color;
+            }
+
             // delay(1000);
             switch (state) {
               case FETCHING:
