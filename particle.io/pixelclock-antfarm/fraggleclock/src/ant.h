@@ -93,6 +93,7 @@ class Ant : public Dot {
         // find a nearby "needle" of target_color in a cell which is not occupied in "sandbox"
         int pick_closeish_open(Dot* needle[], Dot* haystack[], 
                                 color_t target_color) {
+            Log.trace("pick_closeish_open");
             // 1. find open food
             bool open[MAX_DOTS];
             // Serial.print("open needles: ");
@@ -124,12 +125,14 @@ class Ant : public Dot {
                     // Serial.printf("%.2f <> %.2f? ", randomValue, accumulatedProbability);
                     if (randomValue <= accumulatedProbability) {
                         // Serial.printf("found %d\n", i);
+                        Log.trace("found open %d", i);
                         return i;
                     }
                 }
             }
             // Serial.println("; none found");
             // FALLTHROUGH / failed to find any point
+            Log.trace("failed to find any closeish open");
             return -1;
         }
 
