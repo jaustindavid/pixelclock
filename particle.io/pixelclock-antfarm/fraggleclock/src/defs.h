@@ -1,6 +1,8 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#define PHOTON2 32
+
 #include "aspect.h"
 
 #define SQUARE     0
@@ -17,6 +19,12 @@
 #endif
 #define PIXEL_COUNT 256
 
+
+#define REDRAW_SPEED_MS 50 // ms
+#define REDRAWS_PER_FRAME 5 // implies 500ms frame rate
+
+#define HOLDING_PATTERN 10 // seconds before goin nuts
+
 #define PRINTF_DEBUGGER
 #define MAX_DOTS 75
 
@@ -24,7 +32,7 @@
 #define LUNA_ADDY       10    // int, int == 8 bytes
 #define DISPLAY_ADDY    20    // 4 bytes
 #define WT_ADDY         30    // int, int == 8 bytes
-#define WEATHER_ADDY    40    // double, double = 16 bytes
+#define WEATHER_ADDY    40    // byte, double, double = 17 bytes
 #define PINGER_ADDY     58    // bool == 1 byte
 #define WIFI_ADDY       100   // 100 bytes
 #define COLOR_ADDY      200   // 4 bytes

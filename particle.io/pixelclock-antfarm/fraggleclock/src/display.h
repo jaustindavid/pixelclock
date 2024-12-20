@@ -211,6 +211,7 @@ class Display {
         } // clear()
         
 
+        // one-shot show()
         void show() {
             for (int i = 0; i < PIXEL_COUNT; i++) {
                 neopixels->setPixelColor(i, fg[i]);
@@ -236,19 +237,23 @@ class Display {
         } // wavrgb(a, weight, b, weight)
 
         
-        // a multi-pass show(), one pass per show_timer
-        void show(SimpleTimer* show_timer) {
-            for (int w = 1; w < 5; w++) {
+        // a multi-pass show()
+        // REDRAWS_PER_FRAME to transition from bg -> fg, 
+        // with REDRAW_SPEED_MS delay between
+        void show_multipass() {
+            static SimpleTimer redraw_timer(REDRAW_SPEED_MS);
+            for (int w = 1; w < (REDRAWS_PER_FRAME+1); w++) {
                 // unsigned long start = millis();
                 for (int i = 0; i < PIXEL_COUNT; i++) {
-                    neopixels->setPixelColor(i, wavrgb(fg[i], w, bg[i], 5-w));
+                    neopixels->setPixelColor(i, wavrgb(fg[i], w, bg[i], 
+                          REDRAWS_PER_FRAME-w));
                 }
                 maybe_show_alignment();
                 neopixels->show();
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
-                show_timer->wait();
+                redraw_timer.wait();
             }
-        } // show(timer)
+        } // show_multipass()
         
         
         // render() writes to the fg[] buffer;

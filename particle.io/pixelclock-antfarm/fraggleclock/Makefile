@@ -22,15 +22,6 @@ pause:
 follow:
 	particle serial monitor --follow
 
-rachel_raccoon: widescreen
-	particle flash $@
-
-rico_raccoon: square
-	particle flash $@
-
-ricky_raccoon: square
-	particle flash $@
-
 roxie_raccoon: square d1
 	particle flash $@
 
@@ -38,10 +29,13 @@ leslie: steel_hamster
 steel_hamster: square
 	particle flash $@
 
-pixelclock-dev: ronaldo_raccoon
-ronaldo_raccoon:	square
-	particle flash $@
+drew: ronaldo
 
-pixelclock-mahogany: rowan_raccoon
-rowan_raccoon: square
-	particle flash $@
+SQUARES = rosalyn roberta rowan ricky rico
+WIDESCREENS = ronaldo rachel ringo
+
+$(SQUARES) : square
+	particle flash $@_raccoon
+
+$(WIDESCREENS) : widescreen
+	particle flash $@_raccoon

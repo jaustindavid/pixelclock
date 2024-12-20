@@ -123,10 +123,6 @@ uint8_t mode = ANT_MODE;
 
 String mode_name = "Ant";
 
-// FPS == frames per loop * loops per second 
-// display.show(timer) => 4 frames
-#define FPS 8
-SimpleTimer* show_timer = new SimpleTimer(1000/4/FPS);
 SimpleTimer every50(100);
 SimpleTimer second(1000);
 SimpleTimer minute(60*1000);
@@ -568,8 +564,8 @@ void setup_wifi() {
 
     try_to_connect();
 
-    // wait for the remainder of 30 seconds
-    while (millis() - start_time < 30000) {
+    // wait for the remainder of HOLDING_PATTERN seconds
+    while (millis() - start_time < HOLDING_PATTERN * 1000) {
       display.paint(txlate(1, 0), BLUE);
       display.show();
       delay(500);
@@ -758,6 +754,6 @@ void loop() {
 
     display.render(pinger.pings(), pinger.npings());
     display.render(sandbox);
-    display.show(show_timer);
+    display.show_multipass();
     maybe_reboot();
 } // loop()
