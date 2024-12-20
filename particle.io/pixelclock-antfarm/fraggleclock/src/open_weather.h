@@ -85,13 +85,35 @@ class OpenWeather {
         }
         
         
+        struct weather_datum {
+          byte version;
+          double lat;
+          double lon;
+        };
+
+
         void read_data() {
+            struct weather_datum datum;
+            EEPROM.get(address, datum);
+            if (datum.version == 1) {
+              lattitude = datum.lat;
+              longitude = datum.lon;
+            };
+            return;
             EEPROM.get(address, lattitude);
             EEPROM.get(address+sizeof(lattitude), longitude);
-        }
+        } // read_data()
 
 
         void write_data() {
+            struct weather_datum datum = 
+            { .version = 1,
+              .lat = lattitude,
+              .lon = longitude,
+            };
+            EEPROM.put(address, datum);
+            return;
+            EEPROM.get(address, datum);
             double d;
             EEPROM.update(address, d);
             EEPROM.get(address, d);
@@ -112,7 +134,7 @@ class OpenWeather {
                 write_data();
             }
             last_update = 0; // inspire an update
-            return (int)f;
+            return (int)(lattitude * 100);
         } // int setLattitude(String data)
         
 
@@ -123,7 +145,7 @@ class OpenWeather {
                 write_data();
             }
             last_update = 0; // inspire an update
-            return (int)f;
+            return (int)(longitude * 100);
         } // int setLongitude(String data)
 
 
