@@ -25,6 +25,12 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
+rosalyn_raccoon: square
+	particle flash $@
+
+roberta_raccoon: square
+	particle flash $@
+
 leslie: steel_hamster
 steel_hamster: square
 	particle flash $@
