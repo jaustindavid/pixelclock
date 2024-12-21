@@ -48,14 +48,21 @@ class TemperatureGraph {
     // updates the graph to reflect what the temp feels_like (C)
     void update(int feels_like) {
       // counting up from bottom: 0 - 40C
-      int mapped_temp = map(feels_like, 0, 40, MATRIX_Y, 0);
+      int mapped_temp = map(feels_like, 0, 40, MATRIX_Y-1, 0);
       for (int y = 0; y <= MATRIX_Y-2; y++) { 
-        if (mapped_temp < y) {
+        if (mapped_temp <= y) {
           dots[y]->active = true;
         } else {
           dots[y]->active = false;
         }
       }
+      /* // for debugging, twinkle the top bar in the temp chart
+      if (P(10)) {
+        dots[mapped_temp]->color = WHITE;
+      } else {
+        dots[mapped_temp]->color = feels_like_color(feels_like);
+      }
+      */
     } // void update(feels_like)
 }; // class TemperatureGraph
 
