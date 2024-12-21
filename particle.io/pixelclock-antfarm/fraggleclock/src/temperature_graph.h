@@ -15,7 +15,9 @@ class TemperatureGraph {
 
     // what color does this feel like?
     color_t feels_like_color(int temp) {
-      if (temp < 10) {
+      if (temp < 5) {
+        return Adafruit_NeoPixel::Color(128, 128, 255);
+      } else if (temp < 10) {
         return BLUE;
       } else if (temp < 20) {
         return LIGHTBLUE;
@@ -38,7 +40,7 @@ class TemperatureGraph {
       for (int i = 0; i < MATRIX_Y; i++) {
         fake_temp = map(i, MATRIX_Y-1, 0, 0, 40);
         dots[i] = new Dot(x, i, feels_like_color(fake_temp));
-        dots[i]->active = false;
+        dots[i]->active = true;
       }
     } // TemperatureGraph
 
@@ -47,7 +49,7 @@ class TemperatureGraph {
     void update(int feels_like) {
       // counting up from bottom: 0 - 40C
       int mapped_temp = map(feels_like, 0, 40, MATRIX_Y, 0);
-      for (int y = 0; y < MATRIX_Y; y++) { 
+      for (int y = 0; y <= MATRIX_Y-2; y++) { 
         if (mapped_temp < y) {
           dots[y]->active = true;
         } else {
