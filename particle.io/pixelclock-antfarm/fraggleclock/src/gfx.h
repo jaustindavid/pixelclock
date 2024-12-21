@@ -70,27 +70,30 @@ class WeatherBug: public Ant {
         }
 
 
+        // bottom -> top
+        // GG B..SS..B
         void be_sunny() {
-            if (y >= 6) {
+            // bottom two are GG
+            if (y >= MATRIX_Y-2) {
                 color = GREEN;
             } else {
-                int height = constrain(abs(12-wTime->hour()), 0, 5);
+                int height = constrain(abs(12-wTime->hour()), 0, MATRIX_Y-3);
                 if (y == height || y == height+1) {
                     color = YELLOW;
                 } else {
                     color = BLUE;
                 }
             }
-        }
+        } // be_sunny()
         
     
         // moon height: distance from midnight
         void be_nighted() {
             int height;
             if (wTime->hour() > 12) {
-                height = map(wTime->hour(), 18, 24, MATRIX_Y-2, 0);
+                height = map(wTime->hour(), 18, 24, MATRIX_Y-1, 0);
             } else {
-                height = map(wTime->hour(), 0, 8, 0, MATRIX_Y-2);
+                height = map(wTime->hour(), 0, 8, 0, MATRIX_Y-1);
             }
             if (y == height || y == height + 1) {
                 color = MIDWHITE;

@@ -6,6 +6,11 @@
  *   - different attributes like "weather" or "pinger"
  *   - proving an interface (Particle.function) for changing
  *   - persisting same to EEPROM
+ * 
+ * TODO:
+ *   - layout tells pinger, weather, chef what to draw
+ *     - (x, y) anchors & lengths
+ *   - layout renders these to Display
  */
 
 class Layout {

@@ -227,9 +227,9 @@ void update_layout() {
     case RACCOON_MODE:
       update_raccoon_layout(&layout, sandbox);
       if (layout.show_weather) {
-        pinger.set_layout(2, MATRIX_Y-5);
+        pinger.set_layout(2, MATRIX_X-5);
       } else {
-        pinger.set_layout(1, MATRIX_Y-3);
+        pinger.set_layout(1, MATRIX_X-3);
       }
       break;
     case ANT_MODE:

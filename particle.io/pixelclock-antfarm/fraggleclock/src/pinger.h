@@ -24,7 +24,7 @@
 // returns it on request
 class Pinger {
     private:
-        Dot* graph[MATRIX_Y];
+        Dot* graph[MATRIX_X];
         SimpleTimer* ping_timer;
         int x, width;
 
@@ -53,7 +53,7 @@ class Pinger {
 
         void update_graph() {
             // propagate colors to the left
-            for (int i = 0; i < MATRIX_Y - 1; i++) {
+            for (int i = 0; i < MATRIX_X - 1; i++) {
                graph[i]->color = graph[i+1]->color;
             }
 
@@ -90,7 +90,7 @@ class Pinger {
 
 
         void setup() {
-            for (int i = 0; i < MATRIX_Y; i++) {
+            for (int i = 0; i < MATRIX_X; i++) {
                 graph[i] = new Dot();
                 graph[i]->x = PINGER_X + i;
                 graph[i]->y = PINGER_Y;
@@ -110,7 +110,7 @@ class Pinger {
         void set_layout(int start_x, int new_width) {
           x = start_x;
           width = new_width;
-          for (int i = 0; i < MATRIX_Y; i++) {
+          for (int i = 0; i < MATRIX_X; i++) {
             if (graph[i]->x < start_x
                 || graph[i]->x >= (start_x + width)) {
               graph[i]->active = false;
@@ -138,7 +138,7 @@ class Pinger {
         // which is just the whole thing 
         // -> some will be inactive based on layout
         int npings() {
-          return MATRIX_Y;
+          return MATRIX_X;
         } // npings()
 };
 
