@@ -79,9 +79,6 @@
 #define POOL_TARGET 2 // sandbox index for a pool node
 #define POOL_COLOR (Adafruit_NeoPixel::Color(32, 32, 192))
 
-int TRASH_X = 0, TRASH_Y = MATRIX_Y-1, 
-    POOL_X = MATRIX_X - 1, POOL_Y = MATRIX_Y - 1;
-
 
 class Stopwatch {
   private:
@@ -122,6 +119,8 @@ class Raccoon: public Turtle {
     SimpleTimer *dunk_timer;
     uint32_t swish;
     Stopwatch rest_counter, run_counter;
+    int TRASH_X, TRASH_Y;
+
 
     // returns a dot of target_color, or -1
     int pick_any(Dot* sandbox[], color_t target_color) {
@@ -332,6 +331,9 @@ class Raccoon: public Turtle {
       Log.info("creating racc at %lu", millis());
       target = nullptr;
       target_i = -1;
+      TRASH_X = 0;
+      TRASH_Y = MATRIX_Y - 1;
+      Log.info("Raccoon; trash@(%d,%d)", TRASH_X, TRASH_Y);
     } // Raccoon()
 
     
@@ -405,23 +407,9 @@ class Raccoon: public Turtle {
 }; // class Raccoon
 
 
-int trash_x = 0;
 
   void update_raccoon_layout(Dot* sandbox[]) {
-    Raccoon* raccoon = (Raccoon*)sandbox[0];
-    if (show_weather) {
-      // move the pool
-      sandbox[1]->x = MATRIX_X-3;
-      sandbox[2]->x = MATRIX_X-2;
-      // relocate the trashcan
-      TRASH_X = 1;
-    } else {
-      sandbox[1]->x = MATRIX_X-2;
-      sandbox[2]->x = MATRIX_X-1;
-      // relocate the trashcan
-      TRASH_X = 0;
-    }
-  } // update_raccoon_layout(sandbox)
+  }
 
 
   // update any not-in-plan dots as "dirty"
@@ -457,7 +445,7 @@ int trash_x = 0;
 
 
   void loop_raccoons(Dot* plan[], Dot* sandbox[]) {
-    update_raccoon_layout(sandbox);
+    update_racoon_layout();
 
     // in raccoon mode, food-not-in-plan is "dirty"
     dirty_all_the_things(plan, sandbox);

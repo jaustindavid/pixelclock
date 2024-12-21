@@ -9,10 +9,11 @@
 
 #define PINGER_X 2            // first spot
 #define PINGER_Y (MATRIX_Y-1) // bottom row
+
 #if (ASPECT_RATIO == SQUARE)
-  #define PINGER_WIDTH 12  // total width
+  #define DEFAULT_PINGER_WIDTH 12
 #else
-  #define PINGER_WIDTH 28  // total width
+  #define DEFAULT_PINGER_WIDTH 28
 #endif
 
 #define MAX_RGB 96
@@ -23,9 +24,10 @@
 // returns it on request
 class Pinger {
     private:
-        Dot* graph[PINGER_WIDTH];
+        Dot* graph[MATRIX_Y];
         SimpleTimer* ping_timer;
         bool show_pinger;
+        int x, width;
 
 
         // each ping() call does one timed ping, returns latency (ms) or -1
@@ -52,9 +54,10 @@ class Pinger {
 
         void update_graph() {
             // propagate colors to the left
-            for (int i = 0; i < PINGER_WIDTH-1; i++) {
+            for (int i = 0; i < MATRIX_Y - 1; i++) {
                graph[i]->color = graph[i+1]->color;
             }
+
             int latency = ping();
             int r = map(latency, 50, 500, 0, MAX_RGB);
             int g = map(latency, 0, 250, MAX_RGB, 0);
@@ -65,15 +68,15 @@ class Pinger {
                  graph[PINGER_WIDTH-1]->x, 
                  graph[PINGER_WIDTH-1]->active ? "on" : "off");
             */
+            int index = x + width - 1;
             if (latency == -1 || latency > 500) {
                 // Serial.println("reddenning");
-                graph[PINGER_WIDTH-1]->set_color(REDDISH);
+                graph[index]->set_color(REDDISH);
             } else if (latency < 50) {
                 // Serial.println("greenenning");
-                graph[PINGER_WIDTH-1]->set_color(GREENISH);
+                graph[index]->set_color(GREENISH);
             } else { 
-                graph[PINGER_WIDTH-1]->set_color(
-                    Adafruit_NeoPixel::Color(r, g, 0));
+                graph[index]->set_color(Adafruit_NeoPixel::Color(r, g, 0));
             }
            //  Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
         } // update_graph()
@@ -115,11 +118,13 @@ class Pinger {
         Pinger() {
             ping_timer = new SimpleTimer(15*1000);
             show_pinger = false;
+            width = DEFAULT_PINGER_WIDTH;
+            x = PINGER_X;
         } // Pinger()
 
 
         void setup() {
-            for (int i = 0; i < PINGER_WIDTH; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 graph[i] = new Dot();
                 graph[i]->x = PINGER_X + i;
                 graph[i]->y = PINGER_Y;
@@ -129,12 +134,28 @@ class Pinger {
 
             setup_cloud_functions();
             read_eeprom();
+
+            set_layout(PINGER_X, DEFAULT_PINGER_WIDTH);
         } // setup(width)
 
 
         ~Pinger() {
             delete ping_timer;
         } // ~Pinger()
+
+
+        void set_layout(int start_x, int new_width) {
+          x = start_x;
+          width = new_width;
+          for (int i = 0; i < MATRIX_Y; i++) {
+            if (graph[i]->x < start_x
+                || graph[i]->x >= (start_x + width)) {
+              graph[i]->active = false;
+            } else {
+              graph[i]->active = true;
+            }
+          }
+        } // set_layout(start_x, width)
 
 
         // return a graph of ping data
@@ -154,7 +175,7 @@ class Pinger {
         // or 0 if not showing
         int npings() {
           if (show_pinger) {
-            return PINGER_WIDTH;
+            return MATRIX_Y;
           } else {
             return 0;
           }

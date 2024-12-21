@@ -40,6 +40,11 @@
 #define WIFI_EMERGENCY_SSID "raccoontime"
 #define WIFI_EMERGENCY_PASSWD "busyness"
 
+// massively globals
+bool show_weather = false;
+bool show_pinger = false;
+bool show_food = false;
+
 // (x, y) -> [i]
 int txlate(int x, int y) {
     int pixel = 0;

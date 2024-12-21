@@ -135,8 +135,6 @@ Dot* weather_dot;
 WeatherGFX *weatherGFX;
 Dot* icon_dot;
 
-bool show_food;
-bool show_weather;
 bool reboot_me = false; // used for a mode switch
 
 
@@ -203,63 +201,43 @@ void make_sandbox() {
 
 
 /*
- * FRAGGLES
- * ... actually just simpler Doozers
- *
+ * LAYOUT MANAGEMENT
  */
 
-#define NUMBER_OF_FRAGGLES 2
-
-void Fmake_fraggles() {
-    Log.info("Making fraggles");
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        Log.info("making %d at %lu", i, millis());
-        sandbox[i] = new Doozer();
-        // delay(1000/(NUMBER_OF_FRAGGLES+1));
-        // Doozer* f = (Doozer *)sandbox[i];
-        // f->iq = 0;
-    }
-    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
-        sandbox[i] = new Dot();
-    }
-} // make_fraggles()
-
-
-void Floop_fraggles() {
-    // Log.trace("loop_fraggles 0");
-    // delay(1000);
-
-    static SimpleTimer sec(1000);
-
-    // Log.trace("loop_fraggles 1");
-    // delay(1000);
-    if (sec.isExpired()) {
-        // Log.trace("loop_fraggles 2");
-        // delay(1000);
-        maybe_check_brick_pile(sandbox);
-    }
-    // Log.trace("loop_fraggles 3");
-    // delay(1000);
-    
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        // Log.trace("loop_fraggles: i=%d", i);
-        // delay(1000);
-        Doozer* doozer = (Doozer*)sandbox[i];
-        // Log.trace("inner loop_fraggles");
-        // delay(1000);
-        // if (!doozer) {
-        //     Log.trace("doozer/fraggle #%d is nullptr", i);
-        //     continue;
-        // }
-        doozer->run(food, sandbox);
-        // Log.trace("inner loop_fraggles done");
-        // delay(1000);
-    }
-
-    // Log.trace("loop_fraggles out");
-    // delay(1000);
-} // loop_fraggles()
-
+// resizes a few things based on various modes
+void update_layout() {
+  switch (mode) {
+    case TURTLE_MODE: 
+      if (show_weather) {
+        pinger.set_layout(1, MATRIX_Y-2);
+      } else {
+        pinger.set_layout(0, MATRIX_Y);
+      }
+      break;
+    case DOOZER_MODE:
+    case FRAGGLE_MODE:
+      if (show_weather) {
+        pinger.set_layout(1, MATRIX_Y-2);
+      } else {
+        pinger.set_layout(0, MATRIX_Y);
+      }
+      break;
+    case RACCOON_MODE:
+      if (show_weather) {
+        pinger.set_layout(3, MATRIX_Y-6);
+      } else {
+        pinger.set_layout(2, MATRIX_Y-4);
+      }
+      break;
+    case ANT_MODE:
+    default:
+      if (show_weather) {
+        pinger.set_layout(1, MATRIX_Y-2);
+      } else {
+        pinger.set_layout(0, MATRIX_Y);
+      }
+  }
+} // update_layout()
 
 
   /*
@@ -357,7 +335,7 @@ int toggle_show_food(String data) {
 int toggle_show_weather(String data) {
     show_weather = !show_weather;
     write_mode();
-    return show_weather ? 1:0;
+    return (show_weather ? 1:0);
 } // toggle_show_weateher()
 
 
@@ -741,6 +719,8 @@ void loop() {
     loop_whatever_mode();
     
     display.clear();
+
+    update_layout();
     
     if (show_weather) {
         update_weather();
