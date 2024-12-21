@@ -36,6 +36,7 @@
 #define PINGER_ADDY     58    // bool == 1 byte
 #define WIFI_ADDY       100   // 100 bytes
 #define COLOR_ADDY      200   // 9 bytes
+#define LAYOUT_ADDY     220   // 4 bytes
 
 #define WIFI_EMERGENCY_SSID "raccoontime"
 #define WIFI_EMERGENCY_PASSWD "busyness"

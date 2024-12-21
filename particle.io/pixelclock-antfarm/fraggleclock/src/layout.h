@@ -16,7 +16,7 @@ class Layout {
       bool pinger;
       bool weather;
       bool plan;
-    }
+    };
 
 
     void read_eeprom() {
@@ -46,24 +46,39 @@ class Layout {
 
     int toggle_pinger(String s) {
       show_pinger = !show_pinger;
+      write_eeprom();
       return show_pinger ? 1 : 0;
-    }
+    } // int toggle_pinger(s)
+
+
+    int toggle_weather(String s) {
+      show_weather = !show_weather;
+      write_eeprom();
+      return show_weather ? 1 : 0;
+    } // int toggle_pinger(s)
+
+
+    int toggle_plan(String s) {
+      show_plan = !show_plan;
+      write_eeprom();
+      return show_plan ? 1 : 0;
+    } // int toggle_plan(s)
 
   public:
     bool show_pinger, show_weather, show_plan;
 
     Layout() : show_pinger(false), 
                show_weather(false), 
-               show_time(false) {
+               show_plan(false) {
       read_eeprom();
     } // Layout()
 
 
     // sets up the cloud functions
     void setup() {
-      Particle.function("toggle_pinger", Layout::toggle_pinger, &this);
-      Particle.function("toggle_weather", Layout::toggle_weather, &this);
-      Particle.function("toggle_plan", Layout::toggle_plan, &this);
+      Particle.function("toggle_pinger", &Layout::toggle_pinger, this);
+      Particle.function("toggle_weather", &Layout::toggle_weather, this);
+      Particle.function("toggle_plan", &Layout::toggle_plan, this);
     }
 
 }; // class Layout

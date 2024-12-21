@@ -69,6 +69,7 @@ DST dst;
 #include <neopixel.h>
 
 #include "defs.h"
+#include "layout.h"
 #include "color.h"
 #include "dot.h"
 #include "ant.h"
@@ -84,6 +85,7 @@ DST dst;
 #include "pinger.h"
 #include "luna.h"
 #include "open_weather.h"
+#include "temperature_graph.h"
 
 #define PRINTF_DEBUGGER
 
@@ -131,9 +133,9 @@ SimpleTimer daily(24*60*60*1000);
 Dot* food[MAX_DOTS];
 Dot* sandbox[MAX_DOTS];
 Dot* bin[MAX_DOTS];
-Dot* weather_dot;
 WeatherGFX *weatherGFX;
-Dot* icon_dot;
+TemperatureGraph *temperature_graph;
+Layout layout;
 
 bool reboot_me = false; // used for a mode switch
 
@@ -208,7 +210,7 @@ void make_sandbox() {
 void update_layout() {
   switch (mode) {
     case TURTLE_MODE: 
-      if (show_weather) {
+      if (layout.show_weather) {
         pinger.set_layout(1, MATRIX_Y-2);
       } else {
         pinger.set_layout(0, MATRIX_Y);
@@ -216,22 +218,23 @@ void update_layout() {
       break;
     case DOOZER_MODE:
     case FRAGGLE_MODE:
-      if (show_weather) {
+      if (layout.show_weather) {
         pinger.set_layout(1, MATRIX_Y-2);
       } else {
         pinger.set_layout(0, MATRIX_Y);
       }
       break;
     case RACCOON_MODE:
-      if (show_weather) {
-        pinger.set_layout(3, MATRIX_Y-6);
+      update_raccoon_layout(&layout, sandbox);
+      if (layout.show_weather) {
+        pinger.set_layout(2, MATRIX_Y-5);
       } else {
-        pinger.set_layout(2, MATRIX_Y-4);
+        pinger.set_layout(1, MATRIX_Y-3);
       }
       break;
     case ANT_MODE:
     default:
-      if (show_weather) {
+      if (layout.show_weather) {
         pinger.set_layout(1, MATRIX_Y-2);
       } else {
         pinger.set_layout(0, MATRIX_Y);
@@ -354,18 +357,16 @@ int icon() {
 } // icon()
 
 
-// dots at the bottom left (icon), right (feelslike)
 void setup_weather() {
-    icon_dot = new Dot(0, MATRIX_Y-1, BLACK);
-    Particle.variable("icon", icon);
-    weather_dot = new Dot(MATRIX_X-1, MATRIX_Y-1, BLACK);
-    Particle.variable("feels_like", feels_like);
     weather.setup();
     weatherGFX = new WeatherGFX(&wTime);
     weatherGFX->setup();
+    temperature_graph = new TemperatureGraph(0); // x = 0
 } // setup_weather()
 
 
+/*
+// TODO: move this out & refactor
 void update_weather() {
     if (weather.feels_like() > 25) {
         weather_dot->set_color(GREEN);
@@ -375,26 +376,8 @@ void update_weather() {
          weather_dot->set_color(RED);
     }
     display.paint(weather_dot);
-    
-    int i = weather.icon();
-    switch(i) {             // https://openweathermap.org/weather-conditions
-        case 1: icon_dot->set_color(YELLOW); // clear
-            break;
-        case 2:                             // few clouds
-        case 3:                             // scattered clouds
-        case 4:                             // broken clouds 
-            icon_dot->set_color(LIGHTGREY); 
-            break;
-        case 9:                             // shower rain
-        case 10:                            // rain
-        case 11:                            // thunderstorm
-            icon_dot->set_color(BLUE); 
-            break;
-        default:                            // mist or snow
-            icon_dot->set_color(LIGHTBLUE);
-    }
-    display.paint(icon_dot);
 } // update_weather()
+*/
 
 
 /*
@@ -562,9 +545,6 @@ void setup_cloud() {
     read_mode();
     Particle.variable("mode", mode_name);
     Particle.function("toggle_mode", toggle_mode);
-    Particle.variable("show_food", show_food);
-    Particle.function("toggle_show_food", toggle_show_food);
-    Particle.function("toggle_show_weather", toggle_show_weather);
     already_set = true;
   }  
 } // setup_cloud()
@@ -677,6 +657,7 @@ void setup() {
 
     setup_dst();
     setup_cloud();
+    layout.setup();
     setup_color();
     wTime.setup();
     setup_weather();
@@ -722,17 +703,22 @@ void loop() {
 
     update_layout();
     
-    if (show_weather) {
-        update_weather();
+    if (layout.show_weather) {
+        // update_weather();
         weatherGFX->run(weather.icon_str);
-        display.render(weatherGFX->peers);
+        // display.render(weatherGFX->peers);
+        display.render(weatherGFX->peers, MATRIX_Y);
+        temperature_graph->update(weather.feels_like());
+        display.render(temperature_graph->dots, MATRIX_Y);
     }
     
-    if (show_food) {
+    if (layout.show_plan) {
         display.render(food);
     }
 
-    display.render(pinger.pings(), pinger.npings());
+    if (layout.show_pinger) {
+      display.render(pinger.pings(), pinger.npings());
+    }
     display.render(sandbox);
     display.show_multipass();
     maybe_reboot();

@@ -4,6 +4,9 @@ photon:
 photon2:
 	particle compile photon2
 
+clean:
+	rm -f photon*bin
+
 square:
 	cp src/square-aspect.h src/aspect.h
 

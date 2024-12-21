@@ -26,7 +26,6 @@ class Pinger {
     private:
         Dot* graph[MATRIX_Y];
         SimpleTimer* ping_timer;
-        bool show_pinger;
         int x, width;
 
 
@@ -81,43 +80,10 @@ class Pinger {
            //  Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
         } // update_graph()
         
-        
-        void setup_cloud_functions() {
-          Particle.function("toggle_pinger", &Pinger::toggle_pinger, this);
-        } // setup_cloud_functions()
-        
-
-        int toggle_pinger(String data) {
-          // show_pinger = (show_pinger ? false : true);
-          show_pinger = !show_pinger;
-          write_eeprom();
-          return (int)show_pinger;
-          if (show_pinger) {
-            return 42;
-          } else {
-            return 69;
-          }
-        } // toggle_pinger(data)
-
-
-        void read_eeprom() {
-          show_pinger = EEPROM.read(PINGER_ADDY);
-          // EEPROM.get(PINGER_ADDY, show_pinger);
-        } // read_eeprom()
-
-
-        void write_eeprom() {
-          EEPROM.put(PINGER_ADDY, show_pinger);
-          if (EEPROM.read(PINGER_ADDY) != show_pinger) {
-            EEPROM.write(PINGER_ADDY, show_pinger);
-          }
-        } // write_eeprom()
-
 
     public:
         Pinger() {
             ping_timer = new SimpleTimer(15*1000);
-            show_pinger = false;
             width = DEFAULT_PINGER_WIDTH;
             x = PINGER_X;
         } // Pinger()
@@ -131,9 +97,6 @@ class Pinger {
                 graph[i]->color = (Adafruit_NeoPixel::Color(0, 0, (i+1)*16-1));
                 graph[i]->active = true;
             }
-
-            setup_cloud_functions();
-            read_eeprom();
 
             set_layout(PINGER_X, DEFAULT_PINGER_WIDTH);
         } // setup(width)
@@ -161,7 +124,7 @@ class Pinger {
         // return a graph of ping data
         Dot** pings() {
             // Log.trace("getting pings");
-            if (show_pinger && ping_timer->isExpired()) {
+            if (ping_timer->isExpired()) {
                 // Serial.println("pinger: updating graph");
                 // Serial.printf("graph: [%d,%d]\n", GRAPH_MIN, GRAPH_MAX);
                 update_graph();
@@ -172,13 +135,10 @@ class Pinger {
 
 
         // returns the # pixels in the graph,
-        // or 0 if not showing
+        // which is just the whole thing 
+        // -> some will be inactive based on layout
         int npings() {
-          if (show_pinger) {
-            return MATRIX_Y;
-          } else {
-            return 0;
-          }
+          return MATRIX_Y;
         } // npings()
 };
 

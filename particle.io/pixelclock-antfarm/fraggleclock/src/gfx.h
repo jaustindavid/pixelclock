@@ -88,9 +88,9 @@ class WeatherBug: public Ant {
         void be_nighted() {
             int height;
             if (wTime->hour() > 12) {
-                height = map(wTime->hour(), 18, 24, 6, 0);
+                height = map(wTime->hour(), 18, 24, MATRIX_Y-2, 0);
             } else {
-                height = map(wTime->hour(), 0, 8, 0, 6);
+                height = map(wTime->hour(), 0, 8, 0, MATRIX_Y-2);
             }
             if (y == height || y == height + 1) {
                 color = MIDWHITE;
@@ -112,7 +112,7 @@ class WeatherBug: public Ant {
         void be_rain(int p) {
             color = BLUE;
             if (P(p)) {
-                if (y == 7) {
+                if (y >= MATRIX_Y) {
                     y = 0;
                 } else {
                     step(0, 1, peers);
@@ -168,7 +168,7 @@ class WeatherGFX {
 
         void setMode(int newMode) {
             mode = newMode;
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 WeatherBug* bug = (WeatherBug*)peers[i];
                 bug->setMode(newMode);
                 bug->y = i;
@@ -201,19 +201,16 @@ class WeatherGFX {
 
         
     public:
-        Dot* peers[MAX_DOTS];
+        Dot* peers[MATRIX_Y];
         int mode;
         int icon_i;
         char icon_c;
         
         WeatherGFX(WobblyTime* _wTime) {
             wTime = _wTime;
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 peers[i] = new WeatherBug(peers, wTime);
                 // WeatherBug* bug = (WeatherBug*)peers[i];
-            }
-            for (int i = 8; i < MAX_DOTS; i++) {
-                peers[i] = new Dot();
             }
             icon_i = 1;
             icon_c = 'd';
@@ -240,7 +237,7 @@ class WeatherGFX {
         void run(String icon) {
             update(icon);
             bool flash = P(10);
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 WeatherBug* bug = (WeatherBug*)peers[i];
                 if (mode == LIGHTNING_MODE && flash) {
                     bug->set_color(WHITE);
