@@ -265,7 +265,6 @@ class Raccoon: public Turtle {
         return;
       }
 
-
       // are there any MISSING dots
       i = pick_closeish_open(plan, sandbox);
       if (i != -1) {
@@ -276,7 +275,8 @@ class Raccoon: public Turtle {
         // it will get cleaned on the next loop
       }
 
-      if (rest_timer->isExpired()) {
+      if (rest_timer->isExpired()
+          && P(25)) {
         wander(sandbox);
       }
     } // rest(plan, sandbox)
