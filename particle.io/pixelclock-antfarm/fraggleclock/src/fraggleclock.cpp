@@ -207,21 +207,33 @@ void make_sandbox() {
  */
 
 // resizes a few things based on various modes
-void update_layout() {
+void maybe_update_layout() {
+  static bool 
+    old_weather = false, 
+    old_pinger  = false;
+
+  if (layout.show_weather == old_weather 
+      && layout.show_pinger == old_pinger) {
+    // nothing to do
+    return;
+  }
+  old_weather = layout.show_weather;
+  old_pinger = layout.show_pinger;
   switch (mode) {
     case TURTLE_MODE: 
       if (layout.show_weather) {
-        pinger.set_layout(1, MATRIX_Y-2);
+        pinger.set_layout(1, MATRIX_X-2);
       } else {
-        pinger.set_layout(0, MATRIX_Y);
+        pinger.set_layout(0, MATRIX_X);
       }
       break;
     case DOOZER_MODE:
     case FRAGGLE_MODE:
+      update_doozer_layout(&layout, sandbox);
       if (layout.show_weather) {
-        pinger.set_layout(1, MATRIX_Y-2);
+        pinger.set_layout(1, MATRIX_X-2);
       } else {
-        pinger.set_layout(0, MATRIX_Y);
+        pinger.set_layout(0, MATRIX_X);
       }
       break;
     case RACCOON_MODE:
@@ -235,9 +247,9 @@ void update_layout() {
     case ANT_MODE:
     default:
       if (layout.show_weather) {
-        pinger.set_layout(1, MATRIX_Y-2);
+        pinger.set_layout(1, MATRIX_X-2);
       } else {
-        pinger.set_layout(0, MATRIX_Y);
+        pinger.set_layout(0, MATRIX_X);
       }
   }
 } // update_layout()
@@ -701,7 +713,7 @@ void loop() {
     
     display.clear();
 
-    update_layout();
+    maybe_update_layout();
     
     if (layout.show_weather) {
         // update_weather();

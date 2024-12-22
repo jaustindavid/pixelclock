@@ -199,11 +199,6 @@ class Display {
         } // paint(dot)
         
         
-        void DEADunpaint(Dot* dot) {
-            paint(txlate(dot->x, dot->y), BLACK);
-        } // unpaint(dot)
-
-
         void clear() {
             memcpy(bg, fg, sizeof(fg));
             memset(fg, 0, sizeof(fg));

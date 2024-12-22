@@ -9,19 +9,36 @@
 #define WALK_SPEED  500 // ms per step
 #define REST_SPEED 1000 // ms per step
 
+struct coord_struct { 
+  byte x;
+  byte y;
+};
+
+#if (ASPECT_RATIO == SQUARE) 
+  // horizontal, two rows
+  struct coord_struct
+     TOP_LEFT = { .x = 0, .y = MATRIX_Y-2 },
+     BOTTOM_RIGHT = { .x = MATRIX_X - 1, .y = MATRIX_Y - 1 };
+#else
+  // vertical, two rows
+  struct coord_struct
+     TOP_LEFT = { .x = 0, .y = 0 },
+     BOTTOM_RIGHT = { .x = MATRIX_X - 1, .y = MATRIX_Y - 1 };
+#endif
+
 
 /*
-    A Doozer is a hard-workin Turtle
-    A Fraggle is a stupid doozer
-   
-    if track exists in sandbox but not plan
-        state == CLEAN
-        clean the closest one
-    if a missing spot exists (plan without tracks)
-        state == BUILD
-        go there & make a track
-        
-    No restriction on where-to-walk
+ *  A Doozer is a hard-workin Turtle
+ *  A Fraggle is a stupid doozer
+ * 
+ *  if track exists in sandbox but not plan
+ *      state == CLEAN
+ *      clean the closest one
+ *  if a missing spot exists (plan without tracks)
+ *      state == BUILD
+ *      go there & make a track
+ *      
+ *  No restriction on where-to-walk
  */
 
 class Doozer: public Turtle {
@@ -248,22 +265,29 @@ class Doozer: public Turtle {
         }
 
 
-        // return the best bin location
+        // return the best bin location, for dumping
+        // scan from top to bottom, right to left
         Dot* best_bin_location(Dot* sandbox[]) {
-            Dot* location;
-            for (int y = MATRIX_Y - 2; y >= MATRIX_Y - 3; y--) {
-                for (int x = MATRIX_X - 1; x >= 0; x --) {
-                    if (!in(x, y, sandbox)) {
-                        location = activate(sandbox);
-                        location->x = x;
-                        location->y = y;
-                        location->color = BLACK;
-                        return location;
-                    }
+          Dot* location;
+         
+          for (int y = TOP_LEFT.y; y >= BOTTOM_RIGHT.y; y--) {
+            for (int x = BOTTOM_RIGHT.x; x >= TOP_LEFT.x; x--) {
+              #if (ASPECT_RATIO == WIDESCREEN) 
+                if (x != TOP_LEFT.x || x != BOTTOM_RIGHT.x) {
+                  continue;
                 }
+              #endif
+              if (!in(x, y, sandbox)) {
+                location = activate(sandbox);
+                location->x = x;
+                location->y = y;
+                location->color = BLACK;
+                return location;
+              }
             }
-
-            return nullptr;
+          }
+          // FALLTHROUGH
+          return nullptr;
         } // Dot* best_bin_location(Dot* sandbox[])
 
 
@@ -414,10 +438,12 @@ class Doozer: public Turtle {
                 rest(plan, sandbox);
                 last_rested = millis();
             }
+            color = MIDWHITE;
 
             // if at least 10 minutes since last rest, bump IQ
             if (millis() - last_rested > 10*60*1000) {
                 iq = 25;
+                color = WHITE;
             } else {
                 iq = 0;
             }
@@ -427,9 +453,11 @@ class Doozer: public Turtle {
 
 #define NUMBER_OF_DOOZERS 3
 
+
 void maybe_check_brick_pile(Dot* sandbox[]) {
     Log.trace("checking brick pile...");
-    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
+    // always add to bottom-right, if needed
+    Dot proxy = Dot(BOTTOM_RIGHT.x, BOTTOM_RIGHT.y, DARKRED);
     if (!in(&proxy, sandbox)) {
         Log.trace("adding one @ (%d,%d)", proxy.x, proxy.y);
         // print_list(sandbox);
@@ -441,17 +469,41 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
         // print_list(sandbox);
     }
 
-    // scan the bin top row; remove any bricks
-    proxy.y = MATRIX_Y - 3;
-    for (int x = 0; x < MATRIX_X; x++) {
+    #if (ASPECT_RATIO == SQUARE)
+      // scan the bin top row; remove any bricks
+      proxy.y = TOP_LEFT.y;
+      for (int x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x++) {
         proxy.x = x;
         Dot* brick;
         if ((brick = in(&proxy, sandbox)) &&
             (brick->get_color() == DARKRED)) {
             Log.trace("removing one");
             deactivate(brick, sandbox);
+            return;
         }
-    }
+      }
+    #else 
+      // scan the top half on both sides; remove any bricks
+      for (int y = TOP_LEFT.y; y <= MATRIX_Y/2; y++) {
+        Dot* brick;
+        proxy.x = TOP_LEFT.x;
+        proxy.y = y;
+        if ((brick = in(&proxy, sandbox)) &&
+            (brick->get_color() == DARKRED)) {
+            Log.trace("removing one");
+            deactivate(brick, sandbox);
+            return;
+        }
+        proxy.x = BOTTOM_RIGHT.x;
+        proxy.y = y;
+        if ((brick = in(&proxy, sandbox)) &&
+            (brick->get_color() == DARKRED)) {
+            Log.trace("removing one");
+            deactivate(brick, sandbox);
+            return;
+        }
+      }
+    #endif
 
     // print_sandbox(sandbox);
 } // maybe_check_brick_pile(sandbox)
@@ -462,6 +514,29 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
  * ... actually just simpler Doozers
  *
  */
+
+void update_doozer_layout(Layout* layout, Dot* sandbox[]) {
+  if (layout->show_weather) {
+    TOP_LEFT.x = 1;
+    BOTTOM_RIGHT.x = MATRIX_X - 2;
+  } else {
+    TOP_LEFT.x = 0;
+    BOTTOM_RIGHT.x = MATRIX_X - 1;
+  }
+
+  if (layout->show_pinger) {
+     #if (ASPECT_RATIO == SQUARE) 
+       TOP_LEFT.y = MATRIX_Y - 3,
+     #endif
+     BOTTOM_RIGHT.y = MATRIX_Y - 2;
+  } else {
+     #if (ASPECT_RATIO == SQUARE) 
+       TOP_LEFT.y = MATRIX_Y - 2,
+     #endif
+     BOTTOM_RIGHT.y = MATRIX_Y - 1;
+  }
+} // update_doozer_layout(layout, sandbox)
+
 
 #define NUMBER_OF_FRAGGLES 2
 

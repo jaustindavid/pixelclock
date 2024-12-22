@@ -7,14 +7,9 @@
 #include "ant.h"
 
 
-#define PINGER_X 2            // first spot
+#define PINGER_X 0            // first spot
 #define PINGER_Y (MATRIX_Y-1) // bottom row
-
-#if (ASPECT_RATIO == SQUARE)
-  #define DEFAULT_PINGER_WIDTH 12
-#else
-  #define DEFAULT_PINGER_WIDTH 28
-#endif
+#define DEFAULT_PINGER_WIDTH MATRIX_X
 
 #define MAX_RGB 96
 #define REDDISH  (Adafruit_NeoPixel::Color(MAX_RGB, 0, 0))
@@ -92,7 +87,7 @@ class Pinger {
         void setup() {
             for (int i = 0; i < MATRIX_X; i++) {
                 graph[i] = new Dot();
-                graph[i]->x = PINGER_X + i;
+                graph[i]->x = i;
                 graph[i]->y = PINGER_Y;
                 graph[i]->color = (Adafruit_NeoPixel::Color(0, 0, (i+1)*16-1));
                 graph[i]->active = true;
@@ -110,15 +105,17 @@ class Pinger {
         void set_layout(int start_x, int new_width) {
           x = start_x;
           width = new_width;
+          Particle.publish("pinger", 
+             String::format("x=%d, width=%d", x, width));
           for (int i = 0; i < MATRIX_X; i++) {
-            if (graph[i]->x < start_x
-                || graph[i]->x >= (start_x + width)) {
+            if (graph[i]->x < x
+                || graph[i]->x >= (x + width)) {
               graph[i]->active = false;
             } else {
               graph[i]->active = true;
             }
           }
-        } // set_layout(start_x, width)
+        } // set_layout(start_x, new_width)
 
 
         // return a graph of ping data
