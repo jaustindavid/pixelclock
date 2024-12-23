@@ -26,6 +26,10 @@ class Dot {
         }
 
 
+        virtual void draw() {
+        }
+
+
         color_t get_color() {
             return color;
         }

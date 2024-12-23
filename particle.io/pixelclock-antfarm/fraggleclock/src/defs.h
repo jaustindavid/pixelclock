@@ -20,8 +20,8 @@
 #define PIXEL_COUNT 256
 
 
-#define REDRAW_SPEED_MS 50 // ms
-#define REDRAWS_PER_FRAME 5 // implies 500ms frame rate
+#define REDRAW_SPEED_MS 25 // ms
+#define REDRAWS_PER_FRAME 5 // implies 125ms frame rate
 
 #define HOLDING_PATTERN 10 // seconds before goin nuts
 
@@ -85,5 +85,36 @@ String fetchString(int start_address) {
     return String(buffer);
 } // String fetchString(start_address)
 
+
+class Stopwatch {
+  private:
+    uint32_t counter;
+    uint32_t start_ms;
+
+  public:
+    Stopwatch() {
+      reset();
+    } // Stopwatch()
+
+    void reset() {
+      start_ms = 0;
+      counter = 0;
+    } // reset()
+
+    void start() {
+      start_ms = millis();
+    }  // start()
+
+    void stop() {
+      if (start_ms) {
+        counter += (millis() - start_ms);
+        start_ms = 0;
+      }
+    } // stop()
+
+    uint32_t read() {
+      return counter;
+    }
+};
 
 #endif

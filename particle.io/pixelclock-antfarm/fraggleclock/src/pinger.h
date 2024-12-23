@@ -105,8 +105,8 @@ class Pinger {
         void set_layout(int start_x, int new_width) {
           x = start_x;
           width = new_width;
-          Particle.publish("pinger", 
-             String::format("x=%d, width=%d", x, width));
+          // Particle.publish("pinger", 
+          //   String::format("x=%d, width=%d", x, width));
           for (int i = 0; i < MATRIX_X; i++) {
             if (graph[i]->x < x
                 || graph[i]->x >= (x + width)) {

@@ -161,7 +161,7 @@ class Ant : public Dot {
                                  Dot* sandbox[], 
                                  bool walls_are_blocking = true) {
             Log.info("moving from (%d,%d)->(%d,%d)", x, y, spot->x, spot->y);
-            Log.trace("walls? %c", walls_are_blocking ? 'y':'n');
+            // Log.trace("walls? %c", walls_are_blocking ? 'y':'n');
             int i = 0, dx = 0, dy = 0;
             Dot proto = Dot();
             while (i < 8) {

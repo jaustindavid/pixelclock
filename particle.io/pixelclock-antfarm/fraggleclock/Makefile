@@ -39,6 +39,7 @@ steel_hamster: square
 	particle flash $@
 
 drew: ronaldo
+jake: ringo
 
 SQUARES = rosalyn roberta rowan ricky rico
 WIDESCREENS = ronaldo rachel ringo

@@ -25,6 +25,7 @@ class Display {
              max_brightness, // max value for LED brightness; 0-255
              rotation;       // # 90* CW rotations to apply; 0-3
         bool alignment_mode;
+        uint32_t ms_between_frames;
 
         struct save_data_t {
           byte version,
@@ -159,6 +160,7 @@ class Display {
             memset(fg, 0, sizeof(fg));
             clear();
             Particle.variable("display_brightness", this->brightness);
+            Particle.variable("ms_between_frames", this->ms_between_frames);
             Particle.function("display_aligner", &Display::align_me, this);
             Particle.function("display_min_brightness", 
                 &Display::set_min_brightness, this);
@@ -235,8 +237,10 @@ class Display {
         // a multi-pass show()
         // REDRAWS_PER_FRAME to transition from bg -> fg, 
         // with REDRAW_SPEED_MS delay between
+        // returns the total amount of time waited
         void show_multipass() {
             static SimpleTimer redraw_timer(REDRAW_SPEED_MS);
+            Stopwatch stopwatch;
             for (int w = 1; w < (REDRAWS_PER_FRAME+1); w++) {
                 // unsigned long start = millis();
                 for (int i = 0; i < PIXEL_COUNT; i++) {
@@ -246,8 +250,11 @@ class Display {
                 maybe_show_alignment();
                 neopixels->show();
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
+                stopwatch.start();
                 redraw_timer.wait();
+                stopwatch.stop();
             }
+            ms_between_frames = stopwatch.read();
         } // show_multipass()
         
         

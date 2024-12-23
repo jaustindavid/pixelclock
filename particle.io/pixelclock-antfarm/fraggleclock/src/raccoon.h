@@ -82,38 +82,6 @@
 int TRASH_X = 0, TRASH_Y = MATRIX_Y-1;
 
 
-class Stopwatch {
-  private:
-    uint32_t counter;
-    uint32_t start_ms;
-
-  public:
-    Stopwatch() {
-      reset();
-    } // Stopwatch()
-
-    void reset() {
-      start_ms = 0;
-      counter = 0;
-    } // reset()
-
-    void start() {
-      start_ms = millis();
-    }  // start()
-
-    void stop() {
-      if (start_ms) {
-        counter += (millis() - start_ms);
-        start_ms = 0;
-      }
-    } // stop()
-
-    uint32_t read() {
-      return counter;
-    }
-};
-
-
 class Raccoon: public Turtle {
   private:
     Dot* target;
