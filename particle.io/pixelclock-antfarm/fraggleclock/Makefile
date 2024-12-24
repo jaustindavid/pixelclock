@@ -28,21 +28,17 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
-rosalyn_raccoon: square
-	particle flash $@
-
-roberta_raccoon: square
-	particle flash $@
-
-leslie: steel_hamster
-steel_hamster: square
-	particle flash $@
-
+austin: roberta
+lr_bookcase: rachel
 drew: ronaldo
 jake: ringo
+max: rowan
+brewster: rico
+leslie: steel_hamster
 
-SQUARES = rosalyn roberta rowan ricky rico
-WIDESCREENS = ronaldo rachel ringo
+
+SQUARES = rosalyn roberta rowan ricky rico steel_hamster
+WIDESCREENS = ronaldo rachel ringo river
 
 $(SQUARES) : square
 	particle flash $@_raccoon

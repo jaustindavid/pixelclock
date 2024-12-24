@@ -23,7 +23,7 @@
 #define REDRAW_SPEED_MS  40 // ms
 #define REDRAWS_PER_FRAME 5 // implies 200ms frame rate / 5 FPS
 
-#define HOLDING_PATTERN 10 // seconds before goin nuts
+#define HOLDING_PATTERN 30 // seconds before goin nuts
 
 #define PRINTF_DEBUGGER
 #define MAX_DOTS 75

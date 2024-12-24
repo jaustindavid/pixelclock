@@ -137,7 +137,7 @@ WeatherGFX *weatherGFX;
 TemperatureGraph *temperature_graph;
 Layout layout;
 
-bool reboot_me = false; // used for a mode switch
+uint8_t reboot_timer = 0; // when to reboot, in a mode switch
 double uptime_h;
 
 
@@ -325,18 +325,22 @@ int toggle_mode(String data) {
     }
     write_mode();
     read_mode();
-    reboot_me = true;
+    reboot_timer = 10; // seconds
     return mode;
 } // toggle_mode(s)
 
 
-// waits 5s, then reboots
+// if reboot_timer is set:
+//    decrement
+//    reboot @ 0
 void maybe_reboot() {
-    if (reboot_me) {
-      delay(5000);
-      display.clear();
-      display.show();
-      System.reset();
+    if (reboot_timer) {
+      --reboot_timer;
+      if (reboot_timer == 0) {
+        display.clear();
+        display.show();
+        System.reset();
+      }
     }
 } // maybe_reboot()
 
@@ -667,7 +671,8 @@ void setup() {
     waitFor(Serial.isConnected, 10000);
     setup_wifi(); // takes at least 30s
                   
-    wd = new ApplicationWatchdog(30000, watchdogHandler, 1536);
+    // watchdog: 3 minutes, 180 000 ms
+    wd = new ApplicationWatchdog(180000, watchdogHandler, 1536);
 
     setup_dst();
     setup_cloud();
@@ -693,6 +698,7 @@ void setup() {
 
 void loop() {
     if (second.isExpired()) {
+        maybe_reboot();  // only check this once per second
         uptime_h = 1.0 * millis() / (3600*1000);
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
@@ -736,5 +742,4 @@ void loop() {
     }
     display.render(sandbox);
     display.show_multipass();
-    maybe_reboot();
 } // loop()
