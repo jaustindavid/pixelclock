@@ -42,7 +42,7 @@ color_t palette[4] =
 
 
 struct color_struct {
-  byte version;
+  int8_t version;
   color_t pal[4];
 };
 
@@ -58,7 +58,7 @@ void store_colors() {
 void load_colors() {
   struct color_struct datum;
   EEPROM.get(COLOR_ADDY, datum);
-  if (datum.version >= 3) {
+  if (datum.version == 3) {
     memcpy(palette, datum.pal, sizeof(palette));
   }
 } // load_color()
