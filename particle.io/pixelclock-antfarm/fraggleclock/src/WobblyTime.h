@@ -157,11 +157,13 @@ int WobblyTime::setTime(String hhmm) {
 
 
 void WobblyTime::setup() {
-    Particle.function("wt_advance", &WobblyTime::setAdvance, this);
     Particle.function("wt_min_advance", &WobblyTime::setMinAdvance, this);
     Particle.function("wt_max_advance", &WobblyTime::setMaxAdvance, this);
-    Particle.function("wt_time", &WobblyTime::setTime, this);
-    Particle.variable("wt_hhmm", this->hhmm);
+    #ifdef DEBUG_WT
+      Particle.function("wt_time", &WobblyTime::setTime, this);
+      Particle.variable("wt_hhmm", this->hhmm);
+      Particle.function("wt_advance", &WobblyTime::setAdvance, this);
+    #endif
 } // setup()
 
 

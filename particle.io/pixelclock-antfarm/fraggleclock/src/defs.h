@@ -20,8 +20,8 @@
 #define PIXEL_COUNT 256
 
 
-#define REDRAW_SPEED_MS 25 // ms
-#define REDRAWS_PER_FRAME 5 // implies 125ms frame rate
+#define REDRAW_SPEED_MS  40 // ms
+#define REDRAWS_PER_FRAME 5 // implies 200ms frame rate / 5 FPS
 
 #define HOLDING_PATTERN 10 // seconds before goin nuts
 
@@ -35,7 +35,7 @@
 #define WEATHER_ADDY    40    // byte, double, double = 17 bytes
 #define PINGER_ADDY     58    // bool == 1 byte
 #define WIFI_ADDY       100   // 100 bytes
-#define COLOR_ADDY      200   // 9 bytes
+#define COLOR_ADDY      200   // 17 bytes
 #define LAYOUT_ADDY     220   // 4 bytes
 
 #define WIFI_EMERGENCY_SSID "raccoontime"

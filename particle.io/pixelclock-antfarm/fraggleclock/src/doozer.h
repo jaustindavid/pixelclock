@@ -9,6 +9,7 @@
 #define WALK_SPEED  500 // ms per step
 #define REST_SPEED 1000 // ms per step
 
+
 struct coord_struct { 
   byte x;
   byte y;
@@ -204,7 +205,7 @@ class Doozer: public Turtle {
             }
 
             if (adjacent(target)) {
-                place_brick(target, brick_color, sandbox);
+                place_brick(target, TIME_COLOR, sandbox);
                 target = nullptr;
                 state = RESTING;
                 return;
@@ -238,9 +239,10 @@ class Doozer: public Turtle {
                      target->x, target->y, target->color);
             Log.info("adjacent? %c", adjacent(target) ? 'y':'n');
             Log.info("brick? %c", is_brick(target) ? 'y':'n');
-            Log.info("color 0x%06lx? %c", brick_color, 
-                           target->color == brick_color ? 'y':'n');
-            Log.info("color 0x%06lx? %c", DARKRED, target->color == DARKRED ? 'y':'n');
+            Log.info("color 0x%06lx? %c", TIME_COLOR, 
+                           target->color == TIME_COLOR ? 'y':'n');
+            Log.info("color 0x%06lx? %c", UNUSED_BRICK_COLOR, 
+                     target->color == UNUSED_BRICK_COLOR ? 'y':'n');
             */
 
             if ((adjacent(target) || equals(target)) && is_brick(target)) {
@@ -317,7 +319,7 @@ class Doozer: public Turtle {
             Log.info("dump target (%d,%d)", target->x, target->y);
 
             if (equals(target) || adjacent(target)) {
-                target->set_color(DARKRED);
+                target->set_color(UNUSED_BRICK_COLOR);
                 target = nullptr;
                 state = RESTING;
                 return;
@@ -360,7 +362,7 @@ class Doozer: public Turtle {
                 return;
             }
 
-            i = pick_closeish_open(sandbox, plan, brick_color);
+            i = pick_closeish_open(sandbox, plan, TIME_COLOR);
             if (i != -1) {
                 Log.info("found %d not in plan; cleaning\n", i);
                 state = CLEANING;
@@ -386,7 +388,6 @@ class Doozer: public Turtle {
         Doozer() : Turtle() {
             color = MIDWHITE;
             state = RESTING;
-            brick_color = RED;
             delay(WALK_SPEED/2);
             Log.info("creating doozer at %lu", millis());
             step_timer->setInterval(WALK_SPEED);
@@ -414,10 +415,6 @@ class Doozer: public Turtle {
             }
             Log.info("Doozer[%d](%d, %d):%d @ %lu", id, x, y, state, millis());
 
-            if (main_color != BLACK) {
-              brick_color = main_color;
-            }
-
             // delay(1000);
             switch (state) {
               case FETCHING:
@@ -443,7 +440,7 @@ class Doozer: public Turtle {
                 rest(plan, sandbox);
                 last_rested = millis();
             }
-            color = MIDWHITE;
+            color = SPRITE_COLOR;
 
             // if at least 10 minutes since last rest, bump IQ
             if (millis() - last_rested > 10*60*1000) {
@@ -462,13 +459,13 @@ class Doozer: public Turtle {
 void maybe_check_brick_pile(Dot* sandbox[]) {
     // Log.trace("checking brick pile...");
     // always add to bottom-right, if needed
-    Dot proxy = Dot(BOTTOM_RIGHT.x, BOTTOM_RIGHT.y, DARKRED);
+    Dot proxy = Dot(BOTTOM_RIGHT.x, BOTTOM_RIGHT.y, BRICK_COLOR);
     if (!in(&proxy, sandbox)) {
         Log.trace("adding one @ (%d,%d)", proxy.x, proxy.y);
         // print_list(sandbox);
         Dot* brick = activate(sandbox);
         // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
-        brick->set_color(DARKRED);
+        brick->set_color(UNUSED_BRICK_COLOR);
         brick->x = proxy.x;
         brick->y = proxy.y;
         // print_list(sandbox);
@@ -481,21 +478,21 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
         proxy.x = x;
         Dot* brick;
         if ((brick = in(&proxy, sandbox)) &&
-            (brick->get_color() == DARKRED)) {
+            (brick->get_color() == UNUSED_BRICK_COLOR)) {
             Log.trace("removing one");
             deactivate(brick, sandbox);
             return;
         }
       }
     #else 
-      // scan the top half on both sides; remove any bricks
-      for (int y = TOP_LEFT.y; y <= MATRIX_Y/2; y++) {
+      // scan the top bit on both sides; remove any bricks
+      for (int y = TOP_LEFT.y; y <= 2; y++) {
         Dot* brick;
         proxy.x = TOP_LEFT.x;
         proxy.y = y;
         // Log.trace("widescreen: scanning (%d,%d)", proxy.x, proxy.y);
         if ((brick = in(&proxy, sandbox)) &&
-            (brick->get_color() == DARKRED)) {
+            (brick->get_color() == UNUSED_BRICK_COLOR)) {
             Log.trace("removing one");
             deactivate(brick, sandbox);
             return;
@@ -504,7 +501,7 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
         proxy.y = y;
         // Log.trace("widescreen: scanning (%d,%d)", proxy.x, proxy.y);
         if ((brick = in(&proxy, sandbox)) &&
-            (brick->get_color() == DARKRED)) {
+            (brick->get_color() == UNUSED_BRICK_COLOR)) {
             Log.trace("removing one");
             deactivate(brick, sandbox);
             return;

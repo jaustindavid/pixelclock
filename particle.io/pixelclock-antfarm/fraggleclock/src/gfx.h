@@ -1,6 +1,8 @@
 #ifndef _GFX_H_
 #define _GFX_H_
 
+#undef DEBUG_GFX
+
 /*
  * this class will control several pixels 
  * and will animate them based on (provided) temp & icon
@@ -222,21 +224,14 @@ class WeatherGFX {
         
         
         void setup() {
-            // Particle.function("gfx_mode", &WeatherGFX::updateMode, this);
-            Particle.variable("gfx_icon", this->icon_s);
-            Particle.variable("gfx_mode", this->mode);
-            Particle.variable("gfx_i", this->icon_i);
+            #ifdef DEBUG_GFX
+              Particle.variable("gfx_icon", this->icon_s);
+              Particle.variable("gfx_mode", this->mode);
+              Particle.variable("gfx_i", this->icon_i);
+            #endif
         } // setup()
 
-/*
-        int updateMode(String data) {
-            int newMode = data.toInt();
-            setMode(newMode);
-            return mode;
-        }
-*/
-        
-        
+
         void run(String icon) {
             update(icon);
             bool flash = P(10);
@@ -248,6 +243,6 @@ class WeatherGFX {
                     bug->run();
                 }
             }
-        }
+        } // run(icon)
 };
 #endif

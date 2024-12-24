@@ -211,10 +211,10 @@ class Ant : public Dot {
             // 99% chance of staying on food
             if (in(this, food) && P(99)) {
                 // I'm on food
-                color = main_color;
+                color = TIME_COLOR;
             } else {
                 seek(food, sandbox);
-                color = MIDWHITE;
+                color = SPRITE_COLOR;
             }
         }
         

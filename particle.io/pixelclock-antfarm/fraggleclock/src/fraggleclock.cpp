@@ -138,6 +138,7 @@ TemperatureGraph *temperature_graph;
 Layout layout;
 
 bool reboot_me = false; // used for a mode switch
+double uptime_h;
 
 
 WobblyTime wTime(WT_ADDY);
@@ -557,6 +558,7 @@ void setup_cloud() {
     read_mode();
     Particle.variable("mode", mode_name);
     Particle.function("toggle_mode", toggle_mode);
+    Particle.variable("uptime_h", uptime_h);
     already_set = true;
   }  
 } // setup_cloud()
@@ -691,6 +693,7 @@ void setup() {
 
 void loop() {
     if (second.isExpired()) {
+        uptime_h = 1.0 * millis() / (3600*1000);
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
         // Log.trace("loop s1");

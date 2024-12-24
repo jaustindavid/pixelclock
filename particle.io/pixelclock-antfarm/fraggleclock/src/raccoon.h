@@ -73,8 +73,8 @@
   #define DUNK_SPEED 1250 // ms per dunking
 #endif
 
-#define DIRTY_COLOR (Adafruit_NeoPixel::Color(192, 64, 0))
-#define CLEAN_COLOR GREEN
+#define CLEAN_COLOR TIME_COLOR
+#define DIRTY_COLOR ALT_COLOR
 
 #define POOL_TARGET 2 // sandbox index for a pool node
 #define POOL_COLOR (Adafruit_NeoPixel::Color(32, 32, 192))
@@ -174,8 +174,7 @@ class Raccoon: public Turtle {
 
       Dot* target = plan[target_i];
       if (adjacent(target)) {
-        // place_brick(target, CLEAN_COLOR, sandbox);
-        place_brick(target, main_color, sandbox);
+        place_brick(target, CLEAN_COLOR, sandbox);
         Log.trace("brick: placed, (%d,%d)", target->x, target->y);
         start_resting(plan, sandbox);
       } else {
