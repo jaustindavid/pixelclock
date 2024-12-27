@@ -30,9 +30,14 @@ class Pinger {
             Log.warn("Pinging out...");
             static IPAddress innernet(8,8,8,8);
             unsigned long start = millis();
+            if (! WiFi.ready()) {
+              return -1;
+            }
+            /*
             if (!Particle.connected()) {
                 Particle.connect();
             }
+            */
             byte n = WiFi.ping(innernet, 1);
             
             if (n == 0) {

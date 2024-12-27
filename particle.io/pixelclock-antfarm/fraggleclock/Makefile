@@ -38,10 +38,18 @@ leslie: steel_hamster
 
 
 SQUARES = rosalyn roberta rowan ricky rico steel_hamster
-WIDESCREENS = ronaldo rachel ringo river
+WIDESCREENS = ronaldo rachel ringo river renee
 
 $(SQUARES) : square
 	particle flash $@_raccoon
 
 $(WIDESCREENS) : widescreen
 	particle flash $@_raccoon
+
+uptime:
+	@for host in rachel_raccoon ricky_raccoon; \
+	do \
+          echo -n "$$host: uptime = "; \
+	  particle get $$host uptime_h; \
+	  particle get $$host statistics; \
+	done

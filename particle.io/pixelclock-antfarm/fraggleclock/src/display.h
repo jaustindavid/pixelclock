@@ -15,6 +15,7 @@
 
 #undef PRINTF_DEBUGGER
 
+#define NITE_BRIGHTNESS 1
 
 class Display {
     private:
@@ -25,7 +26,6 @@ class Display {
              max_brightness, // max value for LED brightness; 0-255
              rotation;       // # 90* CW rotations to apply; 0-3
         bool alignment_mode;
-        uint32_t ms_between_frames;
 
         struct save_data_t {
           byte version,
@@ -160,7 +160,6 @@ class Display {
             memset(fg, 0, sizeof(fg));
             clear();
             Particle.variable("display_brightness", this->brightness);
-            Particle.variable("ms_between_frames", this->ms_between_frames);
             Particle.function("display_aligner", &Display::align_me, this);
             Particle.function("display_min_brightness", 
                 &Display::set_min_brightness, this);
@@ -240,7 +239,6 @@ class Display {
         // returns the total amount of time waited
         void show_multipass() {
             static SimpleTimer redraw_timer(REDRAW_SPEED_MS);
-            Stopwatch stopwatch;
             for (int w = 1; w < (REDRAWS_PER_FRAME+1); w++) {
                 // unsigned long start = millis();
                 for (int i = 0; i < PIXEL_COUNT; i++) {
@@ -250,14 +248,34 @@ class Display {
                 maybe_show_alignment();
                 neopixels->show();
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
-                stopwatch.start();
                 redraw_timer.wait();
-                stopwatch.stop();
             }
-            ms_between_frames = stopwatch.read();
         } // show_multipass()
         
         
+        // show within a budget
+        // returns the actual number of frames shown
+        int show(int budget_ms) {
+          // compute a sensible # frames and # redraws to fit in budget_ms
+          int n_redraws = budget_ms/REDRAW_SPEED_MS + 1;
+          int budget_per_frame = budget_ms / n_redraws;
+          static SimpleTimer redraw_timer(budget_per_frame);
+
+          for (int w = 1; w <= n_redraws; w++) {
+            for (int i = 0; i < PIXEL_COUNT; i++) {
+                neopixels->setPixelColor(i, wavrgb(fg[i], w, 
+                                                   bg[i], n_redraws-w));
+            }
+            maybe_show_alignment();
+            neopixels->show();
+            if (w < n_redraws) {
+              redraw_timer.wait();
+            }
+          }
+          return n_redraws;
+        } // show(budget_ms)
+
+
         // render() writes to the fg[] buffer;
         // show() will copy these to pixels, then push them
         void render(Dot* dots[]) {
@@ -276,6 +294,25 @@ class Display {
                 }
             }
         } // render(dots, n)
+
+   
+        // renders dots[] in nitetime mode
+        // always takes 1 second
+        void nite_render(Dot* dots[]) {
+          static SimpleTimer redraw_timer(1000);
+          neopixels->setBrightness(NITE_BRIGHTNESS);
+          for (int cursor = MAX_DOTS-1; cursor >= 0; cursor--) {
+            if (dots[cursor]->active) {
+              neopixels->setPixelColor(
+                   trans_rotate(dots[cursor]->x, dots[cursor]->y), 
+                   NITE_COLOR);
+            }
+          }
+          neopixels->show();
+          redraw_timer.wait();
+        } // nite_render(dots)
+
+
 }; // class Display
  
 #endif

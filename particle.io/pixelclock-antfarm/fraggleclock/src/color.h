@@ -32,13 +32,14 @@ color_t palette[4] =
      MIDGREEN,                             // 0: time (active)
      MIDWHITE,                             // 1: sprite
      DARKRED,                              // 2: alt (dirty)
-     MAGENTA                               // 3: undef
+     MIDGREEN                              // 3: nite color
   };
 
 // palette indices
 #define TIME_COLOR   (palette[0])
 #define SPRITE_COLOR (palette[1])
 #define ALT_COLOR    (palette[2])
+#define NITE_COLOR   (palette[3])
 
 
 struct color_struct {
@@ -78,7 +79,7 @@ color_t parse_color(String data) {
   if (i == 0) {
     return 2; // error in the second position
   }
-  data = data.substring(i);
+  data = data.substring(i+1);
   int b = data.toInt();
   parsed_color = Adafruit_NeoPixel::Color(r, g, b);
   return parsed_color;

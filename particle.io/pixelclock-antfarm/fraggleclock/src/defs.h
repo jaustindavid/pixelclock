@@ -5,6 +5,9 @@
 
 #include "aspect.h"
 
+// to enable the watchdog...
+#define WATCHDOG_INTERVAL 300000 // milliseconds
+
 #define SQUARE     0
 #define WIDESCREEN 1
 
@@ -20,10 +23,11 @@
 #define PIXEL_COUNT 256
 
 
-#define REDRAW_SPEED_MS  40 // ms
-#define REDRAWS_PER_FRAME 5 // implies 200ms frame rate / 5 FPS
+#define MS_PER_FRAME      100 // a budget
+#define REDRAW_SPEED_MS   25 // ms
+#define REDRAWS_PER_FRAME 2  // implies 100ms peak frame rate, 10 FPS
 
-#define HOLDING_PATTERN 30 // seconds before goin nuts
+#define HOLDING_PATTERN 30 // seconds before firing up
 
 #define PRINTF_DEBUGGER
 #define MAX_DOTS 75
@@ -114,6 +118,52 @@ class Stopwatch {
 
     uint32_t read() {
       return counter;
+    }
+};
+
+
+// Usage: 
+//   start();
+//   stop();
+//   read() -> gives the average time of previous N
+class MovingAverageStopwatch {
+  private:
+    Stopwatch stopwatch;
+    int ma_target;
+    int n_events;
+    uint32_t sum;
+    uint32_t avg;
+
+
+  public:
+    MovingAverageStopwatch(int n) {
+      ma_target = n;
+      n_events = 0;
+      sum = 0;
+      avg = 0;
+    }
+
+
+    void start() {
+      stopwatch.start();
+    }
+
+
+    void stop() {
+      stopwatch.stop();
+      sum += stopwatch.read();
+      stopwatch.reset();
+      n_events ++;
+      if (n_events > ma_target) {
+        sum -= avg;
+        n_events = ma_target;
+      }
+      avg = sum/n_events;
+    }
+
+
+    uint32_t read() {
+      return avg;
     }
 };
 

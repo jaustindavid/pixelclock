@@ -60,23 +60,23 @@
 #define DUNKING DUMPING // 4
 #define WASHING 5
 
-#define NRACCOONS 1
-#define RACCOON_COLOR (Adafruit_NeoPixel::Color(96, 96, 96))
-
 #if (ASPECT_RATIO == SQUARE)
+  #define NRACCOONS 1
   #define WALK_SPEED  400 // ms per step
   #define REST_SPEED 1000 // ms per step
   #define DUNK_SPEED 1500 // ms per dunking
 #else
-  #define WALK_SPEED  300 // ms per step
+  #define NRACCOONS 1
+  #define WALK_SPEED  250 // ms per step
   #define REST_SPEED 1000 // ms per step
   #define DUNK_SPEED 1250 // ms per dunking
 #endif
 
+#define RACCOON_COLOR SPRITE_COLOR
 #define CLEAN_COLOR TIME_COLOR
 #define DIRTY_COLOR ALT_COLOR
 
-#define POOL_TARGET 2 // sandbox index for a pool node
+#define POOL_TARGET (NRACCOONS+1) // sandbox index for a pool node
 #define POOL_COLOR (Adafruit_NeoPixel::Color(32, 32, 192))
 
 int TRASH_X = 0, TRASH_Y = MATRIX_Y-1;
@@ -92,7 +92,7 @@ class Raccoon: public Turtle {
 
     // returns a dot of target_color, or -1
     int pick_any(Dot* sandbox[], color_t target_color) {
-       for (int i = NRACCOONS+2; i < MAX_DOTS; i++) {
+       for (int i = 0; i < MAX_DOTS; i++) {
          if (sandbox[i]->active 
              && sandbox[i]->color == target_color) {
            return i;
@@ -290,7 +290,7 @@ class Raccoon: public Turtle {
   public:
 
     Raccoon() : Turtle() {
-      color = RACCOON_COLOR;
+      color = 
       state = RESTING;
       step_timer->setInterval(WALK_SPEED/2);
       rest_timer = new SimpleTimer(REST_SPEED);
@@ -376,13 +376,13 @@ int trash_x = 0;
   void update_raccoon_layout(Layout* layout, Dot* sandbox[]) {
     if (layout->show_weather) {
       // move the pool
-      sandbox[1]->x = MATRIX_X-3;
-      sandbox[2]->x = MATRIX_X-2;
+      sandbox[NRACCOONS]->x = MATRIX_X-3;
+      sandbox[NRACCOONS+1]->x = MATRIX_X-2;
       // relocate the trashcan
       TRASH_X = 1;
     } else {
-      sandbox[1]->x = MATRIX_X-2;
-      sandbox[2]->x = MATRIX_X-1;
+      sandbox[NRACCOONS]->x = MATRIX_X-2;
+      sandbox[NRACCOONS+1]->x = MATRIX_X-1;
       // relocate the trashcan
       TRASH_X = 0;
     }
@@ -390,6 +390,8 @@ int trash_x = 0;
 
 
   // update any not-in-plan dots as "dirty"
+  // note that the POOL is persistent (NRACCONS+2)
+  // trash is NOT PERSISTENT and may get recycled
   void dirty_all_the_things(Dot* plan[], Dot* sandbox[]) {
     for (int i = NRACCOONS+2; i < MAX_DOTS; i++) {
       // if a thing is active and not in the plan, mark it dirty
@@ -402,24 +404,21 @@ int trash_x = 0;
 
 
   void make_raccoons(Dot* sandbox[]) {
-    sandbox[0] = new Raccoon();
-    // pool, for washing
-    sandbox[1] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
-    sandbox[2] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
-    sandbox[3] = new Dot(0, MATRIX_Y-1, DIRTY_COLOR);
-    sandbox[4] = new Dot(1, MATRIX_Y-1, DIRTY_COLOR);
-    sandbox[1]->active = true;
-    sandbox[2]->active = true;
-    sandbox[3]->active = true;
-    sandbox[4]->active = true;
-    for (int i = NRACCOONS + 4; i < MAX_DOTS; i++) {
-      if (i < NRACCOONS) {
-      } else {
-        sandbox[i] = new Dot();
-      }
+    for (int i = 0; i < NRACCOONS; i++) {
+      sandbox[i] = new Raccoon();
     }
-
-    // update_raccoon_layout(sandbox);
+    // pool, for washing
+    sandbox[NRACCOONS] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
+    sandbox[NRACCOONS]->active = true;
+    sandbox[NRACCOONS+1] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
+    sandbox[NRACCOONS+1]->active = true;
+    sandbox[NRACCOONS+2] = new Dot(TRASH_X, TRASH_Y, DIRTY_COLOR);
+    sandbox[NRACCOONS+2]->active = true;
+    sandbox[NRACCOONS+3] = new Dot(TRASH_X+1, TRASH_Y, DIRTY_COLOR);
+    sandbox[NRACCOONS+3]->active = true;
+    for (int i = NRACCOONS + 4; i < MAX_DOTS; i++) {
+      sandbox[i] = new Dot();
+    }
   } // make_raccoons()
 
 
