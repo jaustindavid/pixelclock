@@ -429,9 +429,12 @@ int trash_x = 0;
     dirty_all_the_things(plan, sandbox);
 
     for (int i = 0; i < NRACCOONS; i++) {
+      Log.trace("loop_racoons: %d", i);
       Raccoon* raccoon = (Raccoon*)sandbox[i];
       raccoon->run(plan, sandbox);
+      delay(100);
     }
+    Log.trace("loop_racoons: out");
   } // loop_raccoons()
 
 #endif

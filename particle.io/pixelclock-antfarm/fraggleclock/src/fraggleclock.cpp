@@ -9,18 +9,15 @@
 // Include Particle Device OS APIs
 #include "Particle.h"
 
-// Let Device OS manage the connection to the Particle Cloud
-SYSTEM_MODE(AUTOMATIC);
-// SYSTEM_MODE(SEMI_AUTOMATIC);
-
-// Run the application and system concurrently in separate threads
-SYSTEM_THREAD(ENABLED);
-
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
 // SerialLogHandler logHandler(LOG_LEVEL_TRACE);
 // SerialLogHandler logHandler(LOG_LEVEL_INFO);
 SerialLogHandler logHandler(LOG_LEVEL_WARN);
+
+// #include "safer-cloud.h"
+SYSTEM_MODE(AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
 
 /*
  * A compact implementation of the pixelclock
@@ -61,7 +58,6 @@ SerialLogHandler logHandler(LOG_LEVEL_WARN);
  */
 
 
-#include "Particle.h"
 #include <particle-dst.h>
 DST dst;
 
@@ -803,6 +799,7 @@ void setup() {
 
     waitFor(Serial.isConnected, 10000);
     setup_wifi(); // takes at least 30s
+    // synctime_or_die_trying();
                   
     #ifdef WATCHDOG_INTERVAL
       wd = new ApplicationWatchdog(WATCHDOG_INTERVAL * 1000, 
@@ -866,10 +863,20 @@ void loop() {
       maybe_update_layout();
     
       if (layout.show_weather) {
+        Log.trace("checkpoint 1");
+        delay(100);
         weatherGFX->run(weather.icon_str);
+        Log.trace("checkpoint 2");
+        delay(100);
         display.render(weatherGFX->peers, MATRIX_Y);
+        Log.trace("checkpoint 3");
+        delay(100);
         temperature_graph->update(weather.feels_like());
+        Log.trace("checkpoint 4");
+        delay(100);
         display.render(temperature_graph->dots, MATRIX_Y);
+        Log.trace("checkpoint 5");
+        delay(100);
       }
     
       if (layout.show_plan) {

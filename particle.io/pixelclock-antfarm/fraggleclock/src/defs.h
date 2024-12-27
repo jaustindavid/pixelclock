@@ -5,8 +5,9 @@
 
 #include "aspect.h"
 
+#define HOLDING_PATTERN 60 // seconds before firing up
 // to enable the watchdog...
-#define WATCHDOG_INTERVAL 300000 // milliseconds
+#define WATCHDOG_INTERVAL 180000 // milliseconds
 
 #define SQUARE     0
 #define WIDESCREEN 1
@@ -27,7 +28,6 @@
 #define REDRAW_SPEED_MS   25 // ms
 #define REDRAWS_PER_FRAME 2  // implies 100ms peak frame rate, 10 FPS
 
-#define HOLDING_PATTERN 30 // seconds before firing up
 
 #define PRINTF_DEBUGGER
 #define MAX_DOTS 75

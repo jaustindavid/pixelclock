@@ -27,7 +27,6 @@
   */
 class WeatherBug: public Ant {
     private:
-        Dot** peers;
         int mode; 
         WobblyTime* wTime;
         #define SUNNY_MODE 1
@@ -39,10 +38,9 @@ class WeatherBug: public Ant {
         #define UNKNOWN_MODE 0
 
     public:
-        WeatherBug(Dot* _peers[], WobblyTime* _wTime) : Ant() {
+        WeatherBug(WobblyTime* _wTime) : Ant() {
             mode = SUNNY_MODE;
             active = true;
-            peers = _peers;
             wTime = _wTime;
             x = MATRIX_X-1;
             y = 0;
@@ -114,8 +112,10 @@ class WeatherBug: public Ant {
 
 
         // 50% chance of falling "down"
-        void be_rain(int p) {
+        void be_rain(int p, Dot* peers[]) {
+            return;
             color = BLUE;
+            return;
             if (P(p)) {
                 if (y >= MATRIX_Y) {
                     y = 0;
@@ -139,7 +139,7 @@ class WeatherBug: public Ant {
         }
         
         
-        void run() {
+        void run(Dot* peers[]) {
             switch (mode) {
                 case SUNNY_MODE:
                     be_sunny();
@@ -148,11 +148,11 @@ class WeatherBug: public Ant {
                     be_nighted();
                     break;
                 case LIGHTRAIN_MODE:
-                    be_rain(25);
+                    be_rain(25, peers);
                     break;
                 case HARDRAIN_MODE:
                 case LIGHTNING_MODE:
-                    be_rain(75);
+                    be_rain(75, peers);
                     break;
                 case CLOUDY_MODE:
                     be_sunny();
@@ -214,8 +214,8 @@ class WeatherGFX {
         WeatherGFX(WobblyTime* _wTime) {
             wTime = _wTime;
             for (int i = 0; i < MATRIX_Y; i++) {
-                peers[i] = new WeatherBug(peers, wTime);
-                // WeatherBug* bug = (WeatherBug*)peers[i];
+                Log.trace("GFX: new bug %d", i);
+                peers[i] = new WeatherBug(wTime);
             }
             icon_i = 1;
             icon_c = 'd';
@@ -233,14 +233,17 @@ class WeatherGFX {
 
 
         void run(String icon) {
+            Log.trace("GFX: run(%s)", icon.c_str());
             update(icon);
+            Log.trace("GFX: updated()");
             bool flash = P(10);
             for (int i = 0; i < MATRIX_Y; i++) {
+                Log.trace("GFX: bug %d", i);
                 WeatherBug* bug = (WeatherBug*)peers[i];
                 if (mode == LIGHTNING_MODE && flash) {
                     bug->set_color(WHITE);
                 } else {
-                    bug->run();
+                    bug->run(peers);
                 }
             }
         } // run(icon)

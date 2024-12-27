@@ -34,6 +34,9 @@ class Layout {
         show_weather = datum.weather;
         show_plan = datum.plan;
       }
+
+      // TODO: fix weather
+      show_weather = false;
     } // void read_eeprom()
 
 
