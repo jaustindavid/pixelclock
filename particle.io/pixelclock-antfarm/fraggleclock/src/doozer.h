@@ -10,18 +10,36 @@
 #define REST_SPEED 1000 // ms per step
 
 
+struct coord_struct { 
+  byte x;
+  byte y;
+};
+
+#if (ASPECT_RATIO == SQUARE) 
+  // horizontal, two rows
+  struct coord_struct
+     TOP_LEFT = { .x = 0, .y = MATRIX_Y-2 },
+     BOTTOM_RIGHT = { .x = MATRIX_X - 1, .y = MATRIX_Y - 1 };
+#else
+  // vertical, two rows
+  struct coord_struct
+     TOP_LEFT = { .x = 0, .y = 0 },
+     BOTTOM_RIGHT = { .x = MATRIX_X - 1, .y = MATRIX_Y - 1 };
+#endif
+
+
 /*
-    A Doozer is a hard-workin Turtle
-    A Fraggle is a stupid doozer
-   
-    if track exists in sandbox but not plan
-        state == CLEAN
-        clean the closest one
-    if a missing spot exists (plan without tracks)
-        state == BUILD
-        go there & make a track
-        
-    No restriction on where-to-walk
+ *  A Doozer is a hard-workin Turtle
+ *  A Fraggle is a stupid doozer
+ * 
+ *  if track exists in sandbox but not plan
+ *      state == CLEAN
+ *      clean the closest one
+ *  if a missing spot exists (plan without tracks)
+ *      state == BUILD
+ *      go there & make a track
+ *      
+ *  No restriction on where-to-walk
  */
 
 class Doozer: public Turtle {
@@ -187,7 +205,7 @@ class Doozer: public Turtle {
             }
 
             if (adjacent(target)) {
-                place_brick(target, brick_color, sandbox);
+                place_brick(target, TIME_COLOR, sandbox);
                 target = nullptr;
                 state = RESTING;
                 return;
@@ -216,13 +234,16 @@ class Doozer: public Turtle {
                 return;
             }
 
+            /*
             Log.info("want to clean (%d,%d) 0x%06lx", 
                      target->x, target->y, target->color);
             Log.info("adjacent? %c", adjacent(target) ? 'y':'n');
             Log.info("brick? %c", is_brick(target) ? 'y':'n');
-            Log.info("color 0x%06lx? %c", brick_color, 
-                           target->color == brick_color ? 'y':'n');
-            Log.info("color 0x%06lx? %c", DARKRED, target->color == DARKRED ? 'y':'n');
+            Log.info("color 0x%06lx? %c", TIME_COLOR, 
+                           target->color == TIME_COLOR ? 'y':'n');
+            Log.info("color 0x%06lx? %c", UNUSED_BRICK_COLOR, 
+                     target->color == UNUSED_BRICK_COLOR ? 'y':'n');
+            */
 
             if ((adjacent(target) || equals(target)) && is_brick(target)) {
                 Log.info("adjacent; dumping");
@@ -242,31 +263,41 @@ class Doozer: public Turtle {
         } // void clean(Dot* plan[], Dot* sandbox)
 
 
-        bool is_bin(Dot* target) {
-          return (target->y >= (MATRIX_Y - 3))
-              && (target->y <= (MATRIX_Y - 2));
-        }
-
-
-        // return the best bin location
+        // return the best bin location, for dumping
+        // scan from bottom to top, right to left
         Dot* best_bin_location(Dot* sandbox[]) {
-            Dot* location;
-            for (int y = MATRIX_Y - 2; y >= MATRIX_Y - 3; y--) {
-                for (int x = MATRIX_X - 1; x >= 0; x --) {
-                    if (!in(x, y, sandbox)) {
-                        location = activate(sandbox);
-                        location->x = x;
-                        location->y = y;
-                        location->color = BLACK;
-                        return location;
-                    }
+          Dot* location;
+         
+          // Log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+          // Log.info("TL: (%d,%d), BR: (%d,%d)", 
+          //          TOP_LEFT.x, TOP_LEFT.y,
+          //          BOTTOM_RIGHT.x, BOTTOM_RIGHT.y);
+          for (int y = BOTTOM_RIGHT.y; y >= TOP_LEFT.y; y--) {
+            for (int x = BOTTOM_RIGHT.x; x >= TOP_LEFT.x; x--) {
+              // Log.info("possible bin location: (%d,%d)", x, y);
+              // Log.info("x %d == TL.x %d?", x, TOP_LEFT.x);
+              // Log.info("x %d == BR.x %d?", x, BOTTOM_RIGHT.x);
+              #if (ASPECT_RATIO == WIDESCREEN) 
+                if ((x != TOP_LEFT.x) && (x != BOTTOM_RIGHT.x)) {
+                  continue;
                 }
+              #endif
+              // Log.info("possible bin location: (%d,%d)", x, y);
+              if (!in(x, y, sandbox)) {
+                location = activate(sandbox);
+                location->x = x;
+                location->y = y;
+                location->color = BLACK;
+                // Log.info("best bin location: (%d,%d)", x, y);
+                // Particle.publish("doozer", 
+                //    String::format("best bin location: (%d,%d)", x, y));
+                return location;
+              }
             }
-
-            return nullptr;
+          }
+          // FALLTHROUGH
+          return nullptr;
         } // Dot* best_bin_location(Dot* sandbox[])
-
-
 
 
         void dump(Dot* sandbox[]) {
@@ -288,7 +319,7 @@ class Doozer: public Turtle {
             Log.info("dump target (%d,%d)", target->x, target->y);
 
             if (equals(target) || adjacent(target)) {
-                target->set_color(DARKRED);
+                target->set_color(UNUSED_BRICK_COLOR);
                 target = nullptr;
                 state = RESTING;
                 return;
@@ -331,7 +362,7 @@ class Doozer: public Turtle {
                 return;
             }
 
-            i = pick_closeish_open(sandbox, plan, brick_color);
+            i = pick_closeish_open(sandbox, plan, TIME_COLOR);
             if (i != -1) {
                 Log.info("found %d not in plan; cleaning\n", i);
                 state = CLEANING;
@@ -357,7 +388,6 @@ class Doozer: public Turtle {
         Doozer() : Turtle() {
             color = MIDWHITE;
             state = RESTING;
-            brick_color = RED;
             delay(WALK_SPEED/2);
             Log.info("creating doozer at %lu", millis());
             step_timer->setInterval(WALK_SPEED);
@@ -385,39 +415,37 @@ class Doozer: public Turtle {
             }
             Log.info("Doozer[%d](%d, %d):%d @ %lu", id, x, y, state, millis());
 
-            if (main_color != BLACK) {
-              brick_color = main_color;
-            }
-
             // delay(1000);
             switch (state) {
               case FETCHING:
-                color = GREEN;
+                // color = GREEN;
                 Log.trace("fetching");
                 fetch(plan, sandbox);
                 break;
               case BUILDING:
-                color = MAGENTA;
+                // color = MAGENTA;
                 build(plan, sandbox);
                 break;
               case CLEANING:
-                color = MIDGREEN;
+                // color = MIDGREEN;
                 clean(plan, sandbox);
                 break;
               case DUMPING:
-                color = MAGENTA;
+                // color = MAGENTA;
                 dump(sandbox);
                 break;
               case RESTING:
               default:
-                color = MIDWHITE;
+                // color = MIDWHITE;
                 rest(plan, sandbox);
                 last_rested = millis();
             }
+            color = SPRITE_COLOR;
 
             // if at least 10 minutes since last rest, bump IQ
             if (millis() - last_rested > 10*60*1000) {
                 iq = 25;
+                color = WHITE;
             } else {
                 iq = 0;
             }
@@ -427,31 +455,59 @@ class Doozer: public Turtle {
 
 #define NUMBER_OF_DOOZERS 3
 
+
 void maybe_check_brick_pile(Dot* sandbox[]) {
-    Log.trace("checking brick pile...");
-    Dot proxy = Dot(MATRIX_X-1, MATRIX_Y-2, DARKRED);
+    // Log.trace("checking brick pile...");
+    // always add to bottom-right, if needed
+    Dot proxy = Dot(BOTTOM_RIGHT.x, BOTTOM_RIGHT.y, BRICK_COLOR);
     if (!in(&proxy, sandbox)) {
         Log.trace("adding one @ (%d,%d)", proxy.x, proxy.y);
         // print_list(sandbox);
         Dot* brick = activate(sandbox);
         // Serial.printf("touching brick (%d,%d)\n", brick->x, brick->y);
-        brick->set_color(DARKRED);
+        brick->set_color(UNUSED_BRICK_COLOR);
         brick->x = proxy.x;
         brick->y = proxy.y;
         // print_list(sandbox);
     }
 
-    // scan the bin top row; remove any bricks
-    proxy.y = MATRIX_Y - 3;
-    for (int x = 0; x < MATRIX_X; x++) {
+    #if (ASPECT_RATIO == SQUARE)
+      // scan the bin top row; remove any bricks
+      proxy.y = TOP_LEFT.y;
+      for (int x = TOP_LEFT.x; x <= BOTTOM_RIGHT.x; x++) {
         proxy.x = x;
         Dot* brick;
         if ((brick = in(&proxy, sandbox)) &&
-            (brick->get_color() == DARKRED)) {
+            (brick->get_color() == UNUSED_BRICK_COLOR)) {
             Log.trace("removing one");
             deactivate(brick, sandbox);
+            return;
         }
-    }
+      }
+    #else 
+      // scan the top bit on both sides; remove any bricks
+      for (int y = TOP_LEFT.y; y <= 2; y++) {
+        Dot* brick;
+        proxy.x = TOP_LEFT.x;
+        proxy.y = y;
+        // Log.trace("widescreen: scanning (%d,%d)", proxy.x, proxy.y);
+        if ((brick = in(&proxy, sandbox)) &&
+            (brick->get_color() == UNUSED_BRICK_COLOR)) {
+            Log.trace("removing one");
+            deactivate(brick, sandbox);
+            return;
+        }
+        proxy.x = BOTTOM_RIGHT.x;
+        proxy.y = y;
+        // Log.trace("widescreen: scanning (%d,%d)", proxy.x, proxy.y);
+        if ((brick = in(&proxy, sandbox)) &&
+            (brick->get_color() == UNUSED_BRICK_COLOR)) {
+            Log.trace("removing one");
+            deactivate(brick, sandbox);
+            return;
+        }
+      }
+    #endif
 
     // print_sandbox(sandbox);
 } // maybe_check_brick_pile(sandbox)
@@ -462,6 +518,34 @@ void maybe_check_brick_pile(Dot* sandbox[]) {
  * ... actually just simpler Doozers
  *
  */
+
+void update_doozer_layout(Layout* layout, Dot* sandbox[]) {
+  if (layout->show_weather) {
+    TOP_LEFT.x = 1;
+    BOTTOM_RIGHT.x = MATRIX_X - 2;
+  } else {
+    TOP_LEFT.x = 0;
+    BOTTOM_RIGHT.x = MATRIX_X - 1;
+  }
+
+  if (layout->show_pinger) {
+     #if (ASPECT_RATIO == SQUARE) 
+       TOP_LEFT.y = MATRIX_Y - 3,
+     #endif
+     BOTTOM_RIGHT.y = MATRIX_Y - 2;
+  } else {
+     #if (ASPECT_RATIO == SQUARE) 
+       TOP_LEFT.y = MATRIX_Y - 2,
+     #endif
+     BOTTOM_RIGHT.y = MATRIX_Y - 1;
+  }
+
+  Particle.publish("doozer", 
+    String::format("top left: (%d,%d); bottom right: (%d,%d)",
+                   TOP_LEFT.x, TOP_LEFT.y, 
+                   BOTTOM_RIGHT.x, BOTTOM_RIGHT.y));
+} // update_doozer_layout(layout, sandbox)
+
 
 #define NUMBER_OF_FRAGGLES 2
 
@@ -498,7 +582,6 @@ void setup_doozers(Dot* sandbox[]) {
     for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
         sandbox[i] = new Doozer();
         d = (Doozer *)sandbox[i];
-        // d->setup();
     }
     // first one is smarter
     d = (Doozer *)sandbox[0];
@@ -520,12 +603,12 @@ void loop_doozers(Dot* food[], Dot* sandbox[]) {
 
     for (int i = 0; i < NUMBER_OF_DOOZERS; i++) {
         Doozer* doozer = (Doozer*)sandbox[i];
-        Log.trace("doozer run()");
+        // Log.trace("doozer run()");
         doozer->run(food, sandbox);
-        Log.trace("doozer ran()");
+        // Log.trace("doozer ran()");
     }
 
-    Log.trace("loop_doozers end");
+    // Log.trace("loop_doozers end");
 } // loop_doozers()
 
 #endif

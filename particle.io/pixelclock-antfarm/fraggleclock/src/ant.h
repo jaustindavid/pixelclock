@@ -161,7 +161,7 @@ class Ant : public Dot {
                                  Dot* sandbox[], 
                                  bool walls_are_blocking = true) {
             Log.info("moving from (%d,%d)->(%d,%d)", x, y, spot->x, spot->y);
-            Log.trace("walls? %c", walls_are_blocking ? 'y':'n');
+            // Log.trace("walls? %c", walls_are_blocking ? 'y':'n');
             int i = 0, dx = 0, dy = 0;
             Dot proto = Dot();
             while (i < 8) {
@@ -211,10 +211,10 @@ class Ant : public Dot {
             // 99% chance of staying on food
             if (in(this, food) && P(99)) {
                 // I'm on food
-                color = main_color;
+                color = TIME_COLOR;
             } else {
                 seek(food, sandbox);
-                color = MIDWHITE;
+                color = SPRITE_COLOR;
             }
         }
         

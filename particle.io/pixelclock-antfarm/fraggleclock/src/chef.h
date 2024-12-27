@@ -319,12 +319,6 @@ class Chef {
             // numerator = map(mm, 0, 59, 1, denominator);
             int denom = denominator;
 
-            /*
-            if (numerator == denominator) {
-              numerator = 0;
-              hh = (hh + 1) % 24;
-            } else {
-            */
             if (numerator != denominator) {
                 // reduce the fraction
                 int gcd_value = gcd(numerator, denominator);
@@ -334,12 +328,9 @@ class Chef {
 
             prepare(food, hh / 10, HH_X-1, HH_Y);// 3, 1);
             prepare(food, hh % 10, HH_X+5, HH_Y); // 9, 1);
-            // prepare(food, mm / 10, MM_X, MM_Y); // 3, 8);
-            // prepare(food, numerator, 2, 8);
-            prepare(food, numerator, MM_X-1, MM_Y); // 3, 8);
-            // prepare(food, mm % 10, MM_X+6, MM_Y); // 9, 8);
-            prepare(food, 11, MM_X+3, MM_Y); // 6, 8
-            prepare(food, denom, MM_X+7, MM_Y);
+            prepare(food, numerator, MM_X-1, MM_Y); // MM_X, left 1
+            prepare(food, 11, MM_X+3, MM_Y); 
+            prepare(food, denom, MM_X+7, MM_Y);     // MM_X, right 2
             chef_time = String::format(
                             "fractional %02d:%1d/%1d, actual %02d:%02d",
                             hh, numerator, denom,

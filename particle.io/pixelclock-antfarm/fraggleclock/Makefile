@@ -4,6 +4,9 @@ photon:
 photon2:
 	particle compile photon2
 
+clean:
+	rm -f photon*bin
+
 square:
 	cp src/square-aspect.h src/aspect.h
 
@@ -25,23 +28,28 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
-rosalyn_raccoon: square
-	particle flash $@
-
-roberta_raccoon: square
-	particle flash $@
-
-leslie: steel_hamster
-steel_hamster: square
-	particle flash $@
-
+austin: roberta
+lr_bookcase: rachel
 drew: ronaldo
+jake: ringo
+max: rowan
+brewster: rico
+leslie: steel_hamster
 
-SQUARES = rosalyn roberta rowan ricky rico
-WIDESCREENS = ronaldo rachel ringo
+
+SQUARES = rosalyn roberta rowan ricky rico steel_hamster
+WIDESCREENS = ronaldo rachel ringo river renee
 
 $(SQUARES) : square
 	particle flash $@_raccoon
 
 $(WIDESCREENS) : widescreen
 	particle flash $@_raccoon
+
+uptime:
+	@for host in rachel_raccoon ricky_raccoon; \
+	do \
+          echo -n "$$host: uptime = "; \
+	  particle get $$host uptime_h; \
+	  particle get $$host statistics; \
+	done

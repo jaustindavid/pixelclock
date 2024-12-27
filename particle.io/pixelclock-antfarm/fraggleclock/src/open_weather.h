@@ -9,7 +9,7 @@
 #include "defs.h"
 #include "ow_api.h"
 
-
+#undef OW_DEBUG
 
 // call this frequently, it will occasionally hit the openweather API
 class OpenWeather {
@@ -24,6 +24,11 @@ class OpenWeather {
 
 
         void update() {
+            if (! WiFi.ready()) {
+                Log.warn("WiFi not ready in update()");
+                last_update = millis();
+                return;
+            }
             // Headers currently need to be set at init, useful for API keys etc.
             http_header_t headers[] = {
                 //  { "Content-Type", "application/json" },
@@ -83,6 +88,15 @@ class OpenWeather {
                         _feels_like_temp, icon_str.c_str(), _icon));
             last_update = millis();
         }
+
+
+        // update, if needed
+        void maybe_update() {
+            if (timer->isExpired()) {
+                update();
+            }
+            forecast_age = (millis() - last_update)/1000;
+        } // maybe_update()
         
         
         struct weather_datum {
@@ -99,9 +113,6 @@ class OpenWeather {
               lattitude = datum.lat;
               longitude = datum.lon;
             };
-            return;
-            EEPROM.get(address, lattitude);
-            EEPROM.get(address+sizeof(lattitude), longitude);
         } // read_data()
 
 
@@ -113,18 +124,7 @@ class OpenWeather {
             };
             EEPROM.put(address, datum);
             return;
-            EEPROM.get(address, datum);
-            double d;
-            EEPROM.update(address, d);
-            EEPROM.get(address, d);
-            if (lattitude != d) {
-                EEPROM.put(address, lattitude);
-            }
-            EEPROM.get(address+sizeof(lattitude), d);
-            if (longitude != d) {
-                EEPROM.put(address+sizeof(lattitude), longitude);
-            }
-        }
+        } // write_data()
 
 
         int setLattitude(String data) {
@@ -155,45 +155,44 @@ class OpenWeather {
         OpenWeather(int addy, int update_period) : _feels_like_temp(-99.0) {
             address = addy;
             timer = new SimpleTimer(update_period, true);
-            // Particle.variable("feels_like", _feels_like_temp);
             lattitude = 32.85;
             longitude = -80.06;
             icon_str = "01d";
+            _feels_like_temp = -99.0;
             update();
-        }
+        } // OpenWeather(addy, update_period)
 
 
         ~OpenWeather() {
             delete timer;
-        }
+        } // ~OpenWeather()
 
 
         void setup() {
-            Particle.function("ow_set_lattitude", &OpenWeather::setLattitude, this);
-            Particle.function("ow_set_longitude", &OpenWeather::setLongitude, this);
-            Particle.variable("ow_lattitude", this->lattitude);
-            Particle.variable("ow_longitude", this->longitude);
+            Particle.function("ow_set_lattitude",
+                              &OpenWeather::setLattitude, this);
+            Particle.function("ow_set_longitude",
+                              &OpenWeather::setLongitude, this);
             Particle.variable("ow_age", this->forecast_age);
+            #ifdef OW_DEBUG
+              Particle.variable("ow_lattitude", this->lattitude);
+              Particle.variable("ow_longitude", this->longitude);
+              Particle.variable("feels_like", _feels_like_temp);
+            #endif
             read_data();
-        }
+        } // setup()
         
 
         float feels_like() {
-            if (timer->isExpired()) {
-                update();
-            }
-            forecast_age = (millis() - last_update)/1000;
+            maybe_update();
             return _feels_like_temp;
-        }
+        } // float feels_like()
 
         
         float icon() {
-            if (timer->isExpired()) {
-                update();
-            }
-            forecast_age = (millis() - last_update)/1000;
+            maybe_update();
             return _icon;
-        }
+        } // float_icon()
 };
 
 

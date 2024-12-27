@@ -69,6 +69,8 @@ DST dst;
 #include <neopixel.h>
 
 #include "defs.h"
+#include "stats.h"
+#include "layout.h"
 #include "color.h"
 #include "dot.h"
 #include "ant.h"
@@ -84,6 +86,7 @@ DST dst;
 #include "pinger.h"
 #include "luna.h"
 #include "open_weather.h"
+#include "temperature_graph.h"
 
 #define PRINTF_DEBUGGER
 
@@ -131,13 +134,12 @@ SimpleTimer daily(24*60*60*1000);
 Dot* food[MAX_DOTS];
 Dot* sandbox[MAX_DOTS];
 Dot* bin[MAX_DOTS];
-Dot* weather_dot;
 WeatherGFX *weatherGFX;
-Dot* icon_dot;
+TemperatureGraph *temperature_graph;
+Layout layout;
 
-bool show_food;
-bool show_weather;
-bool reboot_me = false; // used for a mode switch
+uint8_t reboot_timer = 0; // when to reboot, in a mode switch
+double uptime_h;
 
 
 WobblyTime wTime(WT_ADDY);
@@ -149,6 +151,107 @@ OpenWeather weather(WEATHER_ADDY, 15*60*1000); // 15 minute refresh period
 double luna_brite = 0.0;
 int display_brite = 0;
 
+
+/*
+ * nitetime
+ *
+ * 99:99 - 99:99 : disable
+ * any other:
+ *   start nitetime when hh:mm
+ *   end nitetime when hh:mm
+ */
+
+typedef struct {
+  byte hh;
+  byte mm;
+} hh_mm_struct_t;
+
+hh_mm_struct_t start_nitetime, end_nitetime;
+String nitetime_s;
+bool is_nitetime;
+
+
+bool valid_hhmm(hh_mm_struct_t sample) {
+  return sample.hh >= 0
+      && sample.hh <= 23
+      && sample.mm >= 0
+      && sample.mm <= 59;
+}
+
+
+// ONLY WORKS ON THE BOUNDARY
+// if no valid schedule, is_nitetime -> false
+// otherwise, only change is_nitetime if the times match
+void check_nitetime(byte hh, byte mm) {
+  if (valid_hhmm(start_nitetime) 
+      && valid_hhmm(end_nitetime)) {
+    if (start_nitetime.hh == hh 
+        && start_nitetime.mm == mm) {
+      is_nitetime = true;
+    }
+    if (end_nitetime.hh == hh 
+        && end_nitetime.mm == mm) {
+      is_nitetime = false;
+    }
+  } else {
+    is_nitetime = false;
+  }
+}
+
+
+void stringify_nitetime() {
+  if (valid_hhmm(start_nitetime) 
+      && valid_hhmm(end_nitetime)) {
+    nitetime_s = String::format("nitetime: %02d:%02d - %02d:%02d",
+                                start_nitetime.hh, start_nitetime.mm,
+                                end_nitetime.hh, end_nitetime.mm);
+  } else {
+    nitetime_s = "no nitetime schedule";
+  }
+} // stringify_nitetime()
+
+
+// attempts to parse 
+hh_mm_struct_t parse_hhmm(String s) {
+  hh_mm_struct_t ret = { .hh = 99, .mm = 99 };
+  int i = s.indexOf(":");
+  if (i != 0) {
+    byte hh = s.toInt();
+    s = s.substring(i+1);
+    byte mm = s.toInt();
+    ret.hh = hh;
+    ret.mm = mm;
+  }
+  return ret;
+}
+
+
+// parses "hh:mm - hh:mm"
+int set_nitetime(String s) {
+  hh_mm_struct_t start, end;
+  start = parse_hhmm(s);
+  int i = s.indexOf(" - ");
+  s = s.substring(i+3);
+  end = parse_hhmm(s);
+  if (valid_hhmm(start) 
+      && valid_hhmm(end)) {
+    start_nitetime = start;
+    end_nitetime = end;
+    stringify_nitetime();
+    return 1;
+  }
+  return -1;
+} // int set_nitetime(s)
+
+
+void setup_nitetime() {
+  start_nitetime = { .hh = 99, .mm = 99 };
+  end_nitetime = { .hh = 99, .mm = 99 };
+  stringify_nitetime();
+  is_nitetime = true;
+  Particle.function("set_nitetime", set_nitetime);
+  Particle.variable("nitetime_schedule", nitetime_s);
+}
 
 
 /*
@@ -203,63 +306,56 @@ void make_sandbox() {
 
 
 /*
- * FRAGGLES
- * ... actually just simpler Doozers
- *
+ * LAYOUT MANAGEMENT
  */
 
-#define NUMBER_OF_FRAGGLES 2
+// resizes a few things based on various modes
+void maybe_update_layout() {
+  static bool 
+    old_weather = false, 
+    old_pinger  = false;
 
-void Fmake_fraggles() {
-    Log.info("Making fraggles");
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        Log.info("making %d at %lu", i, millis());
-        sandbox[i] = new Doozer();
-        // delay(1000/(NUMBER_OF_FRAGGLES+1));
-        // Doozer* f = (Doozer *)sandbox[i];
-        // f->iq = 0;
-    }
-    for (int i = NUMBER_OF_FRAGGLES; i < MAX_DOTS; i++) {
-        sandbox[i] = new Dot();
-    }
-} // make_fraggles()
-
-
-void Floop_fraggles() {
-    // Log.trace("loop_fraggles 0");
-    // delay(1000);
-
-    static SimpleTimer sec(1000);
-
-    // Log.trace("loop_fraggles 1");
-    // delay(1000);
-    if (sec.isExpired()) {
-        // Log.trace("loop_fraggles 2");
-        // delay(1000);
-        maybe_check_brick_pile(sandbox);
-    }
-    // Log.trace("loop_fraggles 3");
-    // delay(1000);
-    
-    for (int i = 0; i < NUMBER_OF_FRAGGLES; i++) {
-        // Log.trace("loop_fraggles: i=%d", i);
-        // delay(1000);
-        Doozer* doozer = (Doozer*)sandbox[i];
-        // Log.trace("inner loop_fraggles");
-        // delay(1000);
-        // if (!doozer) {
-        //     Log.trace("doozer/fraggle #%d is nullptr", i);
-        //     continue;
-        // }
-        doozer->run(food, sandbox);
-        // Log.trace("inner loop_fraggles done");
-        // delay(1000);
-    }
-
-    // Log.trace("loop_fraggles out");
-    // delay(1000);
-} // loop_fraggles()
-
+  if (layout.show_weather == old_weather 
+      && layout.show_pinger == old_pinger) {
+    // nothing to do
+    return;
+  }
+  old_weather = layout.show_weather;
+  old_pinger = layout.show_pinger;
+  switch (mode) {
+    case TURTLE_MODE: 
+      if (layout.show_weather) {
+        pinger.set_layout(1, MATRIX_X-2);
+      } else {
+        pinger.set_layout(0, MATRIX_X);
+      }
+      break;
+    case DOOZER_MODE:
+    case FRAGGLE_MODE:
+      update_doozer_layout(&layout, sandbox);
+      if (layout.show_weather) {
+        pinger.set_layout(1, MATRIX_X-2);
+      } else {
+        pinger.set_layout(0, MATRIX_X);
+      }
+      break;
+    case RACCOON_MODE:
+      update_raccoon_layout(&layout, sandbox);
+      if (layout.show_weather) {
+        pinger.set_layout(2, MATRIX_X-5);
+      } else {
+        pinger.set_layout(1, MATRIX_X-3);
+      }
+      break;
+    case ANT_MODE:
+    default:
+      if (layout.show_weather) {
+        pinger.set_layout(1, MATRIX_X-2);
+      } else {
+        pinger.set_layout(0, MATRIX_X);
+      }
+  }
+} // update_layout()
 
 
   /*
@@ -331,18 +427,22 @@ int toggle_mode(String data) {
     }
     write_mode();
     read_mode();
-    reboot_me = true;
+    reboot_timer = 10; // seconds
     return mode;
 } // toggle_mode(s)
 
 
-// waits 5s, then reboots
+// if reboot_timer is set:
+//    decrement
+//    reboot @ 0
 void maybe_reboot() {
-    if (reboot_me) {
-      delay(5000);
-      display.clear();
-      display.show();
-      System.reset();
+    if (reboot_timer) {
+      --reboot_timer;
+      if (reboot_timer == 0) {
+        display.clear();
+        display.show();
+        System.reset();
+      }
     }
 } // maybe_reboot()
 
@@ -357,7 +457,7 @@ int toggle_show_food(String data) {
 int toggle_show_weather(String data) {
     show_weather = !show_weather;
     write_mode();
-    return show_weather ? 1:0;
+    return (show_weather ? 1:0);
 } // toggle_show_weateher()
 
 
@@ -376,18 +476,16 @@ int icon() {
 } // icon()
 
 
-// dots at the bottom left (icon), right (feelslike)
 void setup_weather() {
-    icon_dot = new Dot(0, MATRIX_Y-1, BLACK);
-    Particle.variable("icon", icon);
-    weather_dot = new Dot(MATRIX_X-1, MATRIX_Y-1, BLACK);
-    Particle.variable("feels_like", feels_like);
     weather.setup();
     weatherGFX = new WeatherGFX(&wTime);
     weatherGFX->setup();
+    temperature_graph = new TemperatureGraph(0); // x = 0
 } // setup_weather()
 
 
+/*
+// TODO: move this out & refactor
 void update_weather() {
     if (weather.feels_like() > 25) {
         weather_dot->set_color(GREEN);
@@ -397,26 +495,8 @@ void update_weather() {
          weather_dot->set_color(RED);
     }
     display.paint(weather_dot);
-    
-    int i = weather.icon();
-    switch(i) {             // https://openweathermap.org/weather-conditions
-        case 1: icon_dot->set_color(YELLOW); // clear
-            break;
-        case 2:                             // few clouds
-        case 3:                             // scattered clouds
-        case 4:                             // broken clouds 
-            icon_dot->set_color(LIGHTGREY); 
-            break;
-        case 9:                             // shower rain
-        case 10:                            // rain
-        case 11:                            // thunderstorm
-            icon_dot->set_color(BLUE); 
-            break;
-        default:                            // mist or snow
-            icon_dot->set_color(LIGHTBLUE);
-    }
-    display.paint(icon_dot);
 } // update_weather()
+*/
 
 
 /*
@@ -507,7 +587,9 @@ void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
     }
     display.show();
     delay(1000);
-    ApplicationWatchdog::checkin(); // resets the AWDT count
+    #ifdef WATCHDOG_INTERVAL
+      ApplicationWatchdog::checkin(); // resets the AWDT count
+    #endif
   }
 
   paint_connection_status(0, y);
@@ -521,7 +603,9 @@ void try_to_connect() {
     return;
   }
 
-  ApplicationWatchdog::checkin(); // resets the AWDT count
+  #ifdef WATCHDOG_INTERVAL
+    ApplicationWatchdog::checkin(); // resets the AWDT count
+  #endif
 
   Log.warn("trying default credentials...");
   connect_and_blink(0, String(""), String(""));
@@ -529,8 +613,10 @@ void try_to_connect() {
     Log.warn("Connected!");
     return;
   }
-
-  ApplicationWatchdog::checkin(); // resets the AWDT count
+ 
+  #ifdef WATCHDOG_INTERVAL
+    ApplicationWatchdog::checkin(); // resets the AWDT count
+  #endif
 
   String backupSSID = fetchString(WIFI_ADDY);
   String backupPasswd = fetchString(WIFI_ADDY+50);
@@ -542,7 +628,9 @@ void try_to_connect() {
     return;
   }
 
-  ApplicationWatchdog::checkin(); // resets the AWDT count
+  #ifdef WATCHDOG_INTERVAL
+    ApplicationWatchdog::checkin(); // resets the AWDT count
+  #endif
 
   Log.warn("trying emergency credentials %s :: %s", 
             WIFI_EMERGENCY_SSID, WIFI_EMERGENCY_PASSWD);
@@ -552,7 +640,9 @@ void try_to_connect() {
     return;
   }
 
-  ApplicationWatchdog::checkin(); // resets the AWDT count
+  #ifdef WATCHDOG_INTERVAL
+    ApplicationWatchdog::checkin(); // resets the AWDT count
+  #endif
   Log.warn("Failed to connect :(((");
 } // try_to_connect()
 
@@ -572,9 +662,14 @@ void setup_wifi() {
       display.paint(txlate(1, 0), BLACK);
       display.show();
       delay(500);
+      #ifdef WATCHDOG_INTERVAL
+        ApplicationWatchdog::checkin(); // resets the AWDT count
+      #endif
     }
 } // setup_wifi()
 
+
+String stats = "none yet";
 
 void setup_cloud() {
   static bool already_set = false;
@@ -583,10 +678,9 @@ void setup_cloud() {
       && Particle.connected()) {
     read_mode();
     Particle.variable("mode", mode_name);
+    Particle.variable("statistics", stats);
     Particle.function("toggle_mode", toggle_mode);
-    Particle.variable("show_food", show_food);
-    Particle.function("toggle_show_food", toggle_show_food);
-    Particle.function("toggle_show_weather", toggle_show_weather);
+    Particle.variable("uptime_h", uptime_h);
     already_set = true;
   }  
 } // setup_cloud()
@@ -655,29 +749,44 @@ void prefill(Dot* food[], Dot* sandbox[]) {
 } // void prefill(Dot* food[], Dot* sandbox[])
 
 
-// Global variable to hold the watchdog object pointer
-ApplicationWatchdog *wd;
+#ifdef WATCHDOG_INTERVAL
+  // Global variable to hold the watchdog object pointer
+  ApplicationWatchdog *wd;
 
-void watchdogHandler() {
-  // Do as little as possible in this function, preferably just
-  // calling System.reset().
-  // Do not attempt to Particle.publish(), use Cellular.command()
-  // or similar functions. You can save data to a retained variable
-  // here safetly so you know the watchdog triggered when you 
-  // restart.
-  // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
-  System.reset(RESET_NO_WAIT);
-} // watchdogHandler()
+  void watchdogHandler() {
+    // Do as little as possible in this function, preferably just
+    // calling System.reset().
+    // Do not attempt to Particle.publish(), use Cellular.command()
+    // or similar functions. You can save data to a retained variable
+    // here safetly so you know the watchdog triggered when you 
+    // restart.
+    // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
+    System.reset(RESET_NO_WAIT);
+  } // watchdogHandler()
+#endif
+
+
+void delay_safely(int delay_ms) {
+  int remainder = delay_ms;
+  while (remainder > 1000) {
+    delay(1000);
+    remainder -= 1000;
+    #ifdef WATCHDOG_INTERVAL
+      ApplicationWatchdog::checkin(); // resets the AWDT count
+    #endif
+  }
+  delay(remainder);
+} // delay_safely(delay_ms)
 
 
 void maybe_reconnect() {
   if (!Particle.connected()) {
       WiFi.off();
-      delay(30*1000);
+      delay_safely(30*1000);
       WiFi.on(); 
-      delay(30*1000);
+      delay_safely(30*1000);
       Particle.connect();
-      delay(10000); // Wait for connection attempt
+      delay_safely(10*1000); // Wait for connection attempt
   }
 
   if (Particle.connected()) {
@@ -695,10 +804,15 @@ void setup() {
     waitFor(Serial.isConnected, 10000);
     setup_wifi(); // takes at least 30s
                   
-    wd = new ApplicationWatchdog(30000, watchdogHandler, 1536);
+    #ifdef WATCHDOG_INTERVAL
+      wd = new ApplicationWatchdog(WATCHDOG_INTERVAL * 1000, 
+                                   watchdogHandler, 1536);
+    #endif 
 
     setup_dst();
     setup_cloud();
+    setup_nitetime();
+    layout.setup();
     setup_color();
     wTime.setup();
     setup_weather();
@@ -718,42 +832,65 @@ void setup() {
 } // setup()
 
 
+TimedStatistics ma_sw = TimedStatistics(10);
+TimedStatistics display_speed = TimedStatistics(10);
+TimedStatistics engine = TimedStatistics(10);
+Statistics nframes = Statistics(10);
+Statistics avg_budget = Statistics(10);
+SimpleTimer loop_pacer(MS_PER_FRAME);
+
 void loop() {
+    ma_sw.start();
     if (second.isExpired()) {
+        maybe_reboot();  // only check this once per second
+        uptime_h = 1.0 * millis() / (3600*1000);
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
-        // Log.trace("loop s1");
-
-        // Serial.printf("Sandbox has %d ants; food has %d dots\n", len(sandbox), len(food));
-
         luna_brite = luna->get_brightness();
-        // Log.trace("loop s2; luna_brite = %5.2f", luna_brite);
         display_brite = display.set_brightness(luna_brite);
-        // Log.trace("loop s3; display_brite = %d", display_brite);
-        // delay(1000);
     }
     if (hourly.isExpired()) {
-        Log.trace("loop d1");
         maybe_reconnect();
     }
     
-    // Log.trace("loop 2");
-    loop_whatever_mode();
-    
     display.clear();
-    
-    if (show_weather) {
-        update_weather();
-        weatherGFX->run(weather.icon_str);
-        display.render(weatherGFX->peers);
-    }
-    
-    if (show_food) {
-        display.render(food);
-    }
 
-    display.render(pinger.pings(), pinger.npings());
-    display.render(sandbox);
-    display.show_multipass();
-    maybe_reboot();
+    check_nitetime(wTime.hour(), wTime.minute());
+    if (is_nitetime) {
+      display.nite_render(food);
+    } else {
+      engine.start();
+      loop_whatever_mode();
+      engine.stop();
+
+      maybe_update_layout();
+    
+      if (layout.show_weather) {
+        weatherGFX->run(weather.icon_str);
+        display.render(weatherGFX->peers, MATRIX_Y);
+        temperature_graph->update(weather.feels_like());
+        display.render(temperature_graph->dots, MATRIX_Y);
+      }
+    
+      if (layout.show_plan) {
+        display.render(food);
+      }
+
+      if (layout.show_pinger) {
+        display.render(pinger.pings(), pinger.npings());
+      }
+      display.render(sandbox);
+      display_speed.start();
+      // display.show_multipass();
+      int budget_ms = max(0, MS_PER_FRAME - engine.read());
+      avg_budget.add(budget_ms);
+      nframes.add(display.show(budget_ms));
+      // display.show();
+      display_speed.stop();
+    }
+    ma_sw.stop();
+    stats = String::format("MS per frame: %u; display speed: %u; engine: %u; frames per frame: %d, budget %d ms", 
+                           ma_sw.read(), display_speed.read(), engine.read(),
+                           nframes.read(), avg_budget.read());
+    loop_pacer.wait();
 } // loop()

@@ -1,6 +1,8 @@
 #ifndef _GFX_H_
 #define _GFX_H_
 
+#undef DEBUG_GFX
+
 /*
  * this class will control several pixels 
  * and will animate them based on (provided) temp & icon
@@ -70,27 +72,30 @@ class WeatherBug: public Ant {
         }
 
 
+        // bottom -> top
+        // GG B..SS..B
         void be_sunny() {
-            if (y >= 6) {
+            // bottom two are GG
+            if (y >= MATRIX_Y-2) {
                 color = GREEN;
             } else {
-                int height = constrain(abs(12-wTime->hour()), 0, 5);
+                int height = constrain(abs(12-wTime->hour()), 0, MATRIX_Y-3);
                 if (y == height || y == height+1) {
                     color = YELLOW;
                 } else {
                     color = BLUE;
                 }
             }
-        }
+        } // be_sunny()
         
     
         // moon height: distance from midnight
         void be_nighted() {
             int height;
             if (wTime->hour() > 12) {
-                height = map(wTime->hour(), 18, 24, 6, 0);
+                height = map(wTime->hour(), 18, 24, MATRIX_Y-1, 0);
             } else {
-                height = map(wTime->hour(), 0, 8, 0, 6);
+                height = map(wTime->hour(), 0, 8, 0, MATRIX_Y-1);
             }
             if (y == height || y == height + 1) {
                 color = MIDWHITE;
@@ -112,7 +117,7 @@ class WeatherBug: public Ant {
         void be_rain(int p) {
             color = BLUE;
             if (P(p)) {
-                if (y == 7) {
+                if (y >= MATRIX_Y) {
                     y = 0;
                 } else {
                     step(0, 1, peers);
@@ -168,7 +173,7 @@ class WeatherGFX {
 
         void setMode(int newMode) {
             mode = newMode;
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 WeatherBug* bug = (WeatherBug*)peers[i];
                 bug->setMode(newMode);
                 bug->y = i;
@@ -201,19 +206,16 @@ class WeatherGFX {
 
         
     public:
-        Dot* peers[MAX_DOTS];
+        Dot* peers[MATRIX_Y];
         int mode;
         int icon_i;
         char icon_c;
         
         WeatherGFX(WobblyTime* _wTime) {
             wTime = _wTime;
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 peers[i] = new WeatherBug(peers, wTime);
                 // WeatherBug* bug = (WeatherBug*)peers[i];
-            }
-            for (int i = 8; i < MAX_DOTS; i++) {
-                peers[i] = new Dot();
             }
             icon_i = 1;
             icon_c = 'd';
@@ -222,25 +224,18 @@ class WeatherGFX {
         
         
         void setup() {
-            // Particle.function("gfx_mode", &WeatherGFX::updateMode, this);
-            Particle.variable("gfx_icon", this->icon_s);
-            Particle.variable("gfx_mode", this->mode);
-            Particle.variable("gfx_i", this->icon_i);
+            #ifdef DEBUG_GFX
+              Particle.variable("gfx_icon", this->icon_s);
+              Particle.variable("gfx_mode", this->mode);
+              Particle.variable("gfx_i", this->icon_i);
+            #endif
         } // setup()
 
-/*
-        int updateMode(String data) {
-            int newMode = data.toInt();
-            setMode(newMode);
-            return mode;
-        }
-*/
-        
-        
+
         void run(String icon) {
             update(icon);
             bool flash = P(10);
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < MATRIX_Y; i++) {
                 WeatherBug* bug = (WeatherBug*)peers[i];
                 if (mode == LIGHTNING_MODE && flash) {
                     bug->set_color(WHITE);
@@ -248,6 +243,6 @@ class WeatherGFX {
                     bug->run();
                 }
             }
-        }
+        } // run(icon)
 };
 #endif

@@ -7,13 +7,9 @@
 #include "ant.h"
 
 
-#define PINGER_X 2            // first spot
+#define PINGER_X 0            // first spot
 #define PINGER_Y (MATRIX_Y-1) // bottom row
-#if (ASPECT_RATIO == SQUARE)
-  #define PINGER_WIDTH 12  // total width
-#else
-  #define PINGER_WIDTH 28  // total width
-#endif
+#define DEFAULT_PINGER_WIDTH MATRIX_X
 
 #define MAX_RGB 96
 #define REDDISH  (Adafruit_NeoPixel::Color(MAX_RGB, 0, 0))
@@ -23,9 +19,9 @@
 // returns it on request
 class Pinger {
     private:
-        Dot* graph[PINGER_WIDTH];
+        Dot* graph[MATRIX_X];
         SimpleTimer* ping_timer;
-        bool show_pinger;
+        int x, width;
 
 
         // each ping() call does one timed ping, returns latency (ms) or -1
@@ -34,9 +30,14 @@ class Pinger {
             Log.warn("Pinging out...");
             static IPAddress innernet(8,8,8,8);
             unsigned long start = millis();
+            if (! WiFi.ready()) {
+              return -1;
+            }
+            /*
             if (!Particle.connected()) {
                 Particle.connect();
             }
+            */
             byte n = WiFi.ping(innernet, 1);
             
             if (n == 0) {
@@ -52,9 +53,10 @@ class Pinger {
 
         void update_graph() {
             // propagate colors to the left
-            for (int i = 0; i < PINGER_WIDTH-1; i++) {
+            for (int i = 0; i < MATRIX_X - 1; i++) {
                graph[i]->color = graph[i+1]->color;
             }
+
             int latency = ping();
             int r = map(latency, 50, 500, 0, MAX_RGB);
             int g = map(latency, 0, 250, MAX_RGB, 0);
@@ -65,70 +67,38 @@ class Pinger {
                  graph[PINGER_WIDTH-1]->x, 
                  graph[PINGER_WIDTH-1]->active ? "on" : "off");
             */
+            int index = x + width - 1;
             if (latency == -1 || latency > 500) {
                 // Serial.println("reddenning");
-                graph[PINGER_WIDTH-1]->set_color(REDDISH);
+                graph[index]->set_color(REDDISH);
             } else if (latency < 50) {
                 // Serial.println("greenenning");
-                graph[PINGER_WIDTH-1]->set_color(GREENISH);
+                graph[index]->set_color(GREENISH);
             } else { 
-                graph[PINGER_WIDTH-1]->set_color(
-                    Adafruit_NeoPixel::Color(r, g, 0));
+                graph[index]->set_color(Adafruit_NeoPixel::Color(r, g, 0));
             }
            //  Serial.printf("Finally: color = %08x @ (%d,%d)\n", graph[MATRIX_X-1]->color, graph[MATRIX_X-1]->x, graph[MATRIX_X-1]->y);
         } // update_graph()
         
-        
-        void setup_cloud_functions() {
-          Particle.function("toggle_pinger", &Pinger::toggle_pinger, this);
-        } // setup_cloud_functions()
-        
-
-        int toggle_pinger(String data) {
-          // show_pinger = (show_pinger ? false : true);
-          show_pinger = !show_pinger;
-          write_eeprom();
-          return (int)show_pinger;
-          if (show_pinger) {
-            return 42;
-          } else {
-            return 69;
-          }
-        } // toggle_pinger(data)
-
-
-        void read_eeprom() {
-          show_pinger = EEPROM.read(PINGER_ADDY);
-          // EEPROM.get(PINGER_ADDY, show_pinger);
-        } // read_eeprom()
-
-
-        void write_eeprom() {
-          EEPROM.put(PINGER_ADDY, show_pinger);
-          if (EEPROM.read(PINGER_ADDY) != show_pinger) {
-            EEPROM.write(PINGER_ADDY, show_pinger);
-          }
-        } // write_eeprom()
-
 
     public:
         Pinger() {
             ping_timer = new SimpleTimer(15*1000);
-            show_pinger = false;
+            width = DEFAULT_PINGER_WIDTH;
+            x = PINGER_X;
         } // Pinger()
 
 
         void setup() {
-            for (int i = 0; i < PINGER_WIDTH; i++) {
+            for (int i = 0; i < MATRIX_X; i++) {
                 graph[i] = new Dot();
-                graph[i]->x = PINGER_X + i;
+                graph[i]->x = i;
                 graph[i]->y = PINGER_Y;
                 graph[i]->color = (Adafruit_NeoPixel::Color(0, 0, (i+1)*16-1));
                 graph[i]->active = true;
             }
 
-            setup_cloud_functions();
-            read_eeprom();
+            set_layout(PINGER_X, DEFAULT_PINGER_WIDTH);
         } // setup(width)
 
 
@@ -137,10 +107,26 @@ class Pinger {
         } // ~Pinger()
 
 
+        void set_layout(int start_x, int new_width) {
+          x = start_x;
+          width = new_width;
+          // Particle.publish("pinger", 
+          //   String::format("x=%d, width=%d", x, width));
+          for (int i = 0; i < MATRIX_X; i++) {
+            if (graph[i]->x < x
+                || graph[i]->x >= (x + width)) {
+              graph[i]->active = false;
+            } else {
+              graph[i]->active = true;
+            }
+          }
+        } // set_layout(start_x, new_width)
+
+
         // return a graph of ping data
         Dot** pings() {
             // Log.trace("getting pings");
-            if (show_pinger && ping_timer->isExpired()) {
+            if (ping_timer->isExpired()) {
                 // Serial.println("pinger: updating graph");
                 // Serial.printf("graph: [%d,%d]\n", GRAPH_MIN, GRAPH_MAX);
                 update_graph();
@@ -151,13 +137,10 @@ class Pinger {
 
 
         // returns the # pixels in the graph,
-        // or 0 if not showing
+        // which is just the whole thing 
+        // -> some will be inactive based on layout
         int npings() {
-          if (show_pinger) {
-            return PINGER_WIDTH;
-          } else {
-            return 0;
-          }
+          return MATRIX_X;
         } // npings()
 };
 

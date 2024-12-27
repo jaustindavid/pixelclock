@@ -60,56 +60,26 @@
 #define DUNKING DUMPING // 4
 #define WASHING 5
 
-#define NRACCOONS 1
-#define RACCOON_COLOR (Adafruit_NeoPixel::Color(96, 96, 96))
-
 #if (ASPECT_RATIO == SQUARE)
+  #define NRACCOONS 1
   #define WALK_SPEED  400 // ms per step
   #define REST_SPEED 1000 // ms per step
   #define DUNK_SPEED 1500 // ms per dunking
 #else
-  #define WALK_SPEED  300 // ms per step
+  #define NRACCOONS 1
+  #define WALK_SPEED  250 // ms per step
   #define REST_SPEED 1000 // ms per step
   #define DUNK_SPEED 1250 // ms per dunking
 #endif
 
-#define DIRTY_COLOR (Adafruit_NeoPixel::Color(192, 64, 0))
-#define CLEAN_COLOR GREEN
+#define RACCOON_COLOR SPRITE_COLOR
+#define CLEAN_COLOR TIME_COLOR
+#define DIRTY_COLOR ALT_COLOR
 
-#define POOL_TARGET 2 // sandbox index for a pool node
+#define POOL_TARGET (NRACCOONS+1) // sandbox index for a pool node
 #define POOL_COLOR (Adafruit_NeoPixel::Color(32, 32, 192))
 
-
-class Stopwatch {
-  private:
-    uint32_t counter;
-    uint32_t start_ms;
-
-  public:
-    Stopwatch() {
-      reset();
-    } // Stopwatch()
-
-    void reset() {
-      start_ms = 0;
-      counter = 0;
-    } // reset()
-
-    void start() {
-      start_ms = millis();
-    }  // start()
-
-    void stop() {
-      if (start_ms) {
-        counter += (millis() - start_ms);
-        start_ms = 0;
-      }
-    } // stop()
-
-    uint32_t read() {
-      return counter;
-    }
-};
+int TRASH_X = 0, TRASH_Y = MATRIX_Y-1;
 
 
 class Raccoon: public Turtle {
@@ -119,12 +89,10 @@ class Raccoon: public Turtle {
     SimpleTimer *dunk_timer;
     uint32_t swish;
     Stopwatch rest_counter, run_counter;
-    int TRASH_X, TRASH_Y;
-
 
     // returns a dot of target_color, or -1
     int pick_any(Dot* sandbox[], color_t target_color) {
-       for (int i = NRACCOONS+2; i < MAX_DOTS; i++) {
+       for (int i = 0; i < MAX_DOTS; i++) {
          if (sandbox[i]->active 
              && sandbox[i]->color == target_color) {
            return i;
@@ -148,7 +116,6 @@ class Raccoon: public Turtle {
         start_dunking(plan, sandbox);
         return;
       } 
-
 
       Log.trace("washing: tryna move_toward");
       if (move_toward(sandbox[POOL_TARGET], sandbox)) {
@@ -175,9 +142,10 @@ class Raccoon: public Turtle {
       if (dunk_timer->isExpired()) {
         start_placing(plan, sandbox);
       } else {
+        int pool_x = sandbox[POOL_TARGET]->x;
         // swish around a lil
         if (swish == 0 || (millis() - swish > 150)) {
-          x = (x == MATRIX_X-2 ? MATRIX_X-1 : MATRIX_X-2);
+          x = (x == pool_x ? pool_x - 1 : pool_x);
           swish = millis();
         }
       }
@@ -206,8 +174,7 @@ class Raccoon: public Turtle {
 
       Dot* target = plan[target_i];
       if (adjacent(target)) {
-        // place_brick(target, CLEAN_COLOR, sandbox);
-        place_brick(target, main_color, sandbox);
+        place_brick(target, CLEAN_COLOR, sandbox);
         Log.trace("brick: placed, (%d,%d)", target->x, target->y);
         start_resting(plan, sandbox);
       } else {
@@ -265,7 +232,6 @@ class Raccoon: public Turtle {
         return;
       }
 
-
       // are there any MISSING dots
       i = pick_closeish_open(plan, sandbox);
       if (i != -1) {
@@ -276,7 +242,8 @@ class Raccoon: public Turtle {
         // it will get cleaned on the next loop
       }
 
-      if (rest_timer->isExpired()) {
+      if (rest_timer->isExpired()
+          && P(25)) {
         wander(sandbox);
       }
     } // rest(plan, sandbox)
@@ -323,7 +290,7 @@ class Raccoon: public Turtle {
   public:
 
     Raccoon() : Turtle() {
-      color = RACCOON_COLOR;
+      color = 
       state = RESTING;
       step_timer->setInterval(WALK_SPEED/2);
       rest_timer = new SimpleTimer(REST_SPEED);
@@ -331,9 +298,6 @@ class Raccoon: public Turtle {
       Log.info("creating racc at %lu", millis());
       target = nullptr;
       target_i = -1;
-      TRASH_X = 0;
-      TRASH_Y = MATRIX_Y - 1;
-      Log.info("Raccoon; trash@(%d,%d)", TRASH_X, TRASH_Y);
     } // Raccoon()
 
     
@@ -407,9 +371,27 @@ class Raccoon: public Turtle {
 }; // class Raccoon
 
 
+int trash_x = 0;
+
+  void update_raccoon_layout(Layout* layout, Dot* sandbox[]) {
+    if (layout->show_weather) {
+      // move the pool
+      sandbox[NRACCOONS]->x = MATRIX_X-3;
+      sandbox[NRACCOONS+1]->x = MATRIX_X-2;
+      // relocate the trashcan
+      TRASH_X = 1;
+    } else {
+      sandbox[NRACCOONS]->x = MATRIX_X-2;
+      sandbox[NRACCOONS+1]->x = MATRIX_X-1;
+      // relocate the trashcan
+      TRASH_X = 0;
+    }
+  } // update_raccoon_layout(sandbox)
 
 
   // update any not-in-plan dots as "dirty"
+  // note that the POOL is persistent (NRACCONS+2)
+  // trash is NOT PERSISTENT and may get recycled
   void dirty_all_the_things(Dot* plan[], Dot* sandbox[]) {
     for (int i = NRACCOONS+2; i < MAX_DOTS; i++) {
       // if a thing is active and not in the plan, mark it dirty
@@ -422,26 +404,27 @@ class Raccoon: public Turtle {
 
 
   void make_raccoons(Dot* sandbox[]) {
-    sandbox[0] = new Raccoon();
+    for (int i = 0; i < NRACCOONS; i++) {
+      sandbox[i] = new Raccoon();
+    }
     // pool, for washing
-    sandbox[1] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
-    sandbox[2] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
-    sandbox[3] = new Dot(0, MATRIX_Y-1, DIRTY_COLOR);
-    sandbox[4] = new Dot(1, MATRIX_Y-1, DIRTY_COLOR);
-    sandbox[1]->active = true;
-    sandbox[2]->active = true;
-    sandbox[3]->active = true;
-    sandbox[4]->active = true;
+    sandbox[NRACCOONS] = new Dot(MATRIX_X-2, MATRIX_Y-1, POOL_COLOR);
+    sandbox[NRACCOONS]->active = true;
+    sandbox[NRACCOONS+1] = new Dot(MATRIX_X-1, MATRIX_Y-1, POOL_COLOR);
+    sandbox[NRACCOONS+1]->active = true;
+    sandbox[NRACCOONS+2] = new Dot(TRASH_X, TRASH_Y, DIRTY_COLOR);
+    sandbox[NRACCOONS+2]->active = true;
+    sandbox[NRACCOONS+3] = new Dot(TRASH_X+1, TRASH_Y, DIRTY_COLOR);
+    sandbox[NRACCOONS+3]->active = true;
     for (int i = NRACCOONS + 4; i < MAX_DOTS; i++) {
-      if (i < NRACCOONS) {
-      } else {
-        sandbox[i] = new Dot();
-      }
+      sandbox[i] = new Dot();
     }
   } // make_raccoons()
 
 
   void loop_raccoons(Dot* plan[], Dot* sandbox[]) {
+    // update_raccoon_layout(sandbox);
+
     // in raccoon mode, food-not-in-plan is "dirty"
     dirty_all_the_things(plan, sandbox);
 
@@ -450,4 +433,5 @@ class Raccoon: public Turtle {
       raccoon->run(plan, sandbox);
     }
   } // loop_raccoons()
+
 #endif

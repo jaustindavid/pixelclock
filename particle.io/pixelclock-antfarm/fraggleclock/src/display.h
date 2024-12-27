@@ -15,6 +15,7 @@
 
 #undef PRINTF_DEBUGGER
 
+#define NITE_BRIGHTNESS 1
 
 class Display {
     private:
@@ -199,11 +200,6 @@ class Display {
         } // paint(dot)
         
         
-        void DEADunpaint(Dot* dot) {
-            paint(txlate(dot->x, dot->y), BLACK);
-        } // unpaint(dot)
-
-
         void clear() {
             memcpy(bg, fg, sizeof(fg));
             memset(fg, 0, sizeof(fg));
@@ -240,6 +236,7 @@ class Display {
         // a multi-pass show()
         // REDRAWS_PER_FRAME to transition from bg -> fg, 
         // with REDRAW_SPEED_MS delay between
+        // returns the total amount of time waited
         void show_multipass() {
             static SimpleTimer redraw_timer(REDRAW_SPEED_MS);
             for (int w = 1; w < (REDRAWS_PER_FRAME+1); w++) {
@@ -256,6 +253,29 @@ class Display {
         } // show_multipass()
         
         
+        // show within a budget
+        // returns the actual number of frames shown
+        int show(int budget_ms) {
+          // compute a sensible # frames and # redraws to fit in budget_ms
+          int n_redraws = budget_ms/REDRAW_SPEED_MS + 1;
+          int budget_per_frame = budget_ms / n_redraws;
+          static SimpleTimer redraw_timer(budget_per_frame);
+
+          for (int w = 1; w <= n_redraws; w++) {
+            for (int i = 0; i < PIXEL_COUNT; i++) {
+                neopixels->setPixelColor(i, wavrgb(fg[i], w, 
+                                                   bg[i], n_redraws-w));
+            }
+            maybe_show_alignment();
+            neopixels->show();
+            if (w < n_redraws) {
+              redraw_timer.wait();
+            }
+          }
+          return n_redraws;
+        } // show(budget_ms)
+
+
         // render() writes to the fg[] buffer;
         // show() will copy these to pixels, then push them
         void render(Dot* dots[]) {
@@ -274,6 +294,25 @@ class Display {
                 }
             }
         } // render(dots, n)
+
+   
+        // renders dots[] in nitetime mode
+        // always takes 1 second
+        void nite_render(Dot* dots[]) {
+          static SimpleTimer redraw_timer(1000);
+          neopixels->setBrightness(NITE_BRIGHTNESS);
+          for (int cursor = MAX_DOTS-1; cursor >= 0; cursor--) {
+            if (dots[cursor]->active) {
+              neopixels->setPixelColor(
+                   trans_rotate(dots[cursor]->x, dots[cursor]->y), 
+                   NITE_COLOR);
+            }
+          }
+          neopixels->show();
+          redraw_timer.wait();
+        } // nite_render(dots)
+
+
 }; // class Display
  
 #endif

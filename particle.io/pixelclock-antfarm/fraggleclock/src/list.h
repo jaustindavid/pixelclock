@@ -131,10 +131,12 @@ Dot* in(Dot* needle, color_t color, Dot* haystack[]) {
 
 // true if (x,y) active in haystack
 bool in(int x, int y, Dot* haystack[]) {
+    // Serial.printf("(%d,%d) in haystack?\n", x, y);
     for (int i = 0; i < MAX_DOTS; i++) {
         if (haystack[i]->active 
             && (haystack[i]->x == x) 
             && (haystack[i]->y == y)) {
+            // Log.trace("(%d,%d) active in %d", x, y, i);
             return true;
         }
     }
