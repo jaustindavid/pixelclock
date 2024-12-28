@@ -1,11 +1,10 @@
+#pragma once
+
 /*
  * A class to manage a grid of LEDs
  * 
  * it renders dots.
  */
- 
-#ifndef DISPLAY_H
-#define DISPLAY_H
 
 #include <neopixel.h>
 #include "defs.h"
@@ -154,11 +153,16 @@ class Display {
         } // test_forever()
 
 
-        void setup(void) {
+        void setup() {
             neopixels->begin();
             neopixels->setBrightness(64);
             memset(fg, 0, sizeof(fg));
             clear();
+            show();
+        } // setup();
+
+
+        void setup_cloud() {
             Particle.variable("display_brightness", this->brightness);
             Particle.function("display_aligner", &Display::align_me, this);
             Particle.function("display_min_brightness", 
@@ -314,5 +318,3 @@ class Display {
 
 
 }; // class Display
- 
-#endif

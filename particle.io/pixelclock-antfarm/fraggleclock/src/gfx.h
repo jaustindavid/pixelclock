@@ -223,7 +223,7 @@ class WeatherGFX {
         } // WeatherGFX()
         
         
-        void setup() {
+        void setup_cloud() {
             #ifdef DEBUG_GFX
               Particle.variable("gfx_icon", this->icon_s);
               Particle.variable("gfx_mode", this->mode);

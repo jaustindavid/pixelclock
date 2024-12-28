@@ -1,5 +1,4 @@
-#ifndef LAYOUT_H
-#define LAYOUT_H
+#pragma once
 
 /*
  * A class which holds and manages the "layout" of the display
@@ -24,6 +23,7 @@ class Layout {
     };
 
 
+    // reads pinger, weather, plan from EEPROM
     void read_eeprom() {
       struct layout_datum datum;
 
@@ -40,6 +40,7 @@ class Layout {
     } // void read_eeprom()
 
 
+    // stores pinger, weather, plan
     void write_eeprom() {
       struct layout_datum datum = 
         { .version = 1, 
@@ -52,6 +53,7 @@ class Layout {
     } // write_eeprom()
 
 
+    // used by Particle.function
     int toggle_pinger(String s) {
       show_pinger = !show_pinger;
       write_eeprom();
@@ -59,6 +61,7 @@ class Layout {
     } // int toggle_pinger(s)
 
 
+    // used by Particle.function
     int toggle_weather(String s) {
       show_weather = !show_weather;
       write_eeprom();
@@ -66,6 +69,7 @@ class Layout {
     } // int toggle_pinger(s)
 
 
+    // used by Particle.function
     int toggle_plan(String s) {
       show_plan = !show_plan;
       write_eeprom();
@@ -78,16 +82,19 @@ class Layout {
     Layout() : show_pinger(false), 
                show_weather(false), 
                show_plan(false) {
-      read_eeprom();
     } // Layout()
 
 
-    // sets up the cloud functions
     void setup() {
+      read_eeprom();
+    } // setup()
+
+
+    // sets up the cloud functions
+    void setup_cloud() {
       Particle.function("toggle_pinger", &Layout::toggle_pinger, this);
       Particle.function("toggle_weather", &Layout::toggle_weather, this);
       Particle.function("toggle_plan", &Layout::toggle_plan, this);
-    }
+    } // setup_cloud()
 
 }; // class Layout
-#endif

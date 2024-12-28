@@ -1,5 +1,4 @@
-#ifndef OPENWEATHER_H
-#define OPENWEATHER_H
+#pragma once
 
 #include "Particle.h"
 #include <SimpleTimer.h>
@@ -159,6 +158,8 @@ class OpenWeather {
             longitude = -80.06;
             icon_str = "01d";
             _feels_like_temp = -99.0;
+            read_data();
+            // TODO: remove this from init
             update();
         } // OpenWeather(addy, update_period)
 
@@ -168,7 +169,7 @@ class OpenWeather {
         } // ~OpenWeather()
 
 
-        void setup() {
+        void setup_cloud() {
             Particle.function("ow_set_lattitude",
                               &OpenWeather::setLattitude, this);
             Particle.function("ow_set_longitude",
@@ -179,7 +180,6 @@ class OpenWeather {
               Particle.variable("ow_longitude", this->longitude);
               Particle.variable("feels_like", _feels_like_temp);
             #endif
-            read_data();
         } // setup()
         
 
@@ -194,6 +194,3 @@ class OpenWeather {
             return _icon;
         } // float_icon()
 };
-
-
-#endif

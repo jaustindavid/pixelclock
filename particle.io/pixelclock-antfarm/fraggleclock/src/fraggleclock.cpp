@@ -4,6 +4,21 @@
  * Date: 4/1/24
  * For comprehensive documentation and examples, please visit:
  * https://docs.particle.io/firmware/best-practices/firmware-template/
+ *
+ *
+ * RTC: some devices (P1) have access, others (P2) do not.
+ * Ideal: 
+ *   if we have Time.isValid(), just fire right up
+ *   pinger() and weather() should dtrt
+ *     - pinger: no internet == red
+ *     - weather: no internet == ?? 
+ *
+ * Anything using "cloud" functionality should be tolerant of
+ * long-cycle connect/disconnect
+ *
+ * convention:
+ *   .setup()       -> once at startup
+ *   .setup_cloud() -> idempotent, can happen any time
  */
 
 // Include Particle Device OS APIs
@@ -15,8 +30,10 @@
 // SerialLogHandler logHandler(LOG_LEVEL_INFO);
 SerialLogHandler logHandler(LOG_LEVEL_WARN);
 
-// #include "safer-cloud.h"
-SYSTEM_MODE(AUTOMATIC);
+#include "local-settings.h"
+
+#include "safer-cloud.h"
+SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
 /*
@@ -78,6 +95,7 @@ DST dst;
 #include "chef.h"
 #include "display.h"
 #include "WobblyTime.h"
+#include "nitetime.h"
 
 #include "pinger.h"
 #include "luna.h"
@@ -149,108 +167,6 @@ int display_brite = 0;
 
 
 /*
- * nitetime
- *
- * 99:99 - 99:99 : disable
- * any other:
- *   start nitetime when hh:mm
- *   end nitetime when hh:mm
- */
-
-typedef struct {
-  byte hh;
-  byte mm;
-} hh_mm_struct_t;
-
-hh_mm_struct_t start_nitetime, end_nitetime;
-String nitetime_s;
-bool is_nitetime;
-
-
-bool valid_hhmm(hh_mm_struct_t sample) {
-  return sample.hh >= 0
-      && sample.hh <= 23
-      && sample.mm >= 0
-      && sample.mm <= 59;
-}
-
-
-// ONLY WORKS ON THE BOUNDARY
-// if no valid schedule, is_nitetime -> false
-// otherwise, only change is_nitetime if the times match
-void check_nitetime(byte hh, byte mm) {
-  if (valid_hhmm(start_nitetime) 
-      && valid_hhmm(end_nitetime)) {
-    if (start_nitetime.hh == hh 
-        && start_nitetime.mm == mm) {
-      is_nitetime = true;
-    }
-    if (end_nitetime.hh == hh 
-        && end_nitetime.mm == mm) {
-      is_nitetime = false;
-    }
-  } else {
-    is_nitetime = false;
-  }
-}
-
-
-void stringify_nitetime() {
-  if (valid_hhmm(start_nitetime) 
-      && valid_hhmm(end_nitetime)) {
-    nitetime_s = String::format("nitetime: %02d:%02d - %02d:%02d",
-                                start_nitetime.hh, start_nitetime.mm,
-                                end_nitetime.hh, end_nitetime.mm);
-  } else {
-    nitetime_s = "no nitetime schedule";
-  }
-} // stringify_nitetime()
-
-
-// attempts to parse 
-hh_mm_struct_t parse_hhmm(String s) {
-  hh_mm_struct_t ret = { .hh = 99, .mm = 99 };
-  int i = s.indexOf(":");
-  if (i != 0) {
-    byte hh = s.toInt();
-    s = s.substring(i+1);
-    byte mm = s.toInt();
-    ret.hh = hh;
-    ret.mm = mm;
-  }
-  return ret;
-}
-
-
-// parses "hh:mm - hh:mm"
-int set_nitetime(String s) {
-  hh_mm_struct_t start, end;
-  start = parse_hhmm(s);
-  int i = s.indexOf(" - ");
-  s = s.substring(i+3);
-  end = parse_hhmm(s);
-  if (valid_hhmm(start) 
-      && valid_hhmm(end)) {
-    start_nitetime = start;
-    end_nitetime = end;
-    stringify_nitetime();
-    return 1;
-  }
-  return -1;
-} // int set_nitetime(s)
-
-
-void setup_nitetime() {
-  start_nitetime = { .hh = 99, .mm = 99 };
-  end_nitetime = { .hh = 99, .mm = 99 };
-  stringify_nitetime();
-  is_nitetime = true;
-  Particle.function("set_nitetime", set_nitetime);
-  Particle.variable("nitetime_schedule", nitetime_s);
-}
-
-
-/*
  * DST
  *
  */
@@ -258,8 +174,11 @@ void setup_nitetime() {
 void setup_dst() {
     dst_limit_t beginning;
     dst_limit_t end;
-    Particle.syncTime();
-    waitUntil(Particle.syncTimeDone);
+
+    #ifndef USE_RTC
+      Particle.syncTime();
+      waitUntil(Particle.syncTimeDone);
+    #endif
 
     Time.zone(-5);
 
@@ -381,7 +300,7 @@ void maybe_update_layout() {
     int addy = CORE_ADDY;
     uint8_t data = EEPROM.read(addy);
     if (data >= MAX_MODE) {
-        // Serial.printf("Invalid data in EEPROM: 0x%02x; re-writing 'mode'\n", data);
+        Log.warn("Invalid data in EEPROM: 0x%02x; re-writing 'mode'", data);
         mode = ANT_MODE;
         write_mode();
     } else {
@@ -404,12 +323,7 @@ void maybe_update_layout() {
             mode_name = "Ant";
             mode = ANT_MODE;
     }
-    // Serial.printf("read mode: %s\n", mode_name.c_str());
-    
-    addy += sizeof(mode);
-    show_food = EEPROM.read(addy);
-    addy += sizeof(show_food);
-    show_weather = EEPROM.read(addy);
+    Log.info("read mode: %s", mode_name.c_str());
 } // read_mode()
 
 
@@ -462,55 +376,18 @@ int toggle_show_weather(String data) {
  *
  */
 
-float feels_like() {
-    return weather.feels_like();
-} // feels_like()
 
-
-int icon() {
-    return weather.icon();
-} // icon()
-
-
-void setup_weather() {
-    weather.setup();
+void weather_setup() {
     weatherGFX = new WeatherGFX(&wTime);
-    weatherGFX->setup();
     temperature_graph = new TemperatureGraph(0); // x = 0
 } // setup_weather()
 
-
-/*
-// TODO: move this out & refactor
-void update_weather() {
-    if (weather.feels_like() > 25) {
-        weather_dot->set_color(GREEN);
-    } else if (weather.feels_like() > 10) {
-         weather_dot->set_color(YELLOW);
-    } else {
-         weather_dot->set_color(RED);
-    }
-    display.paint(weather_dot);
-} // update_weather()
-*/
-
-
-/*
- * Luna
- * 
- */
-
-void setup_luna() {
-    luna = new Luna(CDS_POWER, CDS_SENSE, CDS_GROUND, LUNA_ADDY);
-    luna->setup();
-} // setup_luna()
 
 
 /*
  * WiFi (backup) and hotspot
  *
  */
-
 
 
 int set_backup_ssid(String data) {
@@ -596,6 +473,7 @@ void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
 // will try main, backup, and emergency networks
 void try_to_connect() {
   if (Particle.connected()) {
+    Log.info("try_to_connect: already connected, nothing more required");
     return;
   }
 
@@ -644,12 +522,12 @@ void try_to_connect() {
 
 
 void setup_wifi() {
-    uint32_t start_time = millis();
+    try_to_connect();
+
     Particle.function("backup_ssid", set_backup_ssid);
     Particle.function("backup_passwd", set_backup_passwd);
 
-    try_to_connect();
-
+    uint32_t start_time = millis();
     // wait for the remainder of HOLDING_PATTERN seconds
     while (millis() - start_time < HOLDING_PATTERN * 1000) {
       display.paint(txlate(1, 0), BLUE);
@@ -667,19 +545,6 @@ void setup_wifi() {
 
 String stats = "none yet";
 
-void setup_cloud() {
-  static bool already_set = false;
-
-  if (! already_set 
-      && Particle.connected()) {
-    read_mode();
-    Particle.variable("mode", mode_name);
-    Particle.variable("statistics", stats);
-    Particle.function("toggle_mode", toggle_mode);
-    Particle.variable("uptime_h", uptime_h);
-    already_set = true;
-  }  
-} // setup_cloud()
 
 
 void setup_whatever_mode() {
@@ -777,6 +642,7 @@ void delay_safely(int delay_ms) {
 
 void maybe_reconnect() {
   if (!Particle.connected()) {
+      // TODO: this is b-r-o-k-e-n on 5.9.0
       WiFi.off();
       delay_safely(30*1000);
       WiFi.on(); 
@@ -792,38 +658,74 @@ void maybe_reconnect() {
 } // maybe_reconnect()
 
 
+// idempotent
+void maybe_setup_cloud() {
+  static bool _cloud_setup_complete = false;
+
+  // bail early?
+  if (_cloud_setup_complete) {
+    return;
+  }
+
+  // can proceed?
+  if (Particle.connected()) {
+    Log.warn("want to maybe_setup_cloud, but too late!  already cloud :/");
+    return;
+  }
+
+  Particle.variable("mode", mode_name);
+  Particle.variable("statistics", stats);
+  Particle.function("toggle_mode", toggle_mode);
+  Particle.variable("uptime_h", uptime_h);
+  display.setup_cloud();
+  luna->setup_cloud();
+  wTime.setup_cloud();
+  color_setup_cloud();
+  layout.setup_cloud();
+  weather.setup_cloud();
+  weatherGFX->setup_cloud();
+  nitetime_setup_cloud();
+  chef.setup_cloud();
+  _cloud_setup_complete = true;
+  Log.warn("!!!!!!  Cloud setup: COMPLETE!!!!");
+} // maybe_setup_cloud()
+
+
 void setup() {
     Serial.begin(115200);
 
     display.setup();
 
     waitFor(Serial.isConnected, 10000);
-    setup_wifi(); // takes at least 30s
-    // synctime_or_die_trying();
+
+    luna = new Luna(CDS_POWER, CDS_SENSE, CDS_GROUND, LUNA_ADDY);
+    color_setup();
+    layout.setup();
+    nitetime_setup();
+    pinger.setup();
+
+    Log.warn("FIRST PASS: maybe_setup_cloud()");
+    maybe_setup_cloud();
+
+    // TODO: unify these, add a soft startup display
+    #ifdef USE_RTC
+      delay(5000);
+      Log.warn("RTC MODE --- RTC MODE --- RTC MODE");
+      synctime_or_die_trying();
+    #else
+      setup_wifi(); // takes at least 30s
+    #endif
                   
+    setup_dst();
+
     #ifdef WATCHDOG_INTERVAL
       wd = new ApplicationWatchdog(WATCHDOG_INTERVAL * 1000, 
                                    watchdogHandler, 1536);
     #endif 
-
-    setup_dst();
-    setup_cloud();
-    setup_nitetime();
-    layout.setup();
-    setup_color();
-    wTime.setup();
-    setup_weather();
-    setup_luna();
-    pinger.setup();
-
+    read_mode();
     setup_whatever_mode();
-
-    chef.setup();
     chef.cook(food, wTime);
-    // cook();
     
-    // prefill(food, sandbox);
-
     Log.warn("initialization complete; free mem == %ld", System.freeMemory());
     //display.test_forever();
 } // setup()
@@ -838,6 +740,10 @@ SimpleTimer loop_pacer(MS_PER_FRAME);
 
 void loop() {
     ma_sw.start();
+    #ifdef USE_RTC
+      // in RTC mode this could happen at any time
+      maybe_setup_cloud();
+    #endif
     if (second.isExpired()) {
         maybe_reboot();  // only check this once per second
         uptime_h = 1.0 * millis() / (3600*1000);
@@ -846,9 +752,18 @@ void loop() {
         luna_brite = luna->get_brightness();
         display_brite = display.set_brightness(luna_brite);
     }
-    if (hourly.isExpired()) {
-        maybe_reconnect();
+    #ifdef USE_RTC
+    // try to connect for the first hour
+    if (millis() < 3600*1000
+        && minute.isExpired()) {
+      // once per minute
+      safe_connect();
     }
+    #else
+    if (hourly.isExpired()) {
+      maybe_reconnect();
+    }
+    #endif
     
     display.clear();
 

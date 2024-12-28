@@ -1,5 +1,4 @@
-#ifndef WOBBLYTIME_H
-#define WOBBLYTIME_H
+#pragma once
 
 #include <SimpleTimer.h>
 
@@ -109,7 +108,7 @@ class WobblyTime {
 
     public:
         WobblyTime(int);
-        void setup();
+        void setup_cloud();
         time_t now();
         byte hour();
         byte minute();
@@ -156,7 +155,7 @@ int WobblyTime::setTime(String hhmm) {
 } // int set_time(hhmm)
 
 
-void WobblyTime::setup() {
+void WobblyTime::setup_cloud() {
     Particle.function("wt_min_advance", &WobblyTime::setMinAdvance, this);
     Particle.function("wt_max_advance", &WobblyTime::setMaxAdvance, this);
     #ifdef DEBUG_WT
@@ -312,5 +311,3 @@ void WobblyTime::printStatus() {
                     fakeTime - Time.now(), 
                     Time.hour(), Time.minute(), Time.second());
 } // printStatus()
-
-#endif

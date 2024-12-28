@@ -1,5 +1,4 @@
-#ifndef PINGER_H
-#define PINGER_H
+#pragma once
 
 #include <SimpleTimer.h>
 #include "defs.h"
@@ -45,7 +44,7 @@ class Pinger {
                 return -1;
             } else {
                 int duration = (millis() - start);
-                Log.warn("Success; duration = %d ms\n", duration);
+                Log.warn("Success; duration = %d ms", duration);
                 return duration;
             }
         } // ping()
@@ -143,6 +142,3 @@ class Pinger {
           return MATRIX_X;
         } // npings()
 };
-
-
-#endif

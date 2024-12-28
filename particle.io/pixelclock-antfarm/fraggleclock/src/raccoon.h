@@ -1,6 +1,4 @@
-#ifndef _RACCOON_H_
-#define _RACCOON_H_
-
+#pragma once
 
 #include <SimpleTimer.h>
 #include "dot.h"
@@ -432,9 +430,6 @@ int trash_x = 0;
       Log.trace("loop_racoons: %d", i);
       Raccoon* raccoon = (Raccoon*)sandbox[i];
       raccoon->run(plan, sandbox);
-      delay(100);
     }
     Log.trace("loop_racoons: out");
   } // loop_raccoons()
-
-#endif

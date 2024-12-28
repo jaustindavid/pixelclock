@@ -1,5 +1,4 @@
-#ifndef COLOR_H
-#define COLOR_H
+#pragma once
 
 #include <neopixel.h>
 #include "defs.h"
@@ -34,6 +33,8 @@ color_t palette[4] =
      DARKRED,                              // 2: alt (dirty)
      MIDGREEN                              // 3: nite color
   };
+
+String readable_palette = "not set";
 
 // palette indices
 #define TIME_COLOR   (palette[0])
@@ -94,6 +95,20 @@ int rgbify(color_t c) {
 }
 
 
+// renders the contents of palette[] into a string
+void make_readable_palette() {
+  readable_palette = "Palette:\n";
+  // TODO: stop hard-coding palette size
+  for (int i = 0; i < 4; i++) {
+    color_t c = palette[i];
+    byte r = (c&0xFF0000) >> 16;
+    byte g = (c&0x00FF00) >> 8;
+    byte b = (c&0x0000FF);
+    readable_palette.concat(String::format("%d: %d %d %d\n", i, r, g, b));
+  }
+}
+
+
 // data should contain 3 ints, like 128 0 0 -> reddish
 int change_palette(String data) {
   int index = data.toInt();
@@ -115,15 +130,19 @@ int change_palette(String data) {
 
   palette[index] = new_color;
   store_colors();
+  make_readable_palette();
 
   return index * 1000 + rgbify(new_color);
 } // int change_palette(data)
 
 
-
-void setup_color() {
-  Particle.function("change_palette", change_palette);
+void color_setup() {
   load_colors();
+  make_readable_palette();
 } // setup_color()
 
-#endif
+
+void color_setup_cloud() {
+  Particle.function("change_palette", change_palette);
+  Particle.variable("color_palette", readable_palette);
+}

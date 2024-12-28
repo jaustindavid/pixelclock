@@ -1,5 +1,4 @@
-#ifndef LUNA_H
-#define LUNA_H
+#pragma once
 
 #include <SimpleTimer.h>
 
@@ -41,8 +40,7 @@ class Luna {
         int sensor_value;
         Luna(int, int, int, int);
         ~Luna() { delete hysteresis; }
-        void setup();
-        void init();
+        void setup_cloud();
         int get_brightness();
         int setDimSensor(String);
         int setBrightSensor(String);
@@ -74,13 +72,13 @@ Luna::Luna(int power_pin, int sense_pin, int ground_pin, int newAddress) {
 } // Luna(power, sense, ground, addy)
 
 
-void Luna::setup() {
+void Luna::setup_cloud() {
     Particle.function("luna_dim_sensor", &Luna::setDimSensor, this);
     Particle.function("luna_bright_sensor", &Luna::setBrightSensor, this);
     
     Particle.variable("luna_sensor", this->sensor_value);
     Particle.variable("luna_brightness", this->brightness);
-} // setup()
+} // setup_cloud()
 
 
 // takes a sensor value for "dimmest lighting"
@@ -130,5 +128,3 @@ int Luna::get_brightness() {
     }
     return brightness;
 } // int get_brightness()
-
-#endif

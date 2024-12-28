@@ -1,9 +1,6 @@
-#ifndef DEFS_H
-#define DEFS_H
+#pragma once
 
 #define PHOTON2 32
-
-#include "aspect.h"
 
 #define HOLDING_PATTERN 60 // seconds before firing up
 // to enable the watchdog...
@@ -166,5 +163,3 @@ class MovingAverageStopwatch {
       return avg;
     }
 };
-
-#endif

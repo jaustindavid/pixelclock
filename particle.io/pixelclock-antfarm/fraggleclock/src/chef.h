@@ -1,5 +1,4 @@
-#ifndef CHEF_H
-#define CHEF_H
+#pragma once
 
 /*
  * a Chef makes food in the shape of time.
@@ -414,10 +413,10 @@ class Chef {
         };
         
 
-        void setup() {
+        void setup_cloud() {
             Particle.function("chef_chaos", &Chef::beChaos, this); 
             Particle.variable("chef_time", this->chef_time);
-        } // setup()
+        } // setup_cloud()
 
 
         void cook(Dot* food[], WobblyTime& wTime) {
@@ -442,5 +441,3 @@ class Chef {
             }
         } // cook()
 }; // class Chef
-
-#endif

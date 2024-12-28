@@ -8,13 +8,16 @@ clean:
 	rm -f photon*bin
 
 square:
-	cp src/square-aspect.h src/aspect.h
+	cp src/square-aspect.h src/local-settings.h
 
 widescreen:
-	cp src/widescreen-aspect.h src/aspect.h
+	cp src/widescreen-aspect.h src/local-settings.h
 
 d1:
-	echo "#define PIXEL_PIN D1" >> src/aspect.h
+	echo "#define PIXEL_PIN D1" >> src/local-settings.h
+
+rtc:
+	echo "#define USE_RTC" >> src/local-settings.h
 
 local:
 	particle flash --local
@@ -27,6 +30,8 @@ follow:
 
 roxie_raccoon: square d1
 	particle flash $@
+
+rowan: square rtc
 
 austin: roberta
 lr_bookcase: rachel
