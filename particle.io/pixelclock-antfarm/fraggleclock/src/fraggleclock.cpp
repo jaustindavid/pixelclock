@@ -378,9 +378,9 @@ int toggle_show_weather(String data) {
 
 
 void weather_setup() {
-    weatherGFX = new WeatherGFX(&wTime);
+    // weatherGFX = new WeatherGFX(&wTime);
     temperature_graph = new TemperatureGraph(0); // x = 0
-} // setup_weather()
+} // weather_setup()
 
 
 
@@ -658,6 +658,25 @@ void maybe_reconnect() {
 } // maybe_reconnect()
 
 
+void setup_cloud() {
+  Particle.variable("mode", mode_name);
+  Particle.variable("statistics", stats);
+  Particle.function("toggle_mode", toggle_mode);
+  Particle.variable("uptime_h", uptime_h);
+  display.setup_cloud();
+  luna->setup_cloud();
+  wTime.setup_cloud();
+  color_setup_cloud();
+  layout.setup_cloud();
+  weather.setup_cloud();
+  weatherGFX->setup_cloud();
+  nitetime_setup_cloud();
+  chef.setup_cloud();
+  Log.warn("!!!!!!  Cloud setup: COMPLETE!!!!");
+} // setup_cloud()
+
+
+/* no longer used
 // idempotent
 void maybe_setup_cloud() {
   static bool _cloud_setup_complete = false;
@@ -673,22 +692,10 @@ void maybe_setup_cloud() {
     return;
   }
 
-  Particle.variable("mode", mode_name);
-  Particle.variable("statistics", stats);
-  Particle.function("toggle_mode", toggle_mode);
-  Particle.variable("uptime_h", uptime_h);
-  display.setup_cloud();
-  luna->setup_cloud();
-  wTime.setup_cloud();
-  color_setup_cloud();
-  layout.setup_cloud();
-  weather.setup_cloud();
-  weatherGFX->setup_cloud();
-  nitetime_setup_cloud();
-  chef.setup_cloud();
+  setup_cloud();
   _cloud_setup_complete = true;
-  Log.warn("!!!!!!  Cloud setup: COMPLETE!!!!");
 } // maybe_setup_cloud()
+*/
 
 
 void setup() {
@@ -703,9 +710,9 @@ void setup() {
     layout.setup();
     nitetime_setup();
     pinger.setup();
+    weather_setup();
 
-    Log.warn("FIRST PASS: maybe_setup_cloud()");
-    maybe_setup_cloud();
+    setup_cloud();
 
     // TODO: unify these, add a soft startup display
     #ifdef USE_RTC
@@ -740,10 +747,6 @@ SimpleTimer loop_pacer(MS_PER_FRAME);
 
 void loop() {
     ma_sw.start();
-    #ifdef USE_RTC
-      // in RTC mode this could happen at any time
-      maybe_setup_cloud();
-    #endif
     if (second.isExpired()) {
         maybe_reboot();  // only check this once per second
         uptime_h = 1.0 * millis() / (3600*1000);
@@ -752,6 +755,7 @@ void loop() {
         luna_brite = luna->get_brightness();
         display_brite = display.set_brightness(luna_brite);
     }
+
     #ifdef USE_RTC
     // try to connect for the first hour
     if (millis() < 3600*1000
@@ -778,20 +782,10 @@ void loop() {
       maybe_update_layout();
     
       if (layout.show_weather) {
-        Log.trace("checkpoint 1");
-        delay(100);
-        weatherGFX->run(weather.icon_str);
-        Log.trace("checkpoint 2");
-        delay(100);
-        display.render(weatherGFX->peers, MATRIX_Y);
-        Log.trace("checkpoint 3");
-        delay(100);
+        // weatherGFX->run(weather.icon_str);
+        // display.render(weatherGFX->peers, MATRIX_Y);
         temperature_graph->update(weather.feels_like());
-        Log.trace("checkpoint 4");
-        delay(100);
         display.render(temperature_graph->dots, MATRIX_Y);
-        Log.trace("checkpoint 5");
-        delay(100);
       }
     
       if (layout.show_plan) {
@@ -801,6 +795,7 @@ void loop() {
       if (layout.show_pinger) {
         display.render(pinger.pings(), pinger.npings());
       }
+
       display.render(sandbox);
       display_speed.start();
       // display.show_multipass();
