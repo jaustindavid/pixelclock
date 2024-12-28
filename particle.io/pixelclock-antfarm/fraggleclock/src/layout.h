@@ -15,9 +15,11 @@
 class Layout {
   private:
 
+    #define LAYOUT_DATUM_VERSION 2
     struct layout_datum {
       byte version;
       bool pinger;
+      bool temperature;
       bool weather;
       bool plan;
     };
@@ -29,8 +31,9 @@ class Layout {
 
       EEPROM.get(LAYOUT_ADDY, datum);
 
-      if (datum.version == 1) {
+      if (datum.version == LAYOUT_DATUM_VERSION) {
         show_pinger = datum.pinger;
+        show_temperature = datum.temperature;
         show_weather = datum.weather;
         show_plan = datum.plan;
       }
@@ -40,8 +43,9 @@ class Layout {
     // stores pinger, weather, plan
     void write_eeprom() {
       struct layout_datum datum = 
-        { .version = 1, 
+        { .version = LAYOUT_DATUM_VERSION, 
           .pinger = show_pinger, 
+          .temperature = show_temperature,
           .weather = show_weather, 
           .plan = show_plan
         };
@@ -59,11 +63,19 @@ class Layout {
 
 
     // used by Particle.function
+    int toggle_temperature(String s) {
+      show_temperature = !show_temperature;
+      write_eeprom();
+      return show_temperature ? 1 : 0;
+    } // int toggle_temperature(s)
+
+
+    // used by Particle.function
     int toggle_weather(String s) {
       show_weather = !show_weather;
       write_eeprom();
       return show_weather ? 1 : 0;
-    } // int toggle_pinger(s)
+    } // int toggle_weather(s)
 
 
     // used by Particle.function
@@ -73,10 +85,12 @@ class Layout {
       return show_plan ? 1 : 0;
     } // int toggle_plan(s)
 
+
   public:
-    bool show_pinger, show_weather, show_plan;
+    bool show_pinger, show_temperature, show_weather, show_plan;
 
     Layout() : show_pinger(false), 
+               show_temperature(false), 
                show_weather(false), 
                show_plan(false) {
     } // Layout()
@@ -90,6 +104,7 @@ class Layout {
     // sets up the cloud functions
     void setup_cloud() {
       Particle.function("toggle_pinger", &Layout::toggle_pinger, this);
+      Particle.function("toggle_temperature", &Layout::toggle_temperature, this);
       Particle.function("toggle_weather", &Layout::toggle_weather, this);
       Particle.function("toggle_plan", &Layout::toggle_plan, this);
     } // setup_cloud()

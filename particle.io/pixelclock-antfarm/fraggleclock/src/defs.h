@@ -2,7 +2,14 @@
 
 #define PHOTON2 32
 
-#define HOLDING_PATTERN 60 // seconds before firing up
+#ifdef TESTING
+  #define HOLDING_PATTERN 15 // seconds before firing up
+#else
+  #define HOLDING_PATTERN 60 // seconds; longer for safety
+#endif
+
+STARTUP(WiFi.setListenTimeout(HOLDING_PATTERN)); // listening mode timeout
+ 
 // to enable the watchdog...
 #define WATCHDOG_INTERVAL 180000 // milliseconds
 
@@ -39,8 +46,8 @@
 #define COLOR_ADDY      200   // 17 bytes
 #define LAYOUT_ADDY     220   // 4 bytes
 
-#define WIFI_EMERGENCY_SSID "raccoontime"
-#define WIFI_EMERGENCY_PASSWD "busyness"
+#define WIFI_EMERGENCY_SSID "procyon"
+#define WIFI_EMERGENCY_PASSWD "horology"
 
 // massively globals
 bool show_weather = false;

@@ -14,6 +14,12 @@
 #define REDDISH  (Adafruit_NeoPixel::Color(MAX_RGB, 0, 0))
 #define GREENISH (Adafruit_NeoPixel::Color(0, MAX_RGB, 0))
 
+#if (ASPECT_RATIO == SQUARE)
+#define PING_INTERVAL 30 // seconds
+#else
+#define PING_INTERVAL 15 // seconds
+#endif
+
 // holds a graph, which is actually a set of dots
 // returns it on request
 class Pinger {
@@ -82,7 +88,7 @@ class Pinger {
 
     public:
         Pinger() {
-            ping_timer = new SimpleTimer(15*1000);
+            ping_timer = new SimpleTimer(PING_INTERVAL*1000);
             width = DEFAULT_PINGER_WIDTH;
             x = PINGER_X;
         } // Pinger()

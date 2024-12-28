@@ -8,15 +8,20 @@
 #include "defs.h"
 #include "ow_api.h"
 
-#undef OW_DEBUG
+#define OW_DEBUG
+
+#define MAX_FORECAST_AGE 3600 // allowed to be an hour old
+
 
 // call this frequently, it will occasionally hit the openweather API
 class OpenWeather {
     private:
         int address;
-        SimpleTimer* timer;
+        SimpleTimer* update_timer;
+        bool update_me;
         float _feels_like_temp;
-        int _icon, forecast_age;
+        String _icon;
+        int forecast_age;
         time_t last_update;
         const char* API_KEY = OW_API_KEY;
         double lattitude, longitude;
@@ -24,8 +29,8 @@ class OpenWeather {
 
         void update() {
             if (! WiFi.ready()) {
-                Log.warn("WiFi not ready in update()");
-                last_update = millis();
+                Log.warn("OW: WiFi not ready in update()");
+                update_timer->reset();
                 return;
             }
             // Headers currently need to be set at init, useful for API keys etc.
@@ -79,20 +84,22 @@ class OpenWeather {
         
             // Fetch the values
             _feels_like_temp = doc["main"]["feels_like"];
-            icon_str = String((const char *)doc["weather"][0]["icon"]);
-            _icon = icon_str.toInt();
-            Serial.printf("feels like %5.2f, icon: %s=>%d\n", _feels_like_temp, icon_str.c_str(), _icon);
+            _icon = String((const char *)doc["weather"][0]["icon"]);
+            Log.warn("OW: feels like %5.2f, icon: %s", 
+                     _feels_like_temp, _icon.c_str());
             Particle.publish("openweather", 
-                String::format("feels like %5.2f, icon: %s=>%d\n", 
-                        _feels_like_temp, icon_str.c_str(), _icon));
+                String::format("feels like %.2f, icon: %s", 
+                        _feels_like_temp, _icon.c_str()));
             last_update = millis();
-        }
+        } // update()
 
 
         // update, if needed
         void maybe_update() {
-            if (timer->isExpired()) {
+            if (update_me 
+                || update_timer->isExpired()) {
                 update();
+                update_me = false;
             }
             forecast_age = (millis() - last_update)/1000;
         } // maybe_update()
@@ -132,7 +139,7 @@ class OpenWeather {
                 lattitude = (double)f;
                 write_data();
             }
-            last_update = 0; // inspire an update
+            update_me = true;
             return (int)(lattitude * 100);
         } // int setLattitude(String data)
         
@@ -143,29 +150,49 @@ class OpenWeather {
                 longitude = (double)f;
                 write_data();
             }
-            last_update = 0; // inspire an update
+            update_me = true;
             return (int)(longitude * 100);
         } // int setLongitude(String data)
 
+
+        #ifdef OW_DEBUG
+        int set_feels_like(String data) {
+          float t = data.toFloat();
+          if (t) {
+            _feels_like_temp = t;
+            update_timer->reset();
+          }
+          return (int)_feels_like_temp;
+        } // int set_feels_like(data)
+
+
+        int set_icon(String data) {
+          _icon = data;
+          update_timer->reset();
+          return _icon.toInt();
+        } // int set_feels_like(data)
+        #endif
 
     public:
         String icon_str;
 
         OpenWeather(int addy, int update_period) : _feels_like_temp(-99.0) {
             address = addy;
-            timer = new SimpleTimer(update_period, true);
+            update_timer = new SimpleTimer(update_period, true);
             lattitude = 32.85;
             longitude = -80.06;
             icon_str = "01d";
             _feels_like_temp = -99.0;
             read_data();
+            last_update = 0;
+            update_me = false;
             // TODO: remove this from init
             update();
         } // OpenWeather(addy, update_period)
 
 
         ~OpenWeather() {
-            delete timer;
+            delete update_timer;
         } // ~OpenWeather()
 
 
@@ -175,13 +202,24 @@ class OpenWeather {
             Particle.function("ow_set_longitude",
                               &OpenWeather::setLongitude, this);
             Particle.variable("ow_age", this->forecast_age);
+            #ifdef TESTING
             #ifdef OW_DEBUG
-              Particle.variable("ow_lattitude", this->lattitude);
-              Particle.variable("ow_longitude", this->longitude);
-              Particle.variable("feels_like", _feels_like_temp);
+              Particle.function("ow_feels_like", 
+                                &OpenWeather::set_feels_like, this);
+              Particle.function("ow_icon", 
+                                &OpenWeather::set_icon, this);
+            #endif
             #endif
         } // setup()
         
+
+        // true if data is real and recent
+        bool isValid() {
+          maybe_update();
+          return last_update 
+                 && (forecast_age < MAX_FORECAST_AGE);
+        } // bool isValid()
+
 
         float feels_like() {
             maybe_update();
@@ -189,8 +227,8 @@ class OpenWeather {
         } // float feels_like()
 
         
-        float icon() {
+        String icon() {
             maybe_update();
             return _icon;
-        } // float_icon()
+        } // String icon()
 };

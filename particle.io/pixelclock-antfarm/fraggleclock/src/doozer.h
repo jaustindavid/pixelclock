@@ -381,6 +381,10 @@ class Doozer: public Turtle {
                     wander(sandbox);
                 }
             }
+            if ((millis() / 1000) % 2) {
+                // "tick"
+                color = color / 2;
+            }
         } // void rest(Dot* plan[], Dot* sandbox[])
 
 

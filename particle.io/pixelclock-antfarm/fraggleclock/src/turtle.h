@@ -260,7 +260,7 @@ class Turtle: public Ant {
                 }
             }
           }
-          Log.error("no path found shuffling home...");
+          Log.info("no path found shuffling home...");
           return false;
         } // shuffle_home(cursor, distances)
 

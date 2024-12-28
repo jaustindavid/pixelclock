@@ -1,5 +1,4 @@
-#ifndef _GFX_H_
-#define _GFX_H_
+#pragma once
 
 #undef DEBUG_GFX
 
@@ -16,6 +15,10 @@
  *   partly cloudy: a few Ws bouncing around over the Y & B 
  *       (or Y & Bs deciding to turn W randomly)
  *   rainy: Bs falling down
+ *
+ * usage:
+ *   ::update(icon)
+ *   display->render(::dots(), ::ndots)
  */
  
  #include "color.h"
@@ -248,4 +251,3 @@ class WeatherGFX {
             }
         } // run(icon)
 };
-#endif

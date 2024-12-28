@@ -235,7 +235,7 @@ class Raccoon: public Turtle {
       if (i != -1) {
         // Log.info("found %d missing; washing\n", i);
         // start_washing(plan, sandbox);
-        Log.info("found %d missing; refilling trash\n", i);
+        Log.info("found %d missing; refilling trash", i);
         refill_trash(sandbox);
         // it will get cleaned on the next loop
       }
@@ -243,6 +243,10 @@ class Raccoon: public Turtle {
       if (rest_timer->isExpired()
           && P(25)) {
         wander(sandbox);
+      } 
+      if ((millis() / 1000) % 2) {
+        // "tick"
+        color = color / 2;
       }
     } // rest(plan, sandbox)
 
@@ -288,7 +292,6 @@ class Raccoon: public Turtle {
   public:
 
     Raccoon() : Turtle() {
-      color = 
       state = RESTING;
       step_timer->setInterval(WALK_SPEED/2);
       rest_timer = new SimpleTimer(REST_SPEED);
@@ -372,17 +375,19 @@ class Raccoon: public Turtle {
 int trash_x = 0;
 
   void update_raccoon_layout(Layout* layout, Dot* sandbox[]) {
+    if (layout->show_temperature) {
+      // relocate the trashcan
+      TRASH_X = 1;
+    } else {
+      TRASH_X = 0;
+    }
     if (layout->show_weather) {
       // move the pool
       sandbox[NRACCOONS]->x = MATRIX_X-3;
       sandbox[NRACCOONS+1]->x = MATRIX_X-2;
-      // relocate the trashcan
-      TRASH_X = 1;
     } else {
       sandbox[NRACCOONS]->x = MATRIX_X-2;
       sandbox[NRACCOONS+1]->x = MATRIX_X-1;
-      // relocate the trashcan
-      TRASH_X = 0;
     }
   } // update_raccoon_layout(sandbox)
 

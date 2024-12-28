@@ -24,13 +24,17 @@
 // Include Particle Device OS APIs
 #include "Particle.h"
 
+#include "local-settings.h"
+
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
-// SerialLogHandler logHandler(LOG_LEVEL_TRACE);
-// SerialLogHandler logHandler(LOG_LEVEL_INFO);
-SerialLogHandler logHandler(LOG_LEVEL_WARN);
+#ifdef TESTING
+  SerialLogHandler logHandler(LOG_LEVEL_TRACE);
+  // SerialLogHandler logHandler(LOG_LEVEL_INFO);
+#else
+  SerialLogHandler logHandler(LOG_LEVEL_WARN);
+#endif
 
-#include "local-settings.h"
 
 #include "safer-cloud.h"
 SYSTEM_MODE(SEMI_AUTOMATIC);
@@ -90,7 +94,6 @@ DST dst;
 #include "turtle.h"
 #include "doozer.h"
 #include "raccoon.h"
-#include "gfx.h"
 #include "list.h"
 #include "chef.h"
 #include "display.h"
@@ -101,6 +104,7 @@ DST dst;
 #include "luna.h"
 #include "open_weather.h"
 #include "temperature_graph.h"
+#include "weather_grafix.h"
 
 #define PRINTF_DEBUGGER
 
@@ -148,8 +152,8 @@ SimpleTimer daily(24*60*60*1000);
 Dot* food[MAX_DOTS];
 Dot* sandbox[MAX_DOTS];
 Dot* bin[MAX_DOTS];
-WeatherGFX *weatherGFX;
 TemperatureGraph *temperature_graph;
+WeatherGrafix *weather_grafix;
 Layout layout;
 
 uint8_t reboot_timer = 0; // when to reboot, in a mode switch
@@ -171,14 +175,10 @@ int display_brite = 0;
  *
  */
 
+// precondition: Time.isValid()
 void setup_dst() {
     dst_limit_t beginning;
     dst_limit_t end;
-
-    #ifndef USE_RTC
-      Particle.syncTime();
-      waitUntil(Particle.syncTimeDone);
-    #endif
 
     Time.zone(-5);
 
@@ -227,49 +227,48 @@ void make_sandbox() {
 // resizes a few things based on various modes
 void maybe_update_layout() {
   static bool 
+    old_temperature = false, 
     old_weather = false, 
     old_pinger  = false;
 
-  if (layout.show_weather == old_weather 
+  if (layout.show_temperature == old_temperature
+      && layout.show_weather == old_weather 
       && layout.show_pinger == old_pinger) {
     // nothing to do
     return;
   }
+  old_temperature = layout.show_temperature;
   old_weather = layout.show_weather;
   old_pinger = layout.show_pinger;
+
+  byte pinger_start = 0;
+  byte pinger_width = MATRIX_X;
+
+  if (layout.show_temperature) {
+    pinger_start = 1;
+    pinger_width--;
+  }
+
+  if (layout.show_weather) {
+    pinger_width--;
+  }
+
   switch (mode) {
     case TURTLE_MODE: 
-      if (layout.show_weather) {
-        pinger.set_layout(1, MATRIX_X-2);
-      } else {
-        pinger.set_layout(0, MATRIX_X);
-      }
+      // nothing special
       break;
     case DOOZER_MODE:
     case FRAGGLE_MODE:
       update_doozer_layout(&layout, sandbox);
-      if (layout.show_weather) {
-        pinger.set_layout(1, MATRIX_X-2);
-      } else {
-        pinger.set_layout(0, MATRIX_X);
-      }
       break;
     case RACCOON_MODE:
       update_raccoon_layout(&layout, sandbox);
-      if (layout.show_weather) {
-        pinger.set_layout(2, MATRIX_X-5);
-      } else {
-        pinger.set_layout(1, MATRIX_X-3);
-      }
       break;
     case ANT_MODE:
     default:
-      if (layout.show_weather) {
-        pinger.set_layout(1, MATRIX_X-2);
-      } else {
-        pinger.set_layout(0, MATRIX_X);
-      }
+      break;
   }
+  pinger.set_layout(pinger_start, pinger_width);
 } // update_layout()
 
 
@@ -378,8 +377,8 @@ int toggle_show_weather(String data) {
 
 
 void weather_setup() {
-    // weatherGFX = new WeatherGFX(&wTime);
     temperature_graph = new TemperatureGraph(0); // x = 0
+    weather_grafix = new WeatherGrafix();
 } // weather_setup()
 
 
@@ -404,28 +403,6 @@ int set_backup_passwd(String data) {
     storeString(WIFI_ADDY+50, backupPasswd);
     return backupPasswd.length();
 } // set_backup_passwd(data)
-
-
-// toggles between the "backup" network and EMERGENCY network
-void try_backup_network() {
-    static bool emergency_creds = false;
-    String backupSSID = String(WIFI_EMERGENCY_SSID);
-    String backupPasswd = String(WIFI_EMERGENCY_PASSWD);
-
-    if (! WiFi.ready()) {
-        if (!emergency_creds) {
-            backupSSID = fetchString(WIFI_ADDY);
-            backupPasswd = fetchString(WIFI_ADDY+50);
-            Log.info("fetched WiFi credentials: %s :: %s",
-                backupSSID.c_str(),
-                backupPasswd.c_str());
-        }
-        emergency_creds = !emergency_creds;
-        Serial.printf("connecting to WiFi SSID '%s'\n", backupSSID.c_str());
-        WiFi.setCredentials(backupSSID, backupPasswd);
-        WiFi.connect();
-    }
-} // try_backup_network()
 
 
 void paint_connection_status(int x, int y) {
@@ -460,9 +437,6 @@ void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
     }
     display.show();
     delay(1000);
-    #ifdef WATCHDOG_INTERVAL
-      ApplicationWatchdog::checkin(); // resets the AWDT count
-    #endif
   }
 
   paint_connection_status(0, y);
@@ -477,34 +451,22 @@ void try_to_connect() {
     return;
   }
 
-  #ifdef WATCHDOG_INTERVAL
-    ApplicationWatchdog::checkin(); // resets the AWDT count
-  #endif
-
   Log.warn("trying default credentials...");
   connect_and_blink(0, String(""), String(""));
   if (Particle.connected()) {
-    Log.warn("Connected!");
+    Log.warn("Connected to default WiFi!");
     return;
   }
  
-  #ifdef WATCHDOG_INTERVAL
-    ApplicationWatchdog::checkin(); // resets the AWDT count
-  #endif
-
   String backupSSID = fetchString(WIFI_ADDY);
   String backupPasswd = fetchString(WIFI_ADDY+50);
   Log.warn("trying backup credentials %s :: %s", 
       backupSSID.c_str(), backupPasswd.c_str());
   connect_and_blink(1, backupSSID, backupPasswd);
   if (Particle.connected()) {
-    Log.warn("Connected to backup!");
+    Log.warn("Connected to backup WiFi!");
     return;
   }
-
-  #ifdef WATCHDOG_INTERVAL
-    ApplicationWatchdog::checkin(); // resets the AWDT count
-  #endif
 
   Log.warn("trying emergency credentials %s :: %s", 
             WIFI_EMERGENCY_SSID, WIFI_EMERGENCY_PASSWD);
@@ -514,18 +476,12 @@ void try_to_connect() {
     return;
   }
 
-  #ifdef WATCHDOG_INTERVAL
-    ApplicationWatchdog::checkin(); // resets the AWDT count
-  #endif
   Log.warn("Failed to connect :(((");
 } // try_to_connect()
 
 
 void setup_wifi() {
     try_to_connect();
-
-    Particle.function("backup_ssid", set_backup_ssid);
-    Particle.function("backup_passwd", set_backup_passwd);
 
     uint32_t start_time = millis();
     // wait for the remainder of HOLDING_PATTERN seconds
@@ -536,9 +492,6 @@ void setup_wifi() {
       display.paint(txlate(1, 0), BLACK);
       display.show();
       delay(500);
-      #ifdef WATCHDOG_INTERVAL
-        ApplicationWatchdog::checkin(); // resets the AWDT count
-      #endif
     }
 } // setup_wifi()
 
@@ -663,39 +616,36 @@ void setup_cloud() {
   Particle.variable("statistics", stats);
   Particle.function("toggle_mode", toggle_mode);
   Particle.variable("uptime_h", uptime_h);
+  Particle.function("backup_ssid", set_backup_ssid);
+  Particle.function("backup_passwd", set_backup_passwd);
   display.setup_cloud();
   luna->setup_cloud();
   wTime.setup_cloud();
   color_setup_cloud();
   layout.setup_cloud();
   weather.setup_cloud();
-  weatherGFX->setup_cloud();
   nitetime_setup_cloud();
   chef.setup_cloud();
   Log.warn("!!!!!!  Cloud setup: COMPLETE!!!!");
 } // setup_cloud()
 
 
-/* no longer used
-// idempotent
-void maybe_setup_cloud() {
-  static bool _cloud_setup_complete = false;
+// true if we act like we have an RTC
+bool has_rtc() {
+  static bool _has_rtc = false;
+  static bool cached = false;
 
-  // bail early?
-  if (_cloud_setup_complete) {
-    return;
+  if (!cached) {
+    _has_rtc = Time.isValid() && ! Particle.connected();
+    if (_has_rtc) {
+      Log.warn("I probably have RTC");
+    } else {
+      Log.warn("I may not have RTC");
+    }
+    cached = true;
   }
-
-  // can proceed?
-  if (Particle.connected()) {
-    Log.warn("want to maybe_setup_cloud, but too late!  already cloud :/");
-    return;
-  }
-
-  setup_cloud();
-  _cloud_setup_complete = true;
-} // maybe_setup_cloud()
-*/
+  return _has_rtc;
+} // bool has_rtc()
 
 
 void setup() {
@@ -714,15 +664,15 @@ void setup() {
 
     setup_cloud();
 
-    // TODO: unify these, add a soft startup display
-    #ifdef USE_RTC
-      delay(5000);
+    delay(5000);
+
+    if (has_rtc()) {
       Log.warn("RTC MODE --- RTC MODE --- RTC MODE");
-      synctime_or_die_trying();
-    #else
+    } else {
+      // synctime_or_die_trying();
       setup_wifi(); // takes at least 30s
-    #endif
-                  
+    }
+
     setup_dst();
 
     #ifdef WATCHDOG_INTERVAL
@@ -756,18 +706,19 @@ void loop() {
         display_brite = display.set_brightness(luna_brite);
     }
 
-    #ifdef USE_RTC
-    // try to connect for the first hour
-    if (millis() < 3600*1000
-        && minute.isExpired()) {
-      // once per minute
-      safe_connect();
+    if (has_rtc()) {
+      // try to connect for the first hour
+      if (millis() < 3600*1000
+          && minute.isExpired()) {
+        // once per minute
+        Log.warn("RTC mode: trying to reconnect (maybe)");
+        safe_connect();
+      }
+    } else {
+      if (hourly.isExpired()) {
+        maybe_reconnect();
+      }
     }
-    #else
-    if (hourly.isExpired()) {
-      maybe_reconnect();
-    }
-    #endif
     
     display.clear();
 
@@ -781,11 +732,17 @@ void loop() {
 
       maybe_update_layout();
     
-      if (layout.show_weather) {
-        // weatherGFX->run(weather.icon_str);
-        // display.render(weatherGFX->peers, MATRIX_Y);
-        temperature_graph->update(weather.feels_like());
-        display.render(temperature_graph->dots, MATRIX_Y);
+      if(weather.isValid()) {
+        if (layout.show_temperature) {
+          temperature_graph->update(weather.feels_like());
+          display.render(temperature_graph->dots, MATRIX_Y);
+        }
+        #ifdef TESTING
+        if (layout.show_weather) {
+          weather_grafix->update(wTime.hour(), wTime.minute(), weather.icon());
+          display.render(weather_grafix->dots(), weather_grafix->ndots());
+        }
+        #endif
       }
     
       if (layout.show_plan) {

@@ -16,8 +16,8 @@ widescreen:
 d1:
 	echo "#define PIXEL_PIN D1" >> src/local-settings.h
 
-rtc:
-	echo "#define USE_RTC" >> src/local-settings.h
+test:
+	echo "#define TESTING" >> src/local-settings.h
 
 local:
 	particle flash --local
@@ -31,13 +31,12 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
-rowan: square rtc
-
 austin: roberta
 lr_bookcase: rachel
 drew: ronaldo
 jake: ringo
 max: rowan
+dan_singer: ricky
 brewster: rico
 leslie: steel_hamster
 
