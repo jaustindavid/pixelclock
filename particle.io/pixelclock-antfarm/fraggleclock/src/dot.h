@@ -1,10 +1,9 @@
+#pragma once
+
 /*
  * A single dot.  It can move around among a list of other dots
  */
  
-#ifndef DOT_H
-#define DOT_H
-
 #include <math.h>
 #include "defs.h"
 #include "color.h"
@@ -26,10 +25,6 @@ class Dot {
         }
 
 
-        virtual void draw() {
-        }
-
-
         color_t get_color() {
             return color;
         }
@@ -41,6 +36,7 @@ class Dot {
         }
 
 
+        // lighten my color by amt; r-amt | g-amt | b-amt
         void lighten(byte amt) {
             uint8_t r = (color & RED) >> 16;
             uint8_t g = (color & GREEN) >> 8;
@@ -56,7 +52,17 @@ class Dot {
                         (color & BLUE));
         }
         
-        
+
+        // "breathes" color based on time
+        color_t breathe(const color_t source) {
+          int ms = millis() % 2000;
+          if (ms > 1000) {
+            return source/2;
+          }
+          return source;
+        } // color_t breathe(source)
+
+
         void print() {
             Serial.printf("(%d,%d):%08lx", x, y, color);
         }
@@ -85,5 +91,3 @@ bool Dot::adjacent(Dot* other) {
 float Dot::distance_to(Dot* other) {
     return sqrt((x-other->x)*(x-other->x)+(y-other->y)*(y-other->y));
 }
-
-#endif

@@ -244,9 +244,9 @@ class Raccoon: public Turtle {
           && P(25)) {
         wander(sandbox);
       } 
-      if ((millis() / 1000) % 2) {
-        // "tick"
-        color = color / 2;
+      // "tick"
+      if (millis()/1000 % 2) {
+        color = color/2;
       }
     } // rest(plan, sandbox)
 

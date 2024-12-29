@@ -160,7 +160,7 @@ class OpenWeather {
           float t = data.toFloat();
           if (t) {
             _feels_like_temp = t;
-            update_timer->reset();
+            update_me = true;
           }
           return (int)_feels_like_temp;
         } // int set_feels_like(data)
@@ -168,7 +168,7 @@ class OpenWeather {
 
         int set_icon(String data) {
           _icon = data;
-          update_timer->reset();
+          update_me = true;
           return _icon.toInt();
         } // int set_feels_like(data)
         #endif

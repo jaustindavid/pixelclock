@@ -31,6 +31,9 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
+steel_hamster: square
+	particle flash $@
+
 austin: roberta
 lr_bookcase: rachel
 drew: ronaldo
@@ -38,10 +41,11 @@ jake: ringo
 max: rowan
 dan_singer: ricky
 brewster: rico
-leslie: steel_hamster
+leslie: steel_hamster renee
+gjab: river
 
 
-SQUARES = rosalyn roberta rowan ricky rico steel_hamster
+SQUARES = rosalyn roberta rowan ricky rico
 WIDESCREENS = ronaldo rachel ringo river renee
 
 $(SQUARES) : square
