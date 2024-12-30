@@ -45,7 +45,7 @@ leslie: steel_hamster renee
 gjab: river
 
 
-SQUARES = rosalyn roberta rowan ricky rico
+SQUARES = rosalyn roberta rowan ricky rico remus
 WIDESCREENS = ronaldo rachel ringo river renee
 
 $(SQUARES) : square
