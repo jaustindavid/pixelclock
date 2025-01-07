@@ -67,8 +67,9 @@ class Display {
           if (alignment_mode) {
             neopixels->setPixelColor(trans_rotate(0,0), WHITE);
             neopixels->setPixelColor(trans_rotate(0, MATRIX_Y-1), WHITE);
-            neopixels->setPixelColor(trans_rotate(MATRIX_X-1, 0), WHITE);
-            neopixels->setPixelColor(trans_rotate(MATRIX_X-1, MATRIX_Y-1), WHITE);
+            for (byte y = 0; y < MATRIX_Y; y++) {
+              neopixels->setPixelColor(trans_rotate(MATRIX_X-1, y), WHITE);
+            }
           }
         } // maybe_show_alignment()
 
