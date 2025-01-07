@@ -94,6 +94,7 @@ DST dst;
 #include "turtle.h"
 #include "doozer.h"
 #include "raccoon.h"
+#include "matrix.h"
 #include "list.h"
 #include "chef.h"
 #include "display.h"
@@ -136,7 +137,8 @@ int Dot::next_id = 0;
 #define TURTLE_MODE 2
 #define DOOZER_MODE 3
 #define RACCOON_MODE 4
-#define MAX_MODE 5
+#define MATRIX_MODE 5
+#define MAX_MODE 6
 
 uint8_t mode = ANT_MODE;
 // mode = TURTLE_MODE;
@@ -254,9 +256,6 @@ void maybe_update_layout() {
   }
 
   switch (mode) {
-    case TURTLE_MODE: 
-      // nothing special
-      break;
     case DOOZER_MODE:
     case FRAGGLE_MODE:
       update_doozer_layout(&layout, sandbox);
@@ -264,7 +263,10 @@ void maybe_update_layout() {
     case RACCOON_MODE:
       update_raccoon_layout(&layout, sandbox);
       break;
+    // nothing special
+    case TURTLE_MODE: 
     case ANT_MODE:
+    case MATRIX_MODE:
     default:
       break;
   }
@@ -318,6 +320,9 @@ void maybe_update_layout() {
         case RACCOON_MODE:
             mode_name = "Raccoon";
             break;
+        case MATRIX_MODE:
+            mode_name = "Matrix";
+            break;
         default:
             mode_name = "Ant";
             mode = ANT_MODE;
@@ -329,7 +334,7 @@ void maybe_update_layout() {
 // if given 0 or nonsense, just increments
 int toggle_mode(String data) {
     int m = data.toInt();
-    if (m > 0 && m < MAX_MODE) {
+    if (data.equals("0") || (m > 0 && m < MAX_MODE)) {
         mode = m;
     } else {
         mode = (mode + 1) % MAX_MODE;
@@ -515,6 +520,9 @@ void setup_whatever_mode() {
         case RACCOON_MODE:
             make_raccoons(sandbox);
             break;
+        case MATRIX_MODE:
+            setup_matrix(sandbox);
+            break;
         default:
             make_sandbox();
     }
@@ -537,6 +545,9 @@ void loop_whatever_mode() {
             break;
         case RACCOON_MODE:
             loop_raccoons(food, sandbox);
+            break;
+        case MATRIX_MODE:
+            loop_matrix(food, sandbox);
             break;
         default:
             Ant* ant;
