@@ -11,7 +11,7 @@
 STARTUP(WiFi.setListenTimeout(HOLDING_PATTERN)); // listening mode timeout
  
 // to enable the watchdog...
-#define WATCHDOG_INTERVAL 180000 // milliseconds
+#define WATCHDOG_INTERVAL 30000 // milliseconds
 
 #define SQUARE     0
 #define WIDESCREEN 1

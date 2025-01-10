@@ -25,6 +25,14 @@
 #include "Particle.h"
 
 #include "local-settings.h"
+#include "defs.h"
+
+#if (PLATFORM_ID == PHOTON2)
+  // PRODUCT_ID(34373);
+#else
+  PRODUCT_ID(27261);
+#endif
+PRODUCT_VERSION(1);
 
 // Show system, cloud connectivity, and application logs over USB
 // View logs with CLI using 'particle serial monitor --follow'
@@ -85,7 +93,6 @@ DST dst;
 #include <SimpleTimer.h>
 #include <neopixel.h>
 
-#include "defs.h"
 #include "stats.h"
 #include "layout.h"
 #include "color.h"
