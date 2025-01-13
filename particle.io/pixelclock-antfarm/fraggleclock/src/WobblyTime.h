@@ -70,18 +70,11 @@ class WobblyTimer {
             uint32_t interval = map(random(100000), 
                                     0, 100000, 
                                     _min_interval, _max_interval);
-            Particle.publish("wobblytimer", 
-                             String::format("interval: %ld", interval));
+            // Particle.publish("wobblytimer", 
+            //                 String::format("interval: %ld", interval));
             _timer->setInterval(interval); 
             _timer->reset();
         } // reset()
-        
-
-        void publish() {
-            Particle.publish("wobblytimer", 
-                String::format("min: %ld, max: %ld", 
-                               _min_interval, _max_interval));
-        } // publish()
 }; 
 
 

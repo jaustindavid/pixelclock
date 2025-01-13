@@ -171,6 +171,7 @@ OpenWeather weather(WEATHER_ADDY, 15*60*1000); // 15 minute refresh period
 double luna_brite = 0.0;
 int display_brite = 0;
 
+MatrixManager *mm;
 
 /*
  * DST
@@ -263,10 +264,12 @@ void maybe_update_layout() {
     case RACCOON_MODE:
       update_raccoon_layout(&layout, sandbox);
       break;
+    case MATRIX_MODE:
+      // mm->layout(&layout, sandbox);
+      layout_matrix(&layout, sandbox);
     // nothing special
     case TURTLE_MODE: 
     case ANT_MODE:
-    case MATRIX_MODE:
     default:
       break;
   }
@@ -522,6 +525,8 @@ void setup_whatever_mode() {
             break;
         case MATRIX_MODE:
             setup_matrix(sandbox);
+            // mm = new MatrixManager();
+            // mm->setup(sandbox);
             break;
         default:
             make_sandbox();
@@ -548,6 +553,7 @@ void loop_whatever_mode() {
             break;
         case MATRIX_MODE:
             loop_matrix(food, sandbox);
+            // mm->loop(food, sandbox);
             break;
         default:
             Ant* ant;
