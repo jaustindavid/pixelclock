@@ -46,7 +46,7 @@ gjab: river
 
 
 SQUARES = rosalyn roberta rowan ricky rico remus
-WIDESCREENS = ronaldo rachel ringo river renee
+WIDESCREENS = ronaldo rachel ringo river renee ranier
 
 $(SQUARES) : square
 	particle flash $@_raccoon
