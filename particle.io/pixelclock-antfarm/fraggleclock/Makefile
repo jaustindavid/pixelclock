@@ -31,7 +31,11 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
-steel_hamster: square
+renee_raccoon: widescreen
+	echo "#define OFFLINE_MODE true" >> src/local-settings.h
+	particle flash $@
+ranier_raccoon: widescreen
+	echo "#define OFFLINE_MODE true" >> src/local-settings.h
 	particle flash $@
 
 austin: roberta

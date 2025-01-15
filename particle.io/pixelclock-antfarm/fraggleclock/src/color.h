@@ -70,14 +70,14 @@ void load_colors() {
 color_t parse_color(String data) {
   color_t parsed_color;
   int i = data.indexOf(" ");
-  if (i == 0) {
+  if (i == -1) {
     return 1; // error in the first position
   }
   int r = data.toInt();
   data = data.substring(i+1);
   int g = data.toInt();
   i = data.indexOf(" ");
-  if (i == 0) {
+  if (i == -1) {
     return 2; // error in the second position
   }
   data = data.substring(i+1);
@@ -109,11 +109,11 @@ void make_readable_palette() {
 }
 
 
-// data should contain 3 ints, like 128 0 0 -> reddish
+// data should contain 4 ints, like 0 128 0 0 -> reddish
 int change_palette(String data) {
   int index = data.toInt();
   int i = data.indexOf(" ");
-  if (i == 0) {
+  if (i == -1 || data.length() < 7) {
     return -1; // error in the first position
   }
   data = data.substring(i+1);

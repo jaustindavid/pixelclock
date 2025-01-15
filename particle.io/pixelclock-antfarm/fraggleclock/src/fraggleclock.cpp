@@ -723,17 +723,19 @@ void loop() {
         display_brite = display.set_brightness(luna_brite);
     }
 
-    if (has_rtc()) {
-      // try to connect for the first hour
-      if (millis() < 3600*1000
-          && minute.isExpired()) {
-        // once per minute
-        Log.warn("RTC mode: trying to reconnect (maybe)");
+    // in the first hour, everyone should try to stay connected
+    if (millis() < 3600*1000) {
+      if (minute.isExpired()) {
         safe_connect();
       }
     } else {
-      if (hourly.isExpired()) {
-        maybe_reconnect();
+      // after the first hour: 
+      if (daily.isExpired()) {
+        safe_synctime();
+      }
+      if (OFFLINE_MODE) {
+        safe_disconnect();
+        WiFi.off();
       }
     }
     
@@ -749,7 +751,7 @@ void loop() {
 
       maybe_update_layout();
     
-      if(weather.isValid()) {
+      if(!OFFLINE_MODE && weather.isValid()) {
         if (layout.show_temperature) {
           temperature_graph->update(weather.feels_like());
           display.render(temperature_graph->dots, MATRIX_Y);
@@ -766,7 +768,7 @@ void loop() {
         display.render(food);
       }
 
-      if (layout.show_pinger) {
+      if (!OFFLINE_MODE && layout.show_pinger) {
         display.render(pinger.pings(), pinger.npings());
       }
 
@@ -780,7 +782,8 @@ void loop() {
       display_speed.stop();
     }
     ma_sw.stop();
-    stats = String::format("MS per frame: %u; display speed: %u; engine: %u; frames per frame: %d, budget %d ms", 
+    stats = String::format("the line: %s; MS per frame: %u; display speed: %u; engine: %u; frames per frame: %d, budget %d ms", 
+                           OFFLINE_MODE ? "OFF" : "ON",
                            ma_sw.read(), display_speed.read(), engine.read(),
                            nframes.read(), avg_budget.read());
     loop_pacer.wait();

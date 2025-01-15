@@ -2,6 +2,10 @@
 
 #define PHOTON2 32
 
+#ifndef OFFLINE_MODE
+#define OFFLINE_MODE false
+#endif
+
 #ifdef TESTING
   #define HOLDING_PATTERN 15 // seconds before firing up
 #else
