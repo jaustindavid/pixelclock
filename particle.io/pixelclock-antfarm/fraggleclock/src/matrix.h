@@ -11,6 +11,7 @@
 
 #define CASCADES_PER_SEC 4
 #define DOTS_PER_COLUMN 2
+#define NMATRIXELS 75
 
 class Matrixel: public Ant {
   private:
@@ -106,7 +107,7 @@ class MatrixManager: protected SandboxManager {
       min_y = 0;
       max_y = MATRIX_Y - 1;
 
-      for (int i = 0; i < MAX_DOTS; i++) {
+      for (int i = 0; i < NMATRIXELS; i++) {
         sandbox[i] = new Matrixel(min_x, max_x, min_y, max_y);
       }
     } // setup()
@@ -125,7 +126,7 @@ class MatrixManager: protected SandboxManager {
         min_y = 0;
       }
 
-      for (int i = 0; i < MAX_DOTS; i++) {
+      for (int i = 0; i < NMATRIXELS; i++) {
         Matrixel* m = (Matrixel*)sandbox[i];
         m->layout(min_x, min_y, max_x, max_y);
       }
@@ -165,7 +166,7 @@ void layout_matrix(Layout* layout, Dot* sandbox[]) {
     min_x = 0;
   }
 
-  for (int i = 0; i < MAX_DOTS; i++) {
+  for (int i = 0; i < NMATRIXELS; i++) {
     Matrixel* m = (Matrixel*)sandbox[i];
     m->layout(min_x, MATRIX_X-1, 0, max_y);
   }

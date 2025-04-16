@@ -38,7 +38,7 @@ STARTUP(WiFi.setListenTimeout(HOLDING_PATTERN)); // listening mode timeout
 
 
 #define PRINTF_DEBUGGER
-#define MAX_DOTS 75
+#define MAX_DOTS 150
 
 #define CORE_ADDY       0     // byte, bool, bool == 3 bytes
 #define LUNA_ADDY       10    // int, int == 8 bytes

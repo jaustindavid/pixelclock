@@ -33,7 +33,9 @@
  */
  
 
-#undef DEBUG_WT
+#if defined(TESTING)
+    #define DEBUG_WT
+#endif
 
 int rando(int rmin, int rmax) {
     float r = 0.000001 * random(0, 1000000);
@@ -45,7 +47,6 @@ class WobblyTimer {
     private:
         uint32_t _min_interval, _max_interval;
         SimpleTimer *_timer;
-
 
     public:
 
@@ -86,6 +87,7 @@ class WobblyTime {
         time_t fakeTime, lastTick, lockout;
         SimpleTimer *tickTimer; 
         int hhmm;
+        bool froze;
 
         void init(int, int);
         void update();
@@ -118,6 +120,7 @@ WobblyTime::WobblyTime(int newAddress) {
     tickTimer = new SimpleTimer(1000);
     lockout = lastTick = Time.now();
     hhmm = 0;
+    froze = false;
     printStatus();
 } // init(min, max)
 
@@ -141,8 +144,10 @@ int WobblyTime::setTime(String hhmm) {
         String mm = hhmm.substring(3, 5);
         forced_mm = mm.toInt();
         lockout = Time.now() + 30;
+        froze = true;
         return forced_hh * 100 + forced_mm;
     } else {
+        froze = false;
         return -1;
     }
 } // int set_time(hhmm)
@@ -247,19 +252,19 @@ int WobblyTime::setMaxAdvance(String data) {
 // RARE, but sometimes Time() can get sync'd for
 // a large correction.  If this is needed, just do it
 bool WobblyTime::coarse_correct() {
-  int actual_offset = fakeTime - Time.now();
-  if (abs(actual_offset) > 2*MAX_ADVANCE) {
-    // quick slam to proper time
-    Log.warn("WobblyTime massive correction: %d", actual_offset);
-    fakeTime = Time.now();
-  }
-  return false;
+    int actual_offset = fakeTime - Time.now();
+    if (abs(actual_offset) > 2*MAX_ADVANCE) {
+        // quick slam to proper time
+        Log.warn("WobblyTime massive correction: %d", actual_offset);
+        fakeTime = Time.now();
+    }
+    return false;
 } // bool coarse_correct()
 
 
 void WobblyTime::update() {
     if (! coarse_correct()) {
-      tick();
+        tick();
     }
     h = Time.hour(fakeTime);
     m = Time.minute(fakeTime);
@@ -276,7 +281,7 @@ time_t WobblyTime::now() {
 
 byte WobblyTime::hour() {
     update();
-    if (Time.now() < lockout) {
+    if (froze || (Time.now() < lockout)) {
         return forced_hh;
     }
     return h;
@@ -285,7 +290,7 @@ byte WobblyTime::hour() {
 
 byte WobblyTime::minute() {
     update();
-    if (Time.now() < lockout) {
+    if (froze || (Time.now() < lockout)) {
         return forced_mm;
     }
     return m;

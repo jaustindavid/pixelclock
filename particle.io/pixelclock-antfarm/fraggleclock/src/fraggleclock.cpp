@@ -87,6 +87,7 @@ DST dst;
 
 #include "defs.h"
 #include "stats.h"
+#include "locker.h"
 #include "layout.h"
 #include "color.h"
 #include "dot.h"
@@ -127,6 +128,8 @@ DST dst;
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
 // #define PIXEL_COUNT 256 // moved to defs.h
 #define PIXEL_TYPE WS2812B
+// #define PIXEL_TYPE WS2812B_FAST // no worky
+// #define PIXEL_TYPE WS2811 // not supported
 Adafruit_NeoPixel neopixels(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 Display display(&neopixels);
 
@@ -425,7 +428,11 @@ void paint_connection_status(int x, int y) {
 
 
 void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
+#ifdef TESTING
+  SimpleTimer thirty_secs(5*1000);
+#else
   SimpleTimer thirty_secs(30*1000);
+#endif
   bool lit = true;
 
   paint_connection_status(0, y);
@@ -531,101 +538,101 @@ void setup_whatever_mode() {
         default:
             make_sandbox();
     }
-} // setup_whatever_mode()
+  } // setup_whatever_mode()
 
 
-void loop_whatever_mode() {
-    // Log.trace("loop_whatever_mode: mode=%d", mode);
-    // delay(1000);
-    
-    switch (mode) {
-        case TURTLE_MODE:
-            loop_turtles(food, sandbox);
-            break;
-        case FRAGGLE_MODE: 
-            loop_fraggles(food, sandbox);
-            break;
-        case DOOZER_MODE:
-            loop_doozers(food, sandbox);
-            break;
-        case RACCOON_MODE:
-            loop_raccoons(food, sandbox);
-            break;
-        case MATRIX_MODE:
-            loop_matrix(food, sandbox);
-            // mm->loop(food, sandbox);
-            break;
-        default:
-            Ant* ant;
-            for (int cursor = first(sandbox); 
-                    cursor != -1; 
-                    cursor = next(cursor, sandbox)) {
-                ant = (Ant*)sandbox[cursor];
-                ant->run(food, sandbox);
-            }
-    }
-} // loop_whatever_mode()
+  void loop_whatever_mode() {
+      // Log.trace("loop_whatever_mode: mode=%d", mode);
+      // delay(1000);
+      
+      switch (mode) {
+          case TURTLE_MODE:
+              loop_turtles(food, sandbox);
+              break;
+          case FRAGGLE_MODE: 
+              loop_fraggles(food, sandbox);
+              break;
+          case DOOZER_MODE:
+              loop_doozers(food, sandbox);
+              break;
+          case RACCOON_MODE:
+              loop_raccoons(food, sandbox);
+              break;
+          case MATRIX_MODE:
+              loop_matrix(food, sandbox);
+              // mm->loop(food, sandbox);
+              break;
+          default:
+              Ant* ant;
+              for (int cursor = first(sandbox); 
+                      cursor != -1; 
+                      cursor = next(cursor, sandbox)) {
+                  ant = (Ant*)sandbox[cursor];
+                  ant->run(food, sandbox);
+              }
+      }
+  } // loop_whatever_mode()
 
 
-void prefill(Dot* food[], Dot* sandbox[]) {
-    Dot* proxy;
-    for (int i = first(food); i != -1; i = next(i, food)) {
-        if (!in(food[i], sandbox)) {
-            proxy = activate(sandbox);
-            proxy->x = food[i]->x;
-            proxy->y = food[i]->y;
-            proxy->color = RED;
-        }
-    }
-} // void prefill(Dot* food[], Dot* sandbox[])
+  void prefill(Dot* food[], Dot* sandbox[]) {
+      Dot* proxy;
+      for (int i = first(food); i != -1; i = next(i, food)) {
+          if (!in(food[i], sandbox)) {
+              proxy = activate(sandbox);
+              proxy->x = food[i]->x;
+              proxy->y = food[i]->y;
+              proxy->color = RED;
+          }
+      }
+  } // void prefill(Dot* food[], Dot* sandbox[])
 
 
 #ifdef WATCHDOG_INTERVAL
-  // Global variable to hold the watchdog object pointer
-  ApplicationWatchdog *wd;
+    // Global variable to hold the watchdog object pointer
+    ApplicationWatchdog *wd;
 
-  void watchdogHandler() {
-    // Do as little as possible in this function, preferably just
-    // calling System.reset().
-    // Do not attempt to Particle.publish(), use Cellular.command()
-    // or similar functions. You can save data to a retained variable
-    // here safetly so you know the watchdog triggered when you 
-    // restart.
-    // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
-    System.reset(RESET_NO_WAIT);
-  } // watchdogHandler()
+    void watchdogHandler() {
+      // Do as little as possible in this function, preferably just
+      // calling System.reset().
+      // Do not attempt to Particle.publish(), use Cellular.command()
+      // or similar functions. You can save data to a retained variable
+      // here safetly so you know the watchdog triggered when you 
+      // restart.
+      // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
+      System.reset(RESET_NO_WAIT);
+    } // watchdogHandler()
 #endif
 
 
-void delay_safely(int delay_ms) {
-  int remainder = delay_ms;
-  while (remainder > 1000) {
-    delay(1000);
-    remainder -= 1000;
-    #ifdef WATCHDOG_INTERVAL
-      ApplicationWatchdog::checkin(); // resets the AWDT count
-    #endif
-  }
-  delay(remainder);
-} // delay_safely(delay_ms)
+  void delay_safely(int delay_ms) {
+    int remainder = delay_ms;
+    while (remainder > 1000) {
+      delay(1000);
+      remainder -= 1000;
+      #ifdef WATCHDOG_INTERVAL
+        ApplicationWatchdog::checkin(); // resets the AWDT count
+      #endif
+    }
+    delay(remainder);
+  } // delay_safely(delay_ms)
 
 
-void maybe_reconnect() {
-  if (!Particle.connected()) {
-      // TODO: this is b-r-o-k-e-n on 5.9.0
-      WiFi.off();
-      delay_safely(30*1000);
-      WiFi.on(); 
-      delay_safely(30*1000);
-      Particle.connect();
-      delay_safely(10*1000); // Wait for connection attempt
-  }
+  void maybe_reconnect() {
+    if (!Particle.connected()) {
+        // TODO: this is b-r-o-k-e-n on 5.9.0
+        WiFi.off();
+        delay_safely(30*1000);
+        WiFi.on(); 
+        delay_safely(30*1000);
+        Particle.connect();
+        delay_safely(10*1000); // Wait for connection attempt
+    }
 
-  if (Particle.connected()) {
-      Particle.syncTime();
-      dst.check();
-  }
-} // maybe_reconnect()
+    if (Particle.connected()) {
+        Particle.syncTime();
+        dst.check();
+    }
+  } // maybe_reconnect()
 
 
 void setup_cloud() {
@@ -673,6 +680,7 @@ void setup() {
     waitFor(Serial.isConnected, 10000);
 
     luna = new Luna(CDS_POWER, CDS_SENSE, CDS_GROUND, LUNA_ADDY);
+    locker_setup();
     color_setup();
     layout.setup();
     nitetime_setup();
@@ -702,6 +710,7 @@ void setup() {
     
     Log.warn("initialization complete; free mem == %ld", System.freeMemory());
     //display.test_forever();
+    // prefill(food, sandbox);
 } // setup()
 
 

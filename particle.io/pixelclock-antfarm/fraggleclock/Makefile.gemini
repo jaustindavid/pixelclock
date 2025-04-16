@@ -1,0 +1,46 @@
+# Define host attributes
+remus: devicename := remus_raccoon
+remus: attributes := square offline
+
+rachel: devicename := rachel_raccoon
+rachel: attributes := widescreen offline
+
+ronaldo: devicename := ronaldo_raccoon
+ronaldo: attributes := widescreen
+
+# Define attribute targets
+square:
+	@echo "Setting up square environment..."
+	cp src/square-aspect.h src/local-settings.h
+
+widescreen:
+	@echo "Setting up widescreen environment..."
+	cp src/widescreen-aspect.h src/local-settings.h
+
+offline:
+	@echo "Setting offline mode..."
+	echo "#define OFFLINE_MODE true" >> src/local-settings.h
+
+# Define build target for each host
+build:
+	@$(foreach host,$(hosts),$(call build_host,$(host)))
+
+define build_host
+	@echo "Building for host: $(1)"
+	@$(foreach attr,$(filter $(2),$(attributes)),$(call run_attribute,$(attr)))
+		@echo "Building for $(1)... ($(call get_devicename,$(1)))"
+		particle flash $(call get_devicename,$(1))
+endef
+
+define run_attribute
+	@echo "Running attribute: $(1)"
+	$(shell $(1))
+endef
+
+define get_devicename
+    @echo $(filter $(1):devicename := %,$($(1))) | sed 's/.*:= //'
+endef
+
+hosts := remus rachel ronaldo 
+
+all: $(hosts) build

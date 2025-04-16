@@ -40,12 +40,22 @@
   #define MM_X HH_X
   #define MM_Y 8
 #else
-  #define HH_X 5
-  #define HH_Y 1
+  #ifdef MEGA
+    #define HH_X 4
+    #define HH_Y 0
+  #else
+    #define HH_X 5
+    #define HH_Y 1
+  #endif
   #define MM_X 17
   #define MM_Y HH_Y
 #endif
 
+#ifdef MEGA
+  #include "font-6x5.h"
+#else
+  #include "font-5x4.h"
+#endif
 
 class Chef {
     private:
@@ -56,81 +66,6 @@ class Chef {
         typedef uint64_t tracker;
         tracker mode_tracker;
         WobblyTimer *chaotic_timer;
-        int font[12][5] = {
-            // 0
-            {0b0110, 
-             0b1001,
-             0b1001,
-             0b1001,
-             0b0110}, 
-            // 1
-            {0b0010,
-             0b0010,
-             0b0010,
-             0b0010,
-             0b0010},
-            // 2
-            {0b1110,
-             0b0001,
-             0b0110,
-             0b1000,
-             0b1111},
-             // 3
-            {0b1110,
-             0b0001,
-             0b0110,
-             0b0001,
-             0b1110},
-             // 4
-            {0b1001,
-             0b1001,
-             0b1111,
-             0b0001,
-             0b0001},
-             // 5
-            {0b1111,
-             0b1000,
-             0b1110,
-             0b0001,
-             0b1110},
-             // 6
-            {0b0110,
-             0b1000,
-             0b1110,
-             0b1001,
-             0b0110},
-             // 7
-            {0b1111,
-             0b0001,
-             0b0010,
-             0b0100,
-             0b0100},
-             // 8
-            {0b0110,
-             0b1001,
-             0b0110,
-             0b1001,
-             0b0110},
-             // 9
-            {0b0110,
-             0b1001,
-             0b0111,
-             0b0001,
-             0b0110},
-             // .
-            {0b0000,
-             0b0000,
-             0b0110,
-             0b0110,
-             0b0000},
-             // /
-            {0b0000,
-             0b0010,
-             0b0010,
-             0b0100,
-             0b0100}
-            };
-
 
         // returns a value representing a reset
         tracker reset_tracker() {
@@ -200,18 +135,18 @@ class Chef {
             #ifdef PRINTF_DEBUGGER
                 Serial.printf("Chef: starting render(%d)\n", d);
             #endif
-            for (int y = 0; y < 5; y++) {
+            for (int y = 0; y < FONT_HEIGHT; y++) {
                 #ifdef PRINTF_DEBUGGER
                     Serial.printf("Scanning %01x\n", font[d][y]);
                 #endif
-                for (int x = 0; x < 4; x++) {
+                for (int x = 0; x < FONT_WIDTH; x++) {
                     if (font[d][y] & (1 << x)) {  // Check if pixel is set
                         // Draw the pixel
                         #ifdef PRINTF_DEBUGGER
-                            Serial.printf("found pixel at (%d,%d)\n", 3-x, y);
+                            Serial.printf("found pixel at (%d,%d)\n", FONT_WIDTH-1-x, y);
                         #endif
                         Dot* dot = activate(food);
-                        dot->x = 3-x+dx;
+                        dot->x = FONT_WIDTH-1-x+dx;
                         dot->y = y+dy;
                         dot->color = FOOD_COLOR;
                     }
@@ -224,18 +159,9 @@ class Chef {
         // M M
         void cook_normal(Dot* food[], int hh, int mm) {
             prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
-            prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
+            prepare(food, hh % 10, HH_X+FONT_WIDTH+1, HH_Y); // 9, 1);
             prepare(food, mm / 10, MM_X, MM_Y); // 3, 8);
-            prepare(food, mm % 10, MM_X+6, MM_Y); // 9, 8);
-            /*
-            #if (ASPECT_RATIO == SQUARE)
-              prepare(food, mm / 10, 3, 8);
-              prepare(food, mm % 10, 9, 8);
-            #else
-              prepare(food, mm / 10, 19, 1);
-              prepare(food, mm % 10, 25, 1);
-            #endif
-            */
+            prepare(food, mm % 10, MM_X+FONT_WIDTH+1, MM_Y); // 9, 8);
             chef_time = String::format(
                 "wobbly %02d:%02d, actual %02d:%02d",
                 hh, mm, Time.hour(), Time.minute());
@@ -285,9 +211,9 @@ class Chef {
             }
 
             prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
-            prepare(food, hh % 10, HH_X+6, HH_Y); // 9, 1);
+            prepare(food, hh % 10, HH_X+FONT_WIDTH+1, HH_Y); // 9, 1);
             prepare(food, 10, MM_X, MM_Y+1);
-            prepare(food, m, MM_X+5, MM_Y); // 9, 8);
+            prepare(food, m, MM_X+FONT_WIDTH+1, MM_Y); // 9, 8);
                                                   //
             chef_time = String::format(
                             "metric %02d.%1d, actual %02d:%02d",
@@ -326,10 +252,10 @@ class Chef {
             }
 
             prepare(food, hh / 10, HH_X-1, HH_Y);// 3, 1);
-            prepare(food, hh % 10, HH_X+5, HH_Y); // 9, 1);
+            prepare(food, hh % 10, HH_X+FONT_WIDTH+1, HH_Y); // 9, 1);
             prepare(food, numerator, MM_X-1, MM_Y); // MM_X, left 1
-            prepare(food, 11, MM_X+3, MM_Y); 
-            prepare(food, denom, MM_X+7, MM_Y);     // MM_X, right 2
+            prepare(food, 11, MM_X+FONT_WIDTH-2, MM_Y); 
+            prepare(food, denom, MM_X+FONT_WIDTH+2, MM_Y);  // MM_X, right 2
             chef_time = String::format(
                             "fractional %02d:%1d/%1d, actual %02d:%02d",
                             hh, numerator, denom,

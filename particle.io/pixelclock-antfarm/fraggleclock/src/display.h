@@ -218,7 +218,9 @@ class Display {
                 neopixels->setPixelColor(i, fg[i]);
             }
             maybe_show_alignment();
+            // noInterrupts();
             neopixels->show();
+            // interrupts();
         } // show()
         
         
@@ -251,7 +253,9 @@ class Display {
                           REDRAWS_PER_FRAME-w));
                 }
                 maybe_show_alignment();
+                // noInterrupts();
                 neopixels->show();
+                // interrupts();
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
                 redraw_timer.wait();
             }
@@ -272,7 +276,9 @@ class Display {
                                                    bg[i], n_redraws-w));
             }
             maybe_show_alignment();
+            // noInterrupts();
             neopixels->show();
+            // interrupts();
             if (w < n_redraws) {
               redraw_timer.wait();
             }
@@ -313,7 +319,9 @@ class Display {
                    NITE_COLOR);
             }
           }
+          // noInterrupts();
           neopixels->show();
+          // interrupts();
           redraw_timer.wait();
         } // nite_render(dots)
 
