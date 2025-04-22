@@ -729,7 +729,9 @@ void loop() {
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
         luna_brite = luna->get_brightness();
-        display_brite = display.set_brightness(luna_brite);
+        display_brite = display.set_brightness(luna_brite, 
+                                               wTime.hour(), 
+                                               wTime.minute());
     }
 
     // in the first hour, everyone should try to stay connected
