@@ -181,12 +181,43 @@ MatrixManager *mm;
  *
  */
 
+bool use_dst = true;
+int timezone_offset = -5;
+dst_limit_t beginning;
+dst_limit_t end;
+
+
+int toggle_dst(String data) {
+    use_dst = !use_dst;
+    dst.begin(beginning, end, use_dst ? 1 : 0);
+    dst.check();
+    return use_dst ? 1 : 0;
+} // int toggle_dst(s)
+
+
+int set_timezone_offset(String offset) {
+  int proposed_offset = 99;
+  if (offset == "0") {
+      proposed_offset = 0;
+  } else {
+      if (offset.toInt()) {
+          proposed_offset = offset.toInt();
+      }
+  }
+  
+  if (proposed_offset != 99) {
+      timezone_offset = proposed_offset;
+      Time.zone(timezone_offset);
+      dst.check();
+  }
+  return timezone_offset;
+}
+
+
 // precondition: Time.isValid()
 void setup_dst() {
-    dst_limit_t beginning;
-    dst_limit_t end;
 
-    Time.zone(-5);
+    Time.zone(timezone_offset);
 
     beginning.hour = 2;
     beginning.day = DST::days::sun;
@@ -199,10 +230,12 @@ void setup_dst() {
     end.occurrence = 1;
         
     dst.begin(beginning, end, 1);
-    dst.automatic(true);
+    dst.automatic(use_dst);
     dst.check();
-} // setup_dst()
 
+    Particle.function("toggle_dst", toggle_dst);
+    Particle.function("timezone_offset", set_timezone_offset);
+} // setup_dst()
 
 
 
@@ -285,55 +318,54 @@ void maybe_update_layout() {
    *
    */
 
+  #define CORE_DATUM_VERSION 1
+  struct core_datum {
+      byte version;
+      byte mode;
+      bool dst;
+      int tz;
+  };
 
   void write_mode() {
-      int addy = CORE_ADDY;
-      if (EEPROM.read(addy) != mode) {
-          EEPROM.write(addy, mode);
-      }
-      addy += sizeof(mode);
-      if (EEPROM.read(addy) != show_food) {
-          EEPROM.write(addy, show_food);
-      }
-      addy += sizeof(show_food);
-      if (EEPROM.read(addy) != show_weather) {
-          EEPROM.write(addy, show_weather);
-      }
-      addy += sizeof(show_weather);
+      struct core_datum datum = {
+        .version = CORE_DATUM_VERSION,
+        .mode = mode,
+        .dst = use_dst,
+        .tz = timezone_offset
+      };
+      EEPROM.put(CORE_ADDY, datum);
   } // write_mode()
 
 
   void read_mode() {
-    int addy = CORE_ADDY;
-    uint8_t data = EEPROM.read(addy);
-    if (data >= MAX_MODE) {
-        Log.warn("Invalid data in EEPROM: 0x%02x; re-writing 'mode'", data);
-        mode = ANT_MODE;
-        write_mode();
-    } else {
-        mode = data;
-    }
-    switch (mode) {
-        case TURTLE_MODE: 
-            mode_name = "Turtle";
-            break;
-        case DOOZER_MODE:
-            mode_name = "Doozer";
-            break;
-        case FRAGGLE_MODE:
-            mode_name = "Fraggle";
-            break;
-        case RACCOON_MODE:
-            mode_name = "Raccoon";
-            break;
-        case MATRIX_MODE:
-            mode_name = "Matrix";
-            break;
-        default:
-            mode_name = "Ant";
-            mode = ANT_MODE;
-    }
-    Log.info("read mode: %s", mode_name.c_str());
+      struct core_datum datum;
+      EEPROM.get(CORE_ADDY, datum);
+      if (datum.version == CORE_DATUM_VERSION) {
+          mode = datum.mode;
+          use_dst = datum.dst;
+          timezone_offset = datum.tz;
+      }
+      switch (mode) {
+          case TURTLE_MODE: 
+              mode_name = "Turtle";
+              break;
+          case DOOZER_MODE:
+              mode_name = "Doozer";
+              break;
+          case FRAGGLE_MODE:
+              mode_name = "Fraggle";
+              break;
+          case RACCOON_MODE:
+              mode_name = "Raccoon";
+              break;
+          case MATRIX_MODE:
+              mode_name = "Matrix";
+              break;
+          default:
+              mode_name = "Ant";
+              mode = ANT_MODE;
+      }
+      Log.info("read mode: %s", mode_name.c_str());
 } // read_mode()
 
 
@@ -688,6 +720,9 @@ void setup() {
     weather_setup();
 
     setup_cloud();
+
+    Particle.function("toggle_dst", toggle_dst);
+    Particle.function("timezone_offset", set_timezone_offset);
 
     delay(5000);
 

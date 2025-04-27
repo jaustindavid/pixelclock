@@ -67,21 +67,21 @@ class Turtle: public Ant {
 
             _distances[target->x][target->y] = 0;
 
-            #if DEBUG_DISTANCES >= 2
+            #if defined(TESTING) and DEBUG_DISTANCES >= 2
                 Log.info("marking radii; (%d,%d)<-(%d,%d)",
                          x, y, target->x, target->y);
             #endif
             radius = 1;
             while (radius < iq && (_distances[x][y] == 99)) {
                 visit_cells_from_target(target, radius, sandbox);
-                #if DEBUG_DISTANCES >= 3
+                #if defined(TESTING) and DEBUG_DISTANCES >= 3
                     Log.info("r=%d:", radius);
                     print_distances(_distances, target->x, target->y);
                 #endif
                 radius ++;
             }
             
-            #if DEBUG_DISTANCES >= 1
+            #if defined(TESTING) and DEBUG_DISTANCES >= 1
                 Log.info("Distances, with radii:");
                 print_distances(_distances, target->x, target->y);
             #endif
@@ -118,7 +118,7 @@ class Turtle: public Ant {
         void visit_cells_from_target(Dot* target,
                                      byte radius,
                                      Dot* sandbox[]) {
-            #if DEBUG_VISIT >= 1
+            #if defined(TESTING) and DEBUG_VISIT >= 1
                 Log.info("visiting (%d,%d), r=%d", 
                          target->x, target->y, radius);
                 Log.info("CHECK d[%d,%d] = %d", 
@@ -127,7 +127,7 @@ class Turtle: public Ant {
             #endif
             int ix, iy;
             Dot cursor = Dot(target->x, target->y, BLACK);
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
                 Log.info("ix,iy = (%d,%d)", 
                          target->x-radius, target->y-radius);
             #endif
@@ -138,7 +138,7 @@ class Turtle: public Ant {
                      iy <= min(MATRIX_Y - 1, target->y + radius); 
                      iy++) {
                     if (!_visited[ix][iy]) {
-                        #if DEBUG_LEVEL > 3
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
                             Log.info("checking (%d,%d)", ix, iy);
                         #endif
                         cursor.x = ix;
@@ -146,7 +146,7 @@ class Turtle: public Ant {
                         mark_adjacent(&cursor, sandbox, _distances);
                         _visited[ix][iy] = true;
                     } else {
-                        #if DEBUG_LEVEL > 3
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
                             Log.info("not checking (%d,%d)", ix, iy);
                         #endif
                     }
@@ -161,11 +161,11 @@ class Turtle: public Ant {
         // scoot cursor one step closer to zero
         bool stumble_downhill2() {
             int ix, iy, ntries;
-            #if DEBUG_STUMBLE >= 2
+            #if defined(TESTING) and DEBUG_STUMBLE >= 2
                 Log.info("stumbling downhill from (%d,%d)->(%d,%d)", 
                          x, y, target_x, target_y);
             #endif
-            #if DEBUG_STUMBLE >= 3
+            #if defined(TESTING) and DEBUG_STUMBLE >= 3
                 print_distances(_distances, target_x, target_y);
             #endif
             ix = rand_x(x);
@@ -179,12 +179,12 @@ class Turtle: public Ant {
             if (_distances[ix][iy] < _distances[x][y]) {
               x = ix;
               y = iy;
-              #if DEBUG_STUMBLE >= 2
+              #if defined(TESTING) and DEBUG_STUMBLE >= 2
                   Log.info("stumbled to (%d,%d)", x, y);
               #endif
               return true;
             }
-            #if DEBUG_STUMBLE >= 1
+            #if defined(TESTING) and DEBUG_STUMBLE >= 1
                 Log.warn("ntries: %d", ntries);
                 Log.warn("I am (%d,%d) d=%d", x, y, _distances[x][y]);
                 print_distances(_distances, x, y);
@@ -194,12 +194,12 @@ class Turtle: public Ant {
                     if (_distances[ix][iy] < _distances[x][y]) {
                         x = ix;
                         y = iy;
-                        #if DEBUG_STUMBLE >= 1
+                        #if defined(TESTING) and DEBUG_STUMBLE >= 1
                             Log.info("2ND TRY stumbled to (%d,%d)", x, y);
                         #endif
                         return true;
                     } else {
-                        #if DEBUG_STUMBLE >= 1
+                        #if defined(TESTING) and DEBUG_STUMBLE >= 1
                             Log.info("rejecting (%d,%d) d=%d",
                                      ix, iy, _distances[ix][iy]);
                         #endif
@@ -311,7 +311,7 @@ class Turtle: public Ant {
             for (int i = max(xp - 1, 0); i <= min(xp + 1, MATRIX_X-1); i++) {
                 for (int j = max(yp - 1, 0); j <= min(yp + 1, MATRIX_Y-1); j++) {
                     r = min(r, distances[i][j]);
-                    #if DEBUG_LEVEL > 3
+                    #if defined(TESTING) and DEBUG_LEVEL > 3
                     Log.info("peeking (%d,%d); r=%d", i, j, r);
                     #endif
                 }
@@ -336,14 +336,14 @@ class Turtle: public Ant {
                  i <= min((int)(cursor->x + 1), MATRIX_X-1); i++) {
                 for (j = max((int)(cursor->y - 1), 0); 
                      j <= min((int)(cursor->y + 1), MATRIX_Y-1); j++) {
-                    #if DEBUG_MARK >= 3
+                    #if defined(TESTING) and DEBUG_MARK >= 3
                     Log.info("marking adjacent: (%d,%d)", i, j);
                     #endif
                     if (!in(i, j, sandbox) 
                         || (i==x && j==y)) {
                         distances[i][j] = min(distances[i][j], 
                                     min_distance(i, j, distances) + 1);
-                        #if DEBUG_MARK >= 3
+                        #if defined(TESTING) and DEBUG_MARK >= 3
                         Log.info("d(%d,%d) = %d", i, j, distances[i][j]);
                         #endif
                     } else {
@@ -351,7 +351,7 @@ class Turtle: public Ant {
                         Log.info("... in sandbox");
                         #endif
                     }
-                    #if DEBUG_MARK >= 1
+                    #if defined(TESTING) and DEBUG_MARK >= 1
                         if (i==x && j==y) {
                             Log.info("ME(%d,%d) = %d", i, j, distances[i][j]);
                         }
@@ -379,7 +379,7 @@ class Turtle: public Ant {
                 }
             }
             Log.error("REACHED UNREACHABLE CODE AGAIN");
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
             print_distances(distances);
             #endif
             // delay(10000);
@@ -411,12 +411,12 @@ class Turtle: public Ant {
                          Dot* sandbox[],
                          bool visited[MATRIX_X][MATRIX_Y],
                          byte distances[MATRIX_X][MATRIX_Y]) {
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
             Log.info("visiting (%d,%d), r=%d", x, y, radius);
             #endif
             int i, j;
             Dot cursor = Dot(x, y, BLACK);
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
             Log.info("i,j = (%d,%d)", x-radius, y-radius);
             #endif
             for (i = max(0, x - radius); 
@@ -426,7 +426,7 @@ class Turtle: public Ant {
                      j <= min(MATRIX_Y - 1, y + radius); 
                      j++) {
                     if (!visited[i][j]) {
-                        #if DEBUG_LEVEL > 3
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
                         Log.info("checking (%d,%d)", i, j);
                         #endif
                         cursor.x = i;
@@ -434,7 +434,7 @@ class Turtle: public Ant {
                         mark_adjacent(&cursor, sandbox, distances);
                         visited[i][j] = true;
                     } else {
-                        #if DEBUG_LEVEL > 3
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
                         Log.info("not checking (%d,%d)", i, j);
                         #endif
                     }
@@ -449,7 +449,7 @@ class Turtle: public Ant {
                               byte distances[MATRIX_X][MATRIX_Y]) {
             byte hill;
             int ix, iy;
-            #ifdef DEBUG_STUMBLE
+            #ifdef defined(TESTING) and DEBUG_STUMBLE
                 Log.info("stumbling downhill from (%d,%d)", 
                          cursor->x, cursor->y);
                 print_distances(distances, cursor->x, cursor->y);
@@ -539,7 +539,7 @@ class Turtle: public Ant {
                     visited[i][j] = false;
                 }
             }
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
                 Log.info("Distances, initialized:");
                 print_distances(distances);
             #endif
@@ -551,18 +551,18 @@ class Turtle: public Ant {
             Log.trace("marking radii");
             radius = 1;
             while (radius < iq) { // && ! move_budget.isExpired()) {
-                #if DEBUG_LEVEL > 2
+                #if defined(TESTING) and DEBUG_LEVEL > 2
                 Log.trace("Checking radius=%d", radius);
                 #endif
                 visit_cells(radius, sandbox, visited, distances);
-                #if DEBUG_LEVEL > 3
+                #if defined(TESTING) and DEBUG_LEVEL > 3
                 Log.info("one more radius:");
                 print_distances(distances);
                 #endif
                 radius ++;
             }
             
-            #if DEBUG_LEVEL >= 3
+            #if defined(TESTING) and DEBUG_LEVEL >= 3
                 Log.info("Distances, with radii:");
                 print_distances(distances);
             #endif
@@ -578,26 +578,6 @@ class Turtle: public Ant {
                     return jump(spot, sandbox);
                   }
                 }
-                /*
-                while (distances[cursor.x][cursor.y] > 1) {
-                  Log.info("cursor(%d,%d); distance %d",
-                           cursor.x, cursor.y, distances[cursor.x][cursor.y]);
-                    if (! shuffle_home(&cursor, distances)) {
-                        // || move_budget.isExpired()) {
-                        // Log.info("no path home; deferring to Ant::");
-                        // print_sandbox(sandbox);
-                        // return Ant::move_toward(spot, sandbox);
-                        Log.warn("failed to shuffle home; jumping (%d,%d)->(%d,%d)",
-                                 x, y, spot->x, spot->y);
-                        print_distances(distances);
-                        Serial.println();
-                        return jump(spot, sandbox);
-                    }
-                    Log.info("backtrace: (%d,%d), d=%d", 
-                             cursor.x, cursor.y, 
-                             distances[cursor.x][cursor.y]);
-                }
-                */
                 x = cursor.x;
                 y = cursor.y;
                 Log.trace("Path found!!! Moved to (%d,%d)", x, y);

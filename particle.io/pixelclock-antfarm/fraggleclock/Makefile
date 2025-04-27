@@ -49,7 +49,7 @@ ranier_raccoon: widescreen mega
 remus_raccoon: square offline
 	particle flash $@
 
-rosalyn_raccoon: square offline
+rosalyn_raccoon: square mega
 	particle flash $@
 
 roberta_raccoon: square mega
