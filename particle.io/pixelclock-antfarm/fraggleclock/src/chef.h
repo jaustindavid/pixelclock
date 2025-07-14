@@ -236,7 +236,7 @@ class Chef {
             int hh = wTime.hour();
             int mm = wTime.minute();
             String meeting;
-            if (mm == 0) {
+            if (mm == 0 || mm == 30) {
                 cook_normal(food, 0, 0);
                 meeting = "00 00";
             } else if ((mm >= 1 && mm <= 4)) {
