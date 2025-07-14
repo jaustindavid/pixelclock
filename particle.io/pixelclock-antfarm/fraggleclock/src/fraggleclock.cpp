@@ -797,7 +797,7 @@ void loop() {
 
       maybe_update_layout();
     
-      if(!OFFLINE_MODE && weather.isValid()) {
+      if (!OFFLINE_MODE && weather.isValid()) {
         if (layout.show_temperature) {
           temperature_graph->update(weather.feels_like());
           display.render(temperature_graph->dots, MATRIX_Y);

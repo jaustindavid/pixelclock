@@ -318,6 +318,18 @@ class Raccoon: public Turtle {
     } // start_resting(plan, sandbox)
 
 
+    // returns the number of needles[] missing from haystack[]
+    int count_missing(Dot* needles[], Dot* haystack[]) {
+        int n = 0;
+        for (int i = 0; i < MAX_DOTS; i++) {
+          if (needles[i]->active && !in(needles[i], haystack)) {
+              n ++;
+          }
+        }
+        return n;
+    } // int count_missing(needles, haystack)
+
+
     void rest(Dot* plan[], Dot* sandbox[]) {
         #if defined(TESTING)
             Log.trace("resting");
@@ -340,6 +352,11 @@ class Raccoon: public Turtle {
             #endif
             refill_trash(sandbox);
             // it will get cleaned on the next loop
+        } else {
+          i = count_missing(plan, sandbox);
+          if (i > 0) {
+            refill_trash(sandbox);
+          }
         }
 
         if (rest_timer->isExpired()

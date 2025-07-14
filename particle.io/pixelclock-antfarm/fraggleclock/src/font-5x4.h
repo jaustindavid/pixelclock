@@ -3,7 +3,12 @@
 #define FONT_HEIGHT 5
 #define FONT_WIDTH 4
 
-int font[12][FONT_HEIGHT] = {
+#define DIGIT_DOT   10
+#define DIGIT_SLASH 11
+#define DIGIT_PLUS  12
+#define DIGIT_MINUS 13
+
+int font[14][FONT_HEIGHT] = {
     // 0
     {0b0110, 
      0b1001,
@@ -75,5 +80,17 @@ int font[12][FONT_HEIGHT] = {
      0b0010,
      0b0010,
      0b0100,
-     0b0100}
+     0b0100},
+     // +
+    {0b0000,
+     0b0010,
+     0b0111,
+     0b0010,
+     0b0000},
+     // -
+    {0b0000,
+     0b0000,
+     0b0111,
+     0b0000,
+     0b0000}
     };
