@@ -172,3 +172,4 @@ particle.io/pixelclock-antfarm/fraggleclock/src/aspect.h
 particle.io/pixelclock-antfarm/fraggleclock/src/local-settings.h
 particle.io/pixelclock-antfarm/fraggleclock/jsons/procyon.json
 /particle.io/pixelclock-antfarm/fraggleclock/jsons
+rpi/wx/wx_api_key.py
