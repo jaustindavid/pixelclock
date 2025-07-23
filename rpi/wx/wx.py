@@ -12,6 +12,7 @@ import time
 import wobblytime
 import digitalio
 from weather_graphics import Weather_Graphics
+import wx_api_key
 
 up_button = digitalio.DigitalInOut(board.D5)
 up_button.switch_to_input()
@@ -76,20 +77,18 @@ def wx_update():
     return None
 
 
-OPEN_WEATHER_TOKEN = "bcfc6b24e6ccf214da402c4f98e8e1fe" # "8ad13ff7a0e7bbeab61b19f7e9835b5d"
-
 # Use cityname, country code where countrycode is ISO3166 format.
 # E.g. "New York, US" or "London, GB"
 LOCATION = "Charleston, US"
 DATA_SOURCE_URL = "http://api.openweathermap.org/data/2.5/weather"
 
-if len(OPEN_WEATHER_TOKEN) == 0:
+if len(wx_api_key.OPEN_WEATHER_TOKEN) == 0:
         raise RuntimeError(
                 "You need to set your token first. If you don't already have one, you can register for a free account at https://home.openweathermap.org/users/sign_up"
                     )
 
 # Set up where we'll be fetching data from
-params = {"q": LOCATION, "appid": OPEN_WEATHER_TOKEN}
+params = {"q": LOCATION, "appid": wx_api_key.OPEN_WEATHER_TOKEN}
 data_source = DATA_SOURCE_URL + "?" + urllib.parse.urlencode(params)
 
 # Define SPI and pins
