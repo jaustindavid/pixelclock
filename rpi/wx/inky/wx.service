@@ -1,0 +1,13 @@
+[Unit]
+Description=WX Custom Startup Script
+After=network.target
+
+[Service]
+ExecStart=/home/austin/wx.sh
+User=austin
+Group=austin
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=multi-user.target
