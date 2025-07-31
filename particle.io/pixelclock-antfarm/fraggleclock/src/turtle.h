@@ -5,9 +5,17 @@
 #include "ant.h"
 #include "list.h"
 
-#define TURTLE_SPEED 750 // ms per step or pick/place
+#if defined(MEGA)
+    #define TURTLE_SPEED 375 // ms per step or pick/place
+#else
+    #define TURTLE_SPEED 750 // ms per step or pick/place
+#endif
 
-#define DEBUG_LEVEL 2
+#if defined(TESTING)
+    #define DEBUG_LEVEL 2
+#else
+    #undef DEBUG_LEVEL
+#endif
 
 /*
     A Turtle is a smarter (?) Ant
@@ -36,7 +44,202 @@ class Turtle: public Ant {
         int target_i;
         SimpleTimer* step_timer;
         uint8_t state, prev_state;
-        
+        byte _distances[MATRIX_X][MATRIX_Y];
+        bool _visited[MATRIX_X][MATRIX_Y];
+        byte target_x, target_y;
+
+        #if defined(TESTING)
+            #define DEBUG_DISTANCES 2
+        #endif
+        // initialize the _distances to target
+        void init_distances(Dot* target, Dot* sandbox[]) {
+            byte radius, ix, iy;
+
+            #if defined(DEBUG_DISTANCES)
+                Log.trace("initializaing distances");
+            #endif
+            for (ix = 0; ix < MATRIX_X; ix++) {
+                for (iy = 0; iy < MATRIX_Y; iy++) {
+                    _distances[ix][iy] = 99;
+                    _visited[ix][iy] = false;
+                }
+            }
+
+            _distances[target->x][target->y] = 0;
+
+            #if defined(TESTING) and DEBUG_DISTANCES >= 2
+                Log.info("marking radii; (%d,%d)<-(%d,%d)",
+                         x, y, target->x, target->y);
+            #endif
+            radius = 1;
+            while (radius < iq && (_distances[x][y] == 99)) {
+                visit_cells_from_target(target, radius, sandbox);
+                #if defined(TESTING) and DEBUG_DISTANCES >= 3
+                    Log.info("r=%d:", radius);
+                    print_distances(_distances, target->x, target->y);
+                #endif
+                radius ++;
+            }
+            
+            #if defined(TESTING) and DEBUG_DISTANCES >= 1
+                Log.info("Distances, with radii:");
+                print_distances(_distances, target->x, target->y);
+            #endif
+        } // init_distances()
+
+
+        bool reachable(Dot* target, Dot* sandbox[]) {
+            Log.trace("reachable(%d,%d) ?", target->x, target->y);
+            // if target is new, re-initialize
+            if ((target_x != target->x) 
+                || (target_y != target->y)) {
+              target_x = target->x;
+              target_y = target->y;
+              init_distances(target, sandbox);
+            }
+
+            #if defined(TESTING)
+                if (_distances[x][y] >= 99) {
+                    Serial.printf("not reachable from (%d,%d) -> (%d,%d)\n",
+                                  x, y, target->x, target->y);
+                    print_distances(_distances, target->x, target->y);
+                    Serial.print("visited? ");
+                    Serial.println(_visited[x][y]?"y":"n");
+                }
+            #endif
+
+            return _distances[x][y] < 99;
+        } // bool reachable(target, sandbox)
+
+
+        #if defined(TESTING)
+            #define DEBUG_VISIT 0
+        #endif
+        void visit_cells_from_target(Dot* target,
+                                     byte radius,
+                                     Dot* sandbox[]) {
+            #if defined(TESTING) and DEBUG_VISIT >= 1
+                Log.info("visiting (%d,%d), r=%d", 
+                         target->x, target->y, radius);
+                Log.info("CHECK d[%d,%d] = %d", 
+                         target->x, target->y, 
+                         _distances[target->x][target->y]);
+            #endif
+            int ix, iy;
+            Dot cursor = Dot(target->x, target->y, BLACK);
+            #if defined(TESTING) and DEBUG_LEVEL > 3
+                Log.info("ix,iy = (%d,%d)", 
+                         target->x-radius, target->y-radius);
+            #endif
+            for (ix = max(0, target->x - radius); 
+                 ix <= min(MATRIX_X - 1, target->x + radius); 
+                 ix++) {
+                for (iy = max(0, target->y - radius); 
+                     iy <= min(MATRIX_Y - 1, target->y + radius); 
+                     iy++) {
+                    if (!_visited[ix][iy]) {
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
+                            Log.info("checking (%d,%d)", ix, iy);
+                        #endif
+                        cursor.x = ix;
+                        cursor.y = iy;
+                        mark_adjacent(&cursor, sandbox, _distances);
+                        _visited[ix][iy] = true;
+                    } else {
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
+                            Log.info("not checking (%d,%d)", ix, iy);
+                        #endif
+                    }
+                }
+            }
+        } // visit_cells_from_target(target, radius, sandbox)
+
+
+        #if defined(TESTING)
+            #define DEBUG_STUMBLE 0
+        #endif
+        // scoot cursor one step closer to zero
+        bool stumble_downhill2() {
+            int ix, iy, ntries;
+            #if defined(TESTING) and DEBUG_STUMBLE >= 2
+                Log.info("stumbling downhill from (%d,%d)->(%d,%d)", 
+                         x, y, target_x, target_y);
+            #endif
+            #if defined(TESTING) and DEBUG_STUMBLE >= 3
+                print_distances(_distances, target_x, target_y);
+            #endif
+            ix = rand_x(x);
+            iy = rand_y(y);
+            ntries = 0;
+            while ((_distances[ix][iy] >= _distances[x][y]) && ntries < 31) {
+              ix = rand_x(x);
+              iy = rand_y(y);
+              ntries++;
+            }
+            if (_distances[ix][iy] < _distances[x][y]) {
+              x = ix;
+              y = iy;
+              #if defined(TESTING) and DEBUG_STUMBLE >= 2
+                  Log.info("stumbled to (%d,%d)", x, y);
+              #endif
+              return true;
+            }
+            #if defined(TESTING) and DEBUG_STUMBLE >= 1
+                Log.warn("ntries: %d", ntries);
+                Log.warn("I am (%d,%d) d=%d", x, y, _distances[x][y]);
+                print_distances(_distances, x, y);
+            #endif
+            for (ix = max(x-1, 0); ix <= min(x+1, MATRIX_X-1); ix++) {
+                for (iy = max(y-1, 0); iy <= min(y+1, MATRIX_Y-1); iy++) {
+                    if (_distances[ix][iy] < _distances[x][y]) {
+                        x = ix;
+                        y = iy;
+                        #if defined(TESTING) and DEBUG_STUMBLE >= 1
+                            Log.info("2ND TRY stumbled to (%d,%d)", x, y);
+                        #endif
+                        return true;
+                    } else {
+                        #if defined(TESTING) and DEBUG_STUMBLE >= 1
+                            Log.info("rejecting (%d,%d) d=%d",
+                                     ix, iy, _distances[ix][iy]);
+                        #endif
+                    }
+                } // for (iy)
+            } // for (ix)
+            Log.warn("REACHED UNREACHABLE CODE: failed to stumble downhill");
+            return false;
+        } // bool stumble_downhill(cursor, distances)
+          
+
+        // utilize Djikstra's algorithm and clever caching
+        // to move one step from (x,y)->target
+        bool move_djikstra(Dot* target, Dot* sandbox[]) {
+            // shortcut: already there?
+            if (adjacent(target) || equals(target)) {
+                Log.info("shortcut, jumping to adjacent target");
+                x = target->x;
+                y = target->y;
+                return true;
+            }
+
+            // if target is new, re-initialize
+            if ((target_x != target->x) 
+                || (target_y != target->y)) {
+              target_x = target->x;
+              target_y = target->y;
+              init_distances(target, sandbox);
+            }
+
+            // do we have a solution?
+            if (_visited[x][y] || (_distances[x][y] < iq)) {
+                return stumble_downhill2() or jump(target, sandbox);
+            } else {
+                Log.warn("no djikstra solution :/");
+                print_distances(_distances, target_x, target_y);
+                return jump(target, sandbox);
+            }
+        } // move_djikstra(target, sandbox)
+
 
         bool is_brick(Dot* target) {
           return (target
@@ -103,42 +306,56 @@ class Turtle: public Ant {
 
 
         // find the lowest value in distances[][] around (xp, yp)
-        byte min_distance(byte xp, byte yp, byte distances[MATRIX_X][MATRIX_Y]) {
+        byte min_distance(int xp, int yp, byte distances[MATRIX_X][MATRIX_Y]) {
             byte r = 99;
             for (int i = max(xp - 1, 0); i <= min(xp + 1, MATRIX_X-1); i++) {
                 for (int j = max(yp - 1, 0); j <= min(yp + 1, MATRIX_Y-1); j++) {
                     r = min(r, distances[i][j]);
-                    #if DEBUG_LEVEL > 3
+                    #if defined(TESTING) and DEBUG_LEVEL > 3
                     Log.info("peeking (%d,%d); r=%d", i, j, r);
                     #endif
                 }
+            }
+            if (r > distances[xp][yp]) {
+              Log.warn("!!! MIN DISTANCES: r=%d but d[%d,%d]=%d",
+                       r, xp, yp, distances[xp][yp]);
             }
             return r;
         } // byte min_distance(xp, yp, distances)
 
 
+        #if defined(TESTING)
+            #define DEBUG_MARK 1
+        #endif
         // mark the distances adjacent to cursor
         void mark_adjacent(Dot *cursor, 
-                           Dot* sandbox[50], 
+                           Dot* sandbox[], 
                            byte distances[MATRIX_X][MATRIX_Y]) {
-            byte i, j;
-            for (i = max(cursor->x - 1, 0); 
-                 i <= min(cursor->x + 1, MATRIX_X-1); i++) {
-                for (j = max(cursor->y - 1, 0); 
-                     j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
-                    #if DEBUG_LEVEL > 3
+            int i, j;
+            for (i = max((int)(cursor->x - 1), 0); 
+                 i <= min((int)(cursor->x + 1), MATRIX_X-1); i++) {
+                for (j = max((int)(cursor->y - 1), 0); 
+                     j <= min((int)(cursor->y + 1), MATRIX_Y-1); j++) {
+                    #if defined(TESTING) and DEBUG_MARK >= 3
                     Log.info("marking adjacent: (%d,%d)", i, j);
                     #endif
-                    if (!in(i, j, sandbox)) {
-                        distances[i][j] = min_distance(i, j, distances) + 1;
-                        #if DEBUG_LEVEL > 3
+                    if (!in(i, j, sandbox) 
+                        || (i==x && j==y)) {
+                        distances[i][j] = min(distances[i][j], 
+                                    min_distance(i, j, distances) + 1);
+                        #if defined(TESTING) and DEBUG_MARK >= 3
                         Log.info("d(%d,%d) = %d", i, j, distances[i][j]);
                         #endif
                     } else {
-                        #if DEBUG_LEVEL > 3
+                        #if DEBUG_MARK >= 3
                         Log.info("... in sandbox");
                         #endif
                     }
+                    #if defined(TESTING) and DEBUG_MARK >= 1
+                        if (i==x && j==y) {
+                            Log.info("ME(%d,%d) = %d", i, j, distances[i][j]);
+                        }
+                    #endif
                 }
             }
         } // mark_adjancent(curson, sandbox, distances)
@@ -162,7 +379,7 @@ class Turtle: public Ant {
                 }
             }
             Log.error("REACHED UNREACHABLE CODE AGAIN");
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
             print_distances(distances);
             #endif
             // delay(10000);
@@ -170,16 +387,19 @@ class Turtle: public Ant {
         } // bool nearby_unvisited(cursor, distances, visited)
  
 
-
-
         // print the distances[][] matrix
-        void print_distances(byte distances[MATRIX_X][MATRIX_Y]) {
-            for (int y = 0; y < MATRIX_X; y++) {
-                for (int x = 0; x < MATRIX_Y; x++) {
-                    if (distances[x][y] < 99) {
-                        Serial.printf(" %02d ", distances[x][y]);
+        void print_distances(byte distances[MATRIX_X][MATRIX_Y],
+                             int px = -1, int py = -1) {
+            for (int iy = 0; iy < MATRIX_Y; iy++) {
+                for (int ix = 0; ix < MATRIX_X; ix++) {
+                    if (ix == px && iy == py) {
+                        Serial.printf("[] ");
+                    } else if (ix == x && iy == y) {
+                        Serial.printf("<> ");
+                    } else if (distances[ix][iy] < 99) {
+                        Serial.printf("%02d ", distances[ix][iy]);
                     } else {
-                        Serial.printf(" ,, ");
+                        Serial.printf(",, ");
                     }
                 }
                 Serial.println();
@@ -191,12 +411,12 @@ class Turtle: public Ant {
                          Dot* sandbox[],
                          bool visited[MATRIX_X][MATRIX_Y],
                          byte distances[MATRIX_X][MATRIX_Y]) {
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
             Log.info("visiting (%d,%d), r=%d", x, y, radius);
             #endif
             int i, j;
             Dot cursor = Dot(x, y, BLACK);
-            #if DEBUG_LEVEL > 3
+            #if defined(TESTING) and DEBUG_LEVEL > 3
             Log.info("i,j = (%d,%d)", x-radius, y-radius);
             #endif
             for (i = max(0, x - radius); 
@@ -206,7 +426,7 @@ class Turtle: public Ant {
                      j <= min(MATRIX_Y - 1, y + radius); 
                      j++) {
                     if (!visited[i][j]) {
-                        #if DEBUG_LEVEL > 3
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
                         Log.info("checking (%d,%d)", i, j);
                         #endif
                         cursor.x = i;
@@ -214,7 +434,7 @@ class Turtle: public Ant {
                         mark_adjacent(&cursor, sandbox, distances);
                         visited[i][j] = true;
                     } else {
-                        #if DEBUG_LEVEL > 3
+                        #if defined(TESTING) and DEBUG_LEVEL > 3
                         Log.info("not checking (%d,%d)", i, j);
                         #endif
                     }
@@ -223,29 +443,41 @@ class Turtle: public Ant {
         } // visit_cells(radius, sandbox, visited, distances)
 
 
-        // move cursor one step closer to 0
-        bool step_home(Dot* cursor, byte distances[MATRIX_X][MATRIX_Y]) {
-            int i, j;
-            for (i = max(cursor->x - 1, 0); 
-                 i <= min(cursor->x + 1, MATRIX_X-1); i++) {
-                for (j = max(cursor->y - 1, 0); 
-                     j <= min(cursor->y + 1, MATRIX_Y-1); j++) {
-                    if (distances[i][j] < distances[cursor->x][cursor->y]) {
-                        cursor->x = i;
-                        cursor->y = j;
-                        return true;
-                    }
-                }
+        #undef DEBUG_STUMBLE
+        // scoot cursor one step closer to zero
+        bool stumble_downhill(Dot* cursor, 
+                              byte distances[MATRIX_X][MATRIX_Y]) {
+            byte hill;
+            int ix, iy;
+            #ifdef defined(TESTING) and DEBUG_STUMBLE
+                Log.info("stumbling downhill from (%d,%d)", 
+                         cursor->x, cursor->y);
+                print_distances(distances, cursor->x, cursor->y);
+            #endif
+            ix = rand_x(cursor->x);
+            iy = rand_y(cursor->y);
+            hill = distances[cursor->x][cursor->y];
+            while (distances[ix][iy] >= hill) {
+              ix = rand_x(cursor->x);
+              iy = rand_y(cursor->y);
             }
-            Log.error("REACHED UNREACHABLE CODE");
-            // delay(5000);
+            if (distances[ix][iy] < distances[cursor->x][cursor->y]) {
+              cursor->x = ix;
+              cursor->y = iy;
+              Log.info("stumbled to (%d,%d)", cursor->x, cursor->y);
+              return true;
+            }
+            Log.warn("REACHED UNREACHABLE CODE: failed to stumble downhill");
+            print_distances(distances, cursor->x, cursor->y);
             return false;
-        } // step_home(cursor, distances)
+        } // book stumble_downhill(cursor, distances)
 
 
         // move cursor one step closer to 0, but ... shuffle
         bool shuffle_home(Dot* cursor, byte distances[MATRIX_X][MATRIX_Y]) {
           int i, j, k;
+          Log.info("shuffling home from (%d,%d)", 
+                   cursor->x, cursor->y);
           for (k = 0; k < 5; k++) {
             for (i = max(cursor->x - 1, 0); 
                  i <= min(cursor->x + 1, MATRIX_X-1); i++) {
@@ -260,26 +492,36 @@ class Turtle: public Ant {
                 }
             }
           }
-          Log.info("no path found shuffling home...");
+          Log.info("no path found while shuffling home...");
+          Log.info("Stuck at (%d,%d)", 
+                   cursor->x, cursor->y);
+          print_distances(distances, cursor->x, cursor->y);
           return false;
         } // shuffle_home(cursor, distances)
 
 
     public:
-        byte iq;
+        byte iq;    // smartness; also the max search radius, tiles
+        int budget; // ms; time allowed to search before wandering
 
 
         // take one step toward the spot, while avoiding everything in sandbox
+        // djikstra rollin over
+        // 1. create a huge map of high distances
+        // 2. "visit" every tile and decrement the distance from here to there
+        // 3. if the destination was visited, a path exists
+        // 4. backtrace from the dest, stepping in lowest-numbered tiles
+        // 5. the best next step is the last one to "me"
         bool move_toward(Dot* spot, 
                          Dot* sandbox[],
                          bool junk = true) override {
-          SimpleTimer move_budget(250); // max time allowed to find a move
+            SimpleTimer move_budget(budget); // max time allowed to find a move
             
-            // Log.trace("moving (%d,%d) -> (%d,%d), iq=%d",
-            //         x, y, spot->x, spot->y, iq);
+            Log.info("moving (%d,%d) -> (%d,%d), iq=%d",
+                     x, y, spot->x, spot->y, iq);
 
-            if (adjacent(spot)) {
-                // Log.info("shotcut, jumping to adjacent target");
+            if (adjacent(spot) || equals(spot)) {
+                Log.info("shortcut, jumping to adjacent target");
                 x = spot->x;
                 y = spot->y;
                 return true;
@@ -290,56 +532,59 @@ class Turtle: public Ant {
             Dot cursor;
             byte radius;
 
-            // Log.trace("initializaing distances");
+            Log.trace("initializaing distances");
             for (i = 0; i < MATRIX_X; i++) {
                 for (j = 0; j < MATRIX_Y; j++) {
                     distances[i][j] = 99;
                     visited[i][j] = false;
                 }
             }
+            #if defined(TESTING) and DEBUG_LEVEL > 3
+                Log.info("Distances, initialized:");
+                print_distances(distances);
+            #endif
 
             distances[x][y] = 0;
             cursor.x = x;
             cursor.y = y;
 
+            Log.trace("marking radii");
             radius = 1;
-            while (radius < iq && ! move_budget.isExpired()) {
-                #if DEBUG_LEVEL > 2
+            while (radius < iq) { // && ! move_budget.isExpired()) {
+                #if defined(TESTING) and DEBUG_LEVEL > 2
                 Log.trace("Checking radius=%d", radius);
                 #endif
                 visit_cells(radius, sandbox, visited, distances);
-                #if DEBUG_LEVEL > 3
+                #if defined(TESTING) and DEBUG_LEVEL > 3
+                Log.info("one more radius:");
                 print_distances(distances);
                 #endif
                 radius ++;
             }
-
-            #if DEBUG_LEVEL > 2
-            print_distances(distances);
+            
+            #if defined(TESTING) and DEBUG_LEVEL >= 3
+                Log.info("Distances, with radii:");
+                print_distances(distances);
             #endif
 
+            Log.trace("Checking for a path home");
             if (visited[spot->x][spot->y]) {
+                Log.trace("visited! (a path to (%d,%d) is possible)",
+                          spot->x, spot->y);
                 Dot cursor = Dot(spot->x, spot->y, BLACK);
                 while (distances[cursor.x][cursor.y] > 1) {
-                    if (! shuffle_home(&cursor, distances)
-                        || move_budget.isExpired()) {
-                        Log.info("no path home; deferring to Ant::");
-                        // print_sandbox(sandbox);
-                        return Ant::move_toward(spot, sandbox);
-                    }
-                    /*
-                    Log.info("backtrace: (%d,%d), d=%d", 
-                             cursor.x, cursor.y, 
-                             distances[cursor.x][cursor.y]);
-                    */
+                  if (!stumble_downhill(&cursor, distances)) {
+                    Log.warn("OMG this should not happen; jumpin");
+                    return jump(spot, sandbox);
+                  }
                 }
                 x = cursor.x;
                 y = cursor.y;
-                // Log.info("Path found!!! (%d,%d)", x, y);
+                Log.trace("Path found!!! Moved to (%d,%d)", x, y);
                 return true;
             } 
 
-            Log.trace("dest not visited; deferring to Ant::");
+            Log.warn("dest not visited; deferring to Ant::");
             // print_sandbox(sandbox);
             return Ant::move_toward(spot, sandbox);
         } // move_toward(target, sandbox)
@@ -349,6 +594,8 @@ class Turtle: public Ant {
             active = true;
             step_timer = new SimpleTimer(TURTLE_SPEED);
             iq = MAX_IQ;
+            budget = 250; // ms
+            target_x = target_y = 99;
         } // Turtle()
 
         
@@ -365,9 +612,13 @@ class Turtle: public Ant {
                     place_brick(target, BRICK_COLOR, sandbox);
                     state = RESTING;
                 } else {
-                    // step_toward(target);
+                    /*
                     if (! move_toward(target, sandbox)) {
                       Log.warn("failed to move toward, in Turtle::build");
+                    }
+                    */
+                    if (!move_djikstra(target, sandbox)) {
+                        Log.warn("failed to move, in Turtle::build");
                     }
                 }
             }
@@ -381,9 +632,14 @@ class Turtle: public Ant {
                     deactivate(target_i, sandbox);
                     state = RESTING;
                 } else {
+                    /*
                     move_toward(target, sandbox);
                     if (! move_toward(target, sandbox)) {
                       Log.warn("failed to move toward, in Turtle::clean");
+                    }
+                    */
+                    if (!move_djikstra(target, sandbox)) {
+                        Log.warn("failed to move, in Turtle::clean");
                     }
                 }
             }

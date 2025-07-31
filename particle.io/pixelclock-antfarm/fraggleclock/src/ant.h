@@ -14,20 +14,28 @@ class Ant : public Dot {
           color = MIDWHITE;
         };
 
+        int rand_x(int start_x) {
+           return constrain(start_x+random(-1, 2), 0, MATRIX_X-1);
+        }
+
+        int rand_y(int start_y) {
+           return constrain(start_y+random(-1, 2), 0, MATRIX_Y-1);
+        }
 
         // tries to jump to, or adjacent to, target
         bool jump(Dot* target, Dot* sandbox[]) {
-            Log.warn("JUMPING!!! (%d,%d)", x, y);
+            Log.warn("JUMPING!!! from (%d,%d) -> (%d,%d)", 
+                     x, y, target->x, target->y);
             Dot proxy = Dot(target->x, target->y, WHITE);
             int i = 0;
             while (i < 16) {
-                if(randomize(&proxy, sandbox)) {
-                    if (!in(&proxy, sandbox)) {
-                        x = proxy.x;
-                        y = proxy.y;
-                        Log.warn("JUMPED!!! (%d,%d)", x, y);
-                        return true;
-                    }
+                proxy.x = rand_x(target->x);
+                proxy.y = rand_y(target->y);
+                if (!in(&proxy, sandbox)) {
+                    x = proxy.x;
+                    y = proxy.y;
+                    Log.warn("landed (%d,%d)", x, y);
+                    return true;
                 }
                 i++;
             }
@@ -93,7 +101,9 @@ class Ant : public Dot {
         // find a nearby "needle" of target_color in a cell which is not occupied in "sandbox"
         int pick_closeish_open(Dot* needle[], Dot* haystack[], 
                                 color_t target_color) {
-            Log.trace("pick_closeish_open");
+            #if defined(TESTING)
+                Log.trace("pick_closeish_open");
+            #endif
             // 1. find open food
             bool open[MAX_DOTS];
             // Serial.print("open needles: ");
@@ -184,7 +194,7 @@ class Ant : public Dot {
             // we've failed to move; 10% chance of teleportation
             if (P(10)) {
                 return jump(spot, sandbox);
-            } 
+            }
             return false;
         }
 

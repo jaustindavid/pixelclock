@@ -6,8 +6,13 @@
 #include "turtle.h"
 #include "list.h"
 
-#define WALK_SPEED  500 // ms per step
-#define REST_SPEED 1000 // ms per step
+#if defined(MEGA)
+  #define WALK_SPEED  250 // ms per step
+  #define REST_SPEED 1000 // ms per step
+#else
+  #define WALK_SPEED  500 // ms per step
+  #define REST_SPEED 1000 // ms per step
+#endif
 
 
 struct coord_struct { 
@@ -186,7 +191,8 @@ class Doozer: public Turtle {
             }
 
             // step_toward(target);
-            if (!move_toward(target, sandbox)) {
+            // if (!move_toward(target, sandbox)) {
+            if (!move_djikstra(target, sandbox)) {
                 wander(sandbox);
             }
             return;
@@ -212,7 +218,8 @@ class Doozer: public Turtle {
             }
 
             // step_toward(target);
-            if (!move_toward(target, sandbox)) {
+            // if (!move_toward(target, sandbox)) {
+            if (!move_djikstra(target, sandbox)) {
                 wander(sandbox);
             }
             return;
@@ -256,7 +263,8 @@ class Doozer: public Turtle {
             Log.info("stepping (%d,%d) -> (%d,%d)", 
                       x, y, target->x, target->y);
             // step_toward(target);
-            if (!move_toward(target, sandbox)) {
+            // if (!move_toward(target, sandbox)) {
+            if (!move_djikstra(target, sandbox)) {
                 wander(sandbox);
             }
             return;
@@ -326,7 +334,8 @@ class Doozer: public Turtle {
             }
 
             // step_toward(target);
-            if (!move_toward(target, sandbox)) {
+            // if (!move_toward(target, sandbox)) {
+            if (!move_djikstra(target, sandbox)) {
                 wander(sandbox);
             }
             // check_progress();

@@ -13,6 +13,7 @@
 #define MAX_RGB 96
 #define REDDISH  (Adafruit_NeoPixel::Color(MAX_RGB, 0, 0))
 #define GREENISH (Adafruit_NeoPixel::Color(0, MAX_RGB, 0))
+#define MIN_RGB 15
 
 #if (ASPECT_RATIO == SQUARE)
 #define PING_INTERVAL 30 // seconds
@@ -63,8 +64,8 @@ class Pinger {
             }
 
             int latency = ping();
-            int r = map(latency, 50, 500, 0, MAX_RGB);
-            int g = map(latency, 0, 250, MAX_RGB, 0);
+            int r = map(latency, 50, 500, MIN_RGB, MAX_RGB);
+            int g = map(latency, 0, 250, MAX_RGB, MIN_RGB);
 
             /*
             Log.trace("updating i=%d, x=%d, %s\n", 
@@ -99,7 +100,7 @@ class Pinger {
                 graph[i] = new Dot();
                 graph[i]->x = i;
                 graph[i]->y = PINGER_Y;
-                graph[i]->color = (Adafruit_NeoPixel::Color(0, 0, (i+1)*16-1));
+                graph[i]->color = (Adafruit_NeoPixel::Color(0, 0, i*2));
                 graph[i]->active = true;
             }
 

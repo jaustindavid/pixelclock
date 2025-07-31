@@ -29,9 +29,7 @@
 #define MODE_OVERFLOW   2
 #define MODE_METRIC     3
 #define MODE_FRACTIONAL 4
-#define MODE_MAX        5  // for cycling
-#define MODE_BISCUIT    6
-#define MODE_MEETING    7
+#define MODE_MAX        5  // for incrementing
 
 #define FOOD_COLOR DARKGREEN
 
@@ -42,22 +40,12 @@
   #define MM_X HH_X
   #define MM_Y 8
 #else
-  #ifdef MEGA
-    #define HH_X 4
-    #define HH_Y 0
-  #else
-    #define HH_X 5
-    #define HH_Y 1
-  #endif
+  #define HH_X 4
+  #define HH_Y 1
   #define MM_X 17
   #define MM_Y HH_Y
 #endif
 
-#ifdef MEGA
-  #include "font-6x5.h"
-#else
-  #include "font-5x4.h"
-#endif
 
 class Chef {
     private:
@@ -68,6 +56,95 @@ class Chef {
         typedef uint64_t tracker;
         tracker mode_tracker;
         WobblyTimer *chaotic_timer;
+#define FONT_HEIGHT 6
+#define FONT_WIDTH 5
+        int font[12][FONT_HEIGHT] = {
+            // 0
+            {0b01110, 
+             0b10011,
+             0b10011,
+             0b10011,
+             0b10111,
+             0b01110}, 
+            // 1
+            {0b00110,
+             0b01110,
+             0b00110,
+             0b00110,
+             0b00110,
+             0b01111},
+            // 2
+            {0b11110,
+             0b00011,
+             0b01110,
+             0b11000,
+             0b11000,
+             0b11111},
+             // 3
+            {0b11110,
+             0b00011,
+             0b01110,
+             0b00011,
+             0b00011,
+             0b11110},
+             // 4
+            {0b10011,
+             0b10011,
+             0b11111,
+             0b00011,
+             0b00011,
+             0b00011},
+             // 5
+            {0b11111,
+             0b11000,
+             0b11110,
+             0b00011,
+             0b00011,
+             0b11110},
+             // 6
+            {0b01110,
+             0b11001,
+             0b11000,
+             0b11111,
+             0b11001,
+             0b01110},
+             // 7
+            {0b11111,
+             0b00011,
+             0b00110,
+             0b01100,
+             0b01100,
+             0b01100},
+             // 8
+            {0b01110,
+             0b10011,
+             0b01110,
+             0b10011,
+             0b10011,
+             0b01110},
+             // 9
+            {0b01110,
+             0b10011,
+             0b01111,
+             0b00011,
+             0b10011,
+             0b01110},
+             // .
+            {0b00000,
+             0b00000,
+             0b00000,
+             0b01110,
+             0b01110,
+             0b00000},
+             // /
+            {0b00000,
+             0b00110,
+             0b00110,
+             0b01100,
+             0b11000,
+             0b11000}
+            };
+
 
         // returns a value representing a reset
         tracker reset_tracker() {
@@ -126,15 +203,9 @@ class Chef {
 
         // increments chaos_mode
         int beChaos(String param) {
-            if (param.startsWith("biscuit")) {
-                chaos_mode = MODE_BISCUIT;
-            } else if (param.startsWith("meeting")) {
-                chaos_mode = MODE_MEETING;
-            } else {
-                chaos_mode = (chaos_mode+1) % MODE_MAX;
-                last_mm = -1; // force an update
-                mode_tracker = reset_tracker();
-            }
+            chaos_mode = (chaos_mode+1) % MODE_MAX;
+            last_mm = -1; // force an update
+            mode_tracker = reset_tracker();
             return chaos_mode;
         } // int beChaos(param)
         
@@ -170,6 +241,15 @@ class Chef {
             prepare(food, hh % 10, HH_X+FONT_WIDTH+1, HH_Y); // 9, 1);
             prepare(food, mm / 10, MM_X, MM_Y); // 3, 8);
             prepare(food, mm % 10, MM_X+FONT_WIDTH+1, MM_Y); // 9, 8);
+            /*
+            #if (ASPECT_RATIO == SQUARE)
+              prepare(food, mm / 10, 3, 8);
+              prepare(food, mm % 10, 9, 8);
+            #else
+              prepare(food, mm / 10, 19, 1);
+              prepare(food, mm % 10, 25, 1);
+            #endif
+            */
             chef_time = String::format(
                 "wobbly %02d:%02d, actual %02d:%02d",
                 hh, mm, Time.hour(), Time.minute());
@@ -187,92 +267,6 @@ class Chef {
                 "ampm %02d:%02d, actual %02d:%02d",
                 hh, mm, Time.hour(), Time.minute());
         } // cook_ampm(food, wTime)
-
-
-        // vibe-coded with Gemini
-        unsigned long simplePRNG(unsigned long seed) {
-            // LCG parameters:
-            // Multiplier (a)
-            const unsigned long a = 16807;
-            // Modulus (m = 2^31 - 1, a Mersenne prime)
-            const unsigned long m = 2147483647; // 2^31 - 1
-            // Increment (c) - set to 0 for a multiplicative LCG
-            const unsigned long c = 0;
-
-            // Ensure the seed is within a valid positive range for the modulus.
-            // This handles potential negative inputs if the seed calculation
-            // ever results in one, and keeps it within the bounds of the
-            // modulus.
-            seed = (seed % m + m) % m;
-
-            // Calculate the next pseudo-random number
-            return (a * seed + c) % m;
-        } // simplePRNG(seed)
-
-
-        bool todayIsAnUpDay() {
-          int d = Time.day();
-          int m = Time.month();
-          int y = Time.year();
-          return simplePRNG(d + m + y) % 2 == 0;
-        } // todayIsAnUpDay()
-
-
-        void cook_biscuit(Dot* food[], WobblyTime& wTime) {
-            int hh = wTime.hour();
-            int mm = wTime.minute();
-            if (todayIsAnUpDay()) {
-              hh = 23 - hh;
-              mm = 59 - mm;
-            }
-            cook_normal(food, hh, mm);
-            chef_time = String::format(
-                "biscuit %02d:%02d, actual %02d:%02d",
-                hh, mm, Time.hour(), Time.minute());
-        } // cook_biscuit(food, wTime)
-
-
-        void cook_meeting(Dot* food[], WobblyTime& wTime) {
-            int hh = wTime.hour();
-            int mm = wTime.minute();
-            String meeting;
-            if (mm == 0 || mm == 30) {
-                cook_normal(food, 0, 0);
-                meeting = "00 00";
-            } else if ((mm >= 1 && mm <= 4)) {
-                prepare(food, DIGIT_PLUS, HH_X-1, HH_Y);
-                prepare(food, 0, HH_X+FONT_WIDTH+1, HH_Y);
-                prepare(food, mm / 10, MM_X, MM_Y);
-                prepare(food, mm % 10, MM_X+FONT_WIDTH+1, MM_Y);
-                meeting = String::format("+0 %02d", mm);
-            } else if (mm >= 31 && mm <= 34) {
-                int dm = mm - 30;
-                prepare(food, DIGIT_PLUS, HH_X-1, HH_Y);
-                prepare(food, 0, HH_X+FONT_WIDTH+1, HH_Y);
-                prepare(food, dm / 10, MM_X, MM_Y);
-                prepare(food, dm % 10, MM_X+FONT_WIDTH+1, MM_Y);
-                meeting = String::format("+0 %02d", dm);
-            } else if (mm >= 26 && mm <= 29) {
-                int dm = 30 - mm;
-                prepare(food, DIGIT_MINUS, HH_X-1, HH_Y);
-                prepare(food, 0, HH_X+FONT_WIDTH+1, HH_Y);
-                prepare(food, dm / 10, MM_X, MM_Y);
-                prepare(food, dm % 10, MM_X+FONT_WIDTH+1, MM_Y);
-                meeting = String::format("-0 %02d", dm);
-            } else if (mm >= 56 && mm <= 59) {
-                int dm = 60 - mm;
-                prepare(food, DIGIT_MINUS, HH_X-1, HH_Y);
-                prepare(food, 0, HH_X+FONT_WIDTH+1, HH_Y);
-                prepare(food, dm / 10, MM_X, MM_Y);
-                prepare(food, dm % 10, MM_X+FONT_WIDTH+1, MM_Y);
-                meeting = String::format("-0 %02d", dm);
-            } else {
-                cook_normal(food, hh, mm);
-            }
-            chef_time = String::format(
-                "meeting %s, actual %02d:%02d",
-                meeting.c_str(), Time.hour(), Time.minute());
-        } // cook_meeting(food, wTime)
 
 
         // H H
@@ -306,7 +300,7 @@ class Chef {
 
             prepare(food, hh / 10, HH_X, HH_Y);// 3, 1);
             prepare(food, hh % 10, HH_X+FONT_WIDTH+1, HH_Y); // 9, 1);
-            prepare(food, DIGIT_DOT, MM_X, MM_Y+1);
+            prepare(food, 10, MM_X, MM_Y+1);
             prepare(food, m, MM_X+FONT_WIDTH+1, MM_Y); // 9, 8);
                                                   //
             chef_time = String::format(
@@ -348,8 +342,8 @@ class Chef {
             prepare(food, hh / 10, HH_X-1, HH_Y);// 3, 1);
             prepare(food, hh % 10, HH_X+FONT_WIDTH+1, HH_Y); // 9, 1);
             prepare(food, numerator, MM_X-1, MM_Y); // MM_X, left 1
-            prepare(food, DIGIT_SLASH, MM_X+FONT_WIDTH-2, MM_Y); 
-            prepare(food, denom, MM_X+FONT_WIDTH+2, MM_Y);  // MM_X, right 2
+            prepare(food, 11, MM_X+FONT_WIDTH-2, MM_Y); 
+            prepare(food, denom, MM_X+FONT_WIDTH+2, MM_Y); // MM_X, right 2
             chef_time = String::format(
                             "fractional %02d:%1d/%1d, actual %02d:%02d",
                             hh, numerator, denom,
@@ -406,14 +400,6 @@ class Chef {
                     if (wTime.minute() == 0) {
                         return_to_normal_after(2*3600);
                     }
-                    break;
-                case MODE_BISCUIT:
-                    cook_biscuit(food, wTime);
-                    // NEVER STOP
-                    break;
-                case MODE_MEETING:
-                    cook_meeting(food, wTime);
-                    // NEVER STOP
                     break;
                 default:
                     cook_normal(food, wTime.hour(), wTime.minute());

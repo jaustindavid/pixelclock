@@ -60,6 +60,11 @@ class OpenWeather {
                         response.status,
                         request.hostname.c_str(), 
                         request.path.c_str()));
+
+            if (response.status != 200) {
+              return;
+            }
+
             unsigned long elapsed = millis() - start;
             Serial.printf("%ld ms\n", elapsed);
         

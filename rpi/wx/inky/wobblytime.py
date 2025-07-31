@@ -17,7 +17,7 @@ class WobblyTime:
         mm = datetime.datetime.now().minute
         return (f"{hh}:{mm} -> "
                 f"{self.hour()}:{self.minute()}; "
-                f"offset {self._offset_seconds:5.2f}, "
+                f"offset {self._offset_seconds}, "
                 f"target {self._target_offset_seconds}")
 
     def _tick(self):
@@ -30,9 +30,9 @@ class WobblyTime:
             self._target_offset_seconds = random.randint(self.min_advance,
                                                          self.max_advance)
         elif self._offset_seconds < self._target_offset_seconds:
-            self._offset_seconds += 0.3*time_elapsed
+            self._offset_seconds += 1.3*time_elapsed
         else:
-            self._offset_seconds -= 0.3*time_elapsed
+            self._offset_seconds -= 1.3*time_elapsed
 
     def minute(self):
         self._tick()

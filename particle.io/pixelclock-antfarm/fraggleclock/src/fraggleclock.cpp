@@ -87,6 +87,7 @@ DST dst;
 
 #include "defs.h"
 #include "stats.h"
+#include "locker.h"
 #include "layout.h"
 #include "color.h"
 #include "dot.h"
@@ -94,6 +95,7 @@ DST dst;
 #include "turtle.h"
 #include "doozer.h"
 #include "raccoon.h"
+#include "matrix.h"
 #include "list.h"
 #include "chef.h"
 #include "display.h"
@@ -126,6 +128,8 @@ DST dst;
 // IMPORTANT: Set pixel COUNT, PIN and TYPE
 // #define PIXEL_COUNT 256 // moved to defs.h
 #define PIXEL_TYPE WS2812B
+// #define PIXEL_TYPE WS2812B_FAST // no worky
+// #define PIXEL_TYPE WS2811 // not supported
 Adafruit_NeoPixel neopixels(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 Display display(&neopixels);
 
@@ -136,7 +140,8 @@ int Dot::next_id = 0;
 #define TURTLE_MODE 2
 #define DOOZER_MODE 3
 #define RACCOON_MODE 4
-#define MAX_MODE 5
+#define MATRIX_MODE 5
+#define MAX_MODE 6
 
 uint8_t mode = ANT_MODE;
 // mode = TURTLE_MODE;
@@ -169,18 +174,50 @@ OpenWeather weather(WEATHER_ADDY, 15*60*1000); // 15 minute refresh period
 double luna_brite = 0.0;
 int display_brite = 0;
 
+MatrixManager *mm;
 
 /*
  * DST
  *
  */
 
+bool use_dst = true;
+int timezone_offset = -5;
+dst_limit_t beginning;
+dst_limit_t end;
+
+
+int toggle_dst(String data) {
+    use_dst = !use_dst;
+    dst.begin(beginning, end, use_dst ? 1 : 0);
+    dst.check();
+    return use_dst ? 1 : 0;
+} // int toggle_dst(s)
+
+
+int set_timezone_offset(String offset) {
+  int proposed_offset = 99;
+  if (offset == "0") {
+      proposed_offset = 0;
+  } else {
+      if (offset.toInt()) {
+          proposed_offset = offset.toInt();
+      }
+  }
+  
+  if (proposed_offset != 99) {
+      timezone_offset = proposed_offset;
+      Time.zone(timezone_offset);
+      dst.check();
+  }
+  return timezone_offset;
+}
+
+
 // precondition: Time.isValid()
 void setup_dst() {
-    dst_limit_t beginning;
-    dst_limit_t end;
 
-    Time.zone(-5);
+    Time.zone(timezone_offset);
 
     beginning.hour = 2;
     beginning.day = DST::days::sun;
@@ -193,10 +230,12 @@ void setup_dst() {
     end.occurrence = 1;
         
     dst.begin(beginning, end, 1);
-    dst.automatic(true);
+    dst.automatic(use_dst);
     dst.check();
-} // setup_dst()
 
+    Particle.function("toggle_dst", toggle_dst);
+    Particle.function("timezone_offset", set_timezone_offset);
+} // setup_dst()
 
 
 
@@ -254,9 +293,6 @@ void maybe_update_layout() {
   }
 
   switch (mode) {
-    case TURTLE_MODE: 
-      // nothing special
-      break;
     case DOOZER_MODE:
     case FRAGGLE_MODE:
       update_doozer_layout(&layout, sandbox);
@@ -264,6 +300,11 @@ void maybe_update_layout() {
     case RACCOON_MODE:
       update_raccoon_layout(&layout, sandbox);
       break;
+    case MATRIX_MODE:
+      // mm->layout(&layout, sandbox);
+      layout_matrix(&layout, sandbox);
+    // nothing special
+    case TURTLE_MODE: 
     case ANT_MODE:
     default:
       break;
@@ -277,59 +318,61 @@ void maybe_update_layout() {
    *
    */
 
+  #define CORE_DATUM_VERSION 1
+  struct core_datum {
+      byte version;
+      byte mode;
+      bool dst;
+      int tz;
+  };
 
   void write_mode() {
-      int addy = CORE_ADDY;
-      if (EEPROM.read(addy) != mode) {
-          EEPROM.write(addy, mode);
-      }
-      addy += sizeof(mode);
-      if (EEPROM.read(addy) != show_food) {
-          EEPROM.write(addy, show_food);
-      }
-      addy += sizeof(show_food);
-      if (EEPROM.read(addy) != show_weather) {
-          EEPROM.write(addy, show_weather);
-      }
-      addy += sizeof(show_weather);
+      struct core_datum datum = {
+        .version = CORE_DATUM_VERSION,
+        .mode = mode,
+        .dst = use_dst,
+        .tz = timezone_offset
+      };
+      EEPROM.put(CORE_ADDY, datum);
   } // write_mode()
 
 
   void read_mode() {
-    int addy = CORE_ADDY;
-    uint8_t data = EEPROM.read(addy);
-    if (data >= MAX_MODE) {
-        Log.warn("Invalid data in EEPROM: 0x%02x; re-writing 'mode'", data);
-        mode = ANT_MODE;
-        write_mode();
-    } else {
-        mode = data;
-    }
-    switch (mode) {
-        case TURTLE_MODE: 
-            mode_name = "Turtle";
-            break;
-        case DOOZER_MODE:
-            mode_name = "Doozer";
-            break;
-        case FRAGGLE_MODE:
-            mode_name = "Fraggle";
-            break;
-        case RACCOON_MODE:
-            mode_name = "Raccoon";
-            break;
-        default:
-            mode_name = "Ant";
-            mode = ANT_MODE;
-    }
-    Log.info("read mode: %s", mode_name.c_str());
+      struct core_datum datum;
+      EEPROM.get(CORE_ADDY, datum);
+      if (datum.version == CORE_DATUM_VERSION) {
+          mode = datum.mode;
+          use_dst = datum.dst;
+          timezone_offset = datum.tz;
+      }
+      switch (mode) {
+          case TURTLE_MODE: 
+              mode_name = "Turtle";
+              break;
+          case DOOZER_MODE:
+              mode_name = "Doozer";
+              break;
+          case FRAGGLE_MODE:
+              mode_name = "Fraggle";
+              break;
+          case RACCOON_MODE:
+              mode_name = "Raccoon";
+              break;
+          case MATRIX_MODE:
+              mode_name = "Matrix";
+              break;
+          default:
+              mode_name = "Ant";
+              mode = ANT_MODE;
+      }
+      Log.info("read mode: %s", mode_name.c_str());
 } // read_mode()
 
 
 // if given 0 or nonsense, just increments
 int toggle_mode(String data) {
     int m = data.toInt();
-    if (m > 0 && m < MAX_MODE) {
+    if (data.equals("0") || (m > 0 && m < MAX_MODE)) {
         mode = m;
     } else {
         mode = (mode + 1) % MAX_MODE;
@@ -417,7 +460,11 @@ void paint_connection_status(int x, int y) {
 
 
 void connect_and_blink(int y, String WIFI_SSID, String WIFI_PASSWD) {
+#ifdef TESTING
+  SimpleTimer thirty_secs(5*1000);
+#else
   SimpleTimer thirty_secs(30*1000);
+#endif
   bool lit = true;
 
   paint_connection_status(0, y);
@@ -515,100 +562,109 @@ void setup_whatever_mode() {
         case RACCOON_MODE:
             make_raccoons(sandbox);
             break;
+        case MATRIX_MODE:
+            setup_matrix(sandbox);
+            // mm = new MatrixManager();
+            // mm->setup(sandbox);
+            break;
         default:
             make_sandbox();
     }
-} // setup_whatever_mode()
+  } // setup_whatever_mode()
 
 
-void loop_whatever_mode() {
-    // Log.trace("loop_whatever_mode: mode=%d", mode);
-    // delay(1000);
-    
-    switch (mode) {
-        case TURTLE_MODE:
-            loop_turtles(food, sandbox);
-            break;
-        case FRAGGLE_MODE: 
-            loop_fraggles(food, sandbox);
-            break;
-        case DOOZER_MODE:
-            loop_doozers(food, sandbox);
-            break;
-        case RACCOON_MODE:
-            loop_raccoons(food, sandbox);
-            break;
-        default:
-            Ant* ant;
-            for (int cursor = first(sandbox); 
-                    cursor != -1; 
-                    cursor = next(cursor, sandbox)) {
-                ant = (Ant*)sandbox[cursor];
-                ant->run(food, sandbox);
-            }
-    }
-} // loop_whatever_mode()
+  void loop_whatever_mode() {
+      // Log.trace("loop_whatever_mode: mode=%d", mode);
+      // delay(1000);
+      
+      switch (mode) {
+          case TURTLE_MODE:
+              loop_turtles(food, sandbox);
+              break;
+          case FRAGGLE_MODE: 
+              loop_fraggles(food, sandbox);
+              break;
+          case DOOZER_MODE:
+              loop_doozers(food, sandbox);
+              break;
+          case RACCOON_MODE:
+              loop_raccoons(food, sandbox);
+              break;
+          case MATRIX_MODE:
+              loop_matrix(food, sandbox);
+              // mm->loop(food, sandbox);
+              break;
+          default:
+              Ant* ant;
+              for (int cursor = first(sandbox); 
+                      cursor != -1; 
+                      cursor = next(cursor, sandbox)) {
+                  ant = (Ant*)sandbox[cursor];
+                  ant->run(food, sandbox);
+              }
+      }
+  } // loop_whatever_mode()
 
 
-void prefill(Dot* food[], Dot* sandbox[]) {
-    Dot* proxy;
-    for (int i = first(food); i != -1; i = next(i, food)) {
-        if (!in(food[i], sandbox)) {
-            proxy = activate(sandbox);
-            proxy->x = food[i]->x;
-            proxy->y = food[i]->y;
-            proxy->color = RED;
-        }
-    }
-} // void prefill(Dot* food[], Dot* sandbox[])
+  void prefill(Dot* food[], Dot* sandbox[]) {
+      Dot* proxy;
+      for (int i = first(food); i != -1; i = next(i, food)) {
+          if (!in(food[i], sandbox)) {
+              proxy = activate(sandbox);
+              proxy->x = food[i]->x;
+              proxy->y = food[i]->y;
+              proxy->color = RED;
+          }
+      }
+  } // void prefill(Dot* food[], Dot* sandbox[])
 
 
 #ifdef WATCHDOG_INTERVAL
-  // Global variable to hold the watchdog object pointer
-  ApplicationWatchdog *wd;
+    // Global variable to hold the watchdog object pointer
+    ApplicationWatchdog *wd;
 
-  void watchdogHandler() {
-    // Do as little as possible in this function, preferably just
-    // calling System.reset().
-    // Do not attempt to Particle.publish(), use Cellular.command()
-    // or similar functions. You can save data to a retained variable
-    // here safetly so you know the watchdog triggered when you 
-    // restart.
-    // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
-    System.reset(RESET_NO_WAIT);
-  } // watchdogHandler()
+    void watchdogHandler() {
+      // Do as little as possible in this function, preferably just
+      // calling System.reset().
+      // Do not attempt to Particle.publish(), use Cellular.command()
+      // or similar functions. You can save data to a retained variable
+      // here safetly so you know the watchdog triggered when you 
+      // restart.
+      // In 2.0.0 and later, RESET_NO_WAIT prevents notifying the cloud of a pending reset
+      System.reset(RESET_NO_WAIT);
+    } // watchdogHandler()
 #endif
 
 
-void delay_safely(int delay_ms) {
-  int remainder = delay_ms;
-  while (remainder > 1000) {
-    delay(1000);
-    remainder -= 1000;
-    #ifdef WATCHDOG_INTERVAL
-      ApplicationWatchdog::checkin(); // resets the AWDT count
-    #endif
-  }
-  delay(remainder);
-} // delay_safely(delay_ms)
+  void delay_safely(int delay_ms) {
+    int remainder = delay_ms;
+    while (remainder > 1000) {
+      delay(1000);
+      remainder -= 1000;
+      #ifdef WATCHDOG_INTERVAL
+        ApplicationWatchdog::checkin(); // resets the AWDT count
+      #endif
+    }
+    delay(remainder);
+  } // delay_safely(delay_ms)
 
 
-void maybe_reconnect() {
-  if (!Particle.connected()) {
-      // TODO: this is b-r-o-k-e-n on 5.9.0
-      WiFi.off();
-      delay_safely(30*1000);
-      WiFi.on(); 
-      delay_safely(30*1000);
-      Particle.connect();
-      delay_safely(10*1000); // Wait for connection attempt
-  }
+  void maybe_reconnect() {
+    if (!Particle.connected()) {
+        // TODO: this is b-r-o-k-e-n on 5.9.0
+        WiFi.off();
+        delay_safely(30*1000);
+        WiFi.on(); 
+        delay_safely(30*1000);
+        Particle.connect();
+        delay_safely(10*1000); // Wait for connection attempt
+    }
 
-  if (Particle.connected()) {
-      Particle.syncTime();
-      dst.check();
-  }
-} // maybe_reconnect()
+    if (Particle.connected()) {
+        Particle.syncTime();
+        dst.check();
+    }
+  } // maybe_reconnect()
 
 
 void setup_cloud() {
@@ -656,6 +712,7 @@ void setup() {
     waitFor(Serial.isConnected, 10000);
 
     luna = new Luna(CDS_POWER, CDS_SENSE, CDS_GROUND, LUNA_ADDY);
+    locker_setup();
     color_setup();
     layout.setup();
     nitetime_setup();
@@ -663,6 +720,9 @@ void setup() {
     weather_setup();
 
     setup_cloud();
+
+    Particle.function("toggle_dst", toggle_dst);
+    Particle.function("timezone_offset", set_timezone_offset);
 
     delay(5000);
 
@@ -685,6 +745,7 @@ void setup() {
     
     Log.warn("initialization complete; free mem == %ld", System.freeMemory());
     //display.test_forever();
+    // prefill(food, sandbox);
 } // setup()
 
 
@@ -703,20 +764,24 @@ void loop() {
         Log.info("free memory: %ld", System.freeMemory());
         chef.cook(food, wTime);
         luna_brite = luna->get_brightness();
-        display_brite = display.set_brightness(luna_brite);
+        display_brite = display.set_brightness(luna_brite, 
+                                               wTime.hour(), 
+                                               wTime.minute());
     }
 
-    if (has_rtc()) {
-      // try to connect for the first hour
-      if (millis() < 3600*1000
-          && minute.isExpired()) {
-        // once per minute
-        Log.warn("RTC mode: trying to reconnect (maybe)");
+    // in the first hour, everyone should try to stay connected
+    if (millis() < 3600*1000) {
+      if (minute.isExpired()) {
         safe_connect();
       }
     } else {
-      if (hourly.isExpired()) {
-        maybe_reconnect();
+      // after the first hour: 
+      if (daily.isExpired()) {
+        safe_synctime();
+      }
+      if (OFFLINE_MODE) {
+        safe_disconnect();
+        WiFi.off();
       }
     }
     
@@ -732,7 +797,7 @@ void loop() {
 
       maybe_update_layout();
     
-      if(weather.isValid()) {
+      if (!OFFLINE_MODE && weather.isValid()) {
         if (layout.show_temperature) {
           temperature_graph->update(weather.feels_like());
           display.render(temperature_graph->dots, MATRIX_Y);
@@ -749,7 +814,7 @@ void loop() {
         display.render(food);
       }
 
-      if (layout.show_pinger) {
+      if (!OFFLINE_MODE && layout.show_pinger) {
         display.render(pinger.pings(), pinger.npings());
       }
 
@@ -763,7 +828,8 @@ void loop() {
       display_speed.stop();
     }
     ma_sw.stop();
-    stats = String::format("MS per frame: %u; display speed: %u; engine: %u; frames per frame: %d, budget %d ms", 
+    stats = String::format("the line: %s; MS per frame: %u; display speed: %u; engine: %u; frames per frame: %d, budget %d ms", 
+                           OFFLINE_MODE ? "OFF" : "ON",
                            ma_sw.read(), display_speed.read(), engine.read(),
                            nframes.read(), avg_budget.read());
     loop_pacer.wait();

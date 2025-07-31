@@ -68,17 +68,24 @@ class WeatherGraphics:
         self._time_hh = 0
         self._time_mm = 0
 
+    def shorten(self, text):
+        if text == "Thunderstorm":
+            return "T-storm"
+        if text == "Scattered clouds":
+            return "Scattered"
+        return text
+
     def update_weather(self, ow):
         self._min_temp, self._max_temp = ow.range(0, 11)
         self._temp_range = f"{self._min_temp:2.1f}-{self._max_temp:2.1f} °C"
-        self._feels_like = f"{ow.f(ow.feels_like()):2.1f}"
+        self._feels_like = f"{int(ow.f(ow.feels_like()))} °F"
 
         # set the icon/background
         self._weather_icon = ICON_MAP[ow.forecast()['weather'][0]['icon']]
         self._city_name = ow.city
         print(f'{self._city_name} : {self._temp_range}')
 
-        self._main_text = ow.forecast()["weather"][0]["main"]
+        self._main_text = self.shorten(ow.forecast()["weather"][0]["main"])
         print(f'{self._main_text} : {self._feels_like}')
 
         description = ow.forecast()["weather"][0]["description"]
@@ -88,7 +95,7 @@ class WeatherGraphics:
         if not next_rain:
             upcoming = "no rain"
         else:
-            upcoming = f"{100*next_rain[1]:d}% in {next_rain[0]} hrs"
+            upcoming = f"{100*next_rain[1]:3.0f}%/{next_rain[0]}h"
 
         self._description = f"{description}; {upcoming}"
         print(self._description)
@@ -110,6 +117,8 @@ class WeatherGraphics:
         self.inky_display.set_image(image)
 
     def show_grid(self, draw):
+        width = self.any_display.width
+        height = self.any_display.height
         # vertical guides
         draw.rectangle((width//2, 0, width//2, height), fill=BLACK)
         draw.rectangle((width//5, 0, width//5, height), fill=BLACK)
@@ -124,9 +133,7 @@ class WeatherGraphics:
         height = self.any_display.height
 
         # clear -- big white rectangle
-        image = Image.new("RGB", 
-                          (width, self.inky_display.height), 
-                          color=WHITE)
+        image = Image.new("RGB", (width, height), color=WHITE)
         draw = ImageDraw.Draw(image)
         # self.show_grid(draw)
 
@@ -186,8 +193,13 @@ class WeatherGraphics:
         draw.text((x, y), self._description, font=self.small_font, fill=BLACK)
         
         # show the image
-        self.inky_display.set_image(image)
-        self.inky_display.show()
+        if self.inky_display:
+            self.inky_display.set_image(image)
+            self.inky_display.show()
+        else:
+            self.adafruit_display.image(image)
+            self.adafruit_display.display()
+
 
     def halign_right(self, right_x, font, text):
         """returns the proper X to right-justify text against x"""
@@ -213,3 +225,9 @@ class WeatherGraphics:
         self.update_weather(ow)
         self.update_time(hh, mm)
         self.display()
+
+
+if __name__ == "__main__":
+    ow = open_weather.OpenWeather()
+    gfx = WeatherGraphics(inky_display="fake")
+    gfx.update_weather(ow)

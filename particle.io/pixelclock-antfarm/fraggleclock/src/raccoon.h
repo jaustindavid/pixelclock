@@ -1,13 +1,14 @@
 #pragma once
 
 #include <SimpleTimer.h>
+#include "locker.h"
 #include "dot.h"
 #include "list.h"
 #include "ant.h"
 #include "turtle.h"
 
-/*
 
+/*
    A Raccoon is... trash panda.
 
    * pixels not in plan are DIRTY_COLOR (yellow, maybe)
@@ -57,14 +58,23 @@
 // cleaning 3
 #define DUNKING DUMPING // 4
 #define WASHING 5
+#define WANDERING 6
 
 #if (ASPECT_RATIO == SQUARE)
-  #define NRACCOONS 1
+  #if defined(MEGA)
+    #define NRACCOONS 2
+  #else
+    #define NRACCOONS 1
+  #endif
   #define WALK_SPEED  400 // ms per step
   #define REST_SPEED 1000 // ms per step
   #define DUNK_SPEED 1500 // ms per dunking
 #else
-  #define NRACCOONS 1
+  #if defined(MEGA)
+    #define NRACCOONS 2
+  #else
+    #define NRACCOONS 1
+  #endif
   #define WALK_SPEED  250 // ms per step
   #define REST_SPEED 1000 // ms per step
   #define DUNK_SPEED 1250 // ms per dunking
@@ -79,6 +89,8 @@
 
 int TRASH_X = 0, TRASH_Y = MATRIX_Y-1;
 
+#define POOL_LOCK 255
+#define TRASH_LOCK 254
 
 class Raccoon: public Turtle {
   private:
@@ -88,73 +100,125 @@ class Raccoon: public Turtle {
     uint32_t swish;
     Stopwatch rest_counter, run_counter;
 
+
+    #if defined(TESTING)
+        #define DEBUG_PICKING
+    #endif
     // returns a dot of target_color, or -1
     int pick_any(Dot* sandbox[], color_t target_color) {
-       for (int i = 0; i < MAX_DOTS; i++) {
-         if (sandbox[i]->active 
-             && sandbox[i]->color == target_color) {
-           return i;
-         }
-       }
-       return -1;
+        int candidates[10];
+        int n;
+        for (n = 0; n < 10; n++) {
+            candidates[n] = -1;
+        }
+
+        n = -1;
+        for (int i = 0; i < MAX_DOTS; i++) {
+            if (sandbox[i]->active 
+                && sandbox[i]->color == target_color
+                && n < 10) {
+                n++;
+                candidates[n] = i;
+                #if defined(DEBUG_PICKING)
+                    Log.info("candidate[%d] = %d", n, i);
+                #endif
+            }
+        }
+        #if defined(DEBUG_PICKING)
+            Log.info("n candidates: %d", n);
+        #endif
+        if (n != -1) {
+            int c = candidates[random(n+1)];
+            #if defined(DEBUG_PICKING)
+                Log.info("final candidate: %d", c);
+            #endif
+            return c;
+        } else {
+            return -1;
+        }
     } // int pick_any(sandbox, target_color)
 
 
     void start_washing(Dot* plan[], Dot* sandbox[]) {
+      Log.info("start washing @ (%d,%d)", x, y);
       state = WASHING;
     } // start_washing(plan, sandbox)
 
 
     // WASHING: run to the pool, then DUNK
     void wash(Dot* plan[], Dot* sandbox[]) {
-      Log.info("washing @ (%d,%d)", x, y);
+      #if defined(TESTING)
+          Log.trace("washing @ (%d,%d)", x, y);
+      #endif
       if (adjacent(sandbox[POOL_TARGET]) 
           || equals(sandbox[POOL_TARGET])) {
-        Log.trace("wash: starting dunk");
-        start_dunking(plan, sandbox);
-        return;
-      } 
-
-      Log.trace("washing: tryna move_toward");
-      if (move_toward(sandbox[POOL_TARGET], sandbox)) {
-        Log.trace("washing: moved! now @ (%d,%d)", x, y);
-        return;
+          #if defined(TESTING)
+              Log.trace("wash: starting dunk");
+          #endif 
+          start_dunking(plan, sandbox);
+      } else {
+          if (!move_djikstra(sandbox[POOL_TARGET], sandbox)) {
+              start_resting(plan, sandbox);
+          }
       }
-
-      Log.trace("washing: move failed :( still @ (%d,%d)", x, y);
-      wander(sandbox);
-      Log.trace("washing: done, now at @ (%d,%d)", x, y);
     } // wash(plan, sandbox)
 
 
+    /*
+     * DUNKING: I am at the pool
+     *   1) swish for a bit
+     *   2) release the lock
+     *   3) move on to "placing" a thing
+     */
     void start_dunking(Dot* plan[], Dot* sandbox[]) {
-      state = DUNKING;
-      dunk_timer->reset();
-      swish = 0;
+        if (!acquire(POOL_LOCK, id)) {
+            Log.info("Dunking: %d waiting for lock", id);
+            wander(sandbox);
+            return;
+        }
+        #if defined(TESTING)
+            Log.info("start dunking @ (%d,%d)", x, y);
+        #endif
+        state = DUNKING;
+        dunk_timer->reset();
+        swish = 0;
     } // start_dunking(plan, sandbox)
 
 
     // DUNKING: just wait a bit
-    void dunk(Dot* plan[], Dot* sandbox[]) {
-      Log.info("dunking");
-      if (dunk_timer->isExpired()) {
-        start_placing(plan, sandbox);
-      } else {
-        int pool_x = sandbox[POOL_TARGET]->x;
-        // swish around a lil
-        if (swish == 0 || (millis() - swish > 150)) {
-          x = (x == pool_x ? pool_x - 1 : pool_x);
-          swish = millis();
+    void  dunk(Dot* plan[], Dot* sandbox[]) {
+        #if defined(TESTING)
+            Log.trace("dunking");
+        #endif
+        if (!dunk_timer->isExpired()) {
+          int pool_x = sandbox[POOL_TARGET]->x;
+          // swish around a lil
+          if (swish == 0 || (millis() - swish > 150)) {
+            x = (x == pool_x ? pool_x - 1 : pool_x);
+            swish = millis();
+          }
+        } else {
+          release(POOL_LOCK);
+          start_placing(plan, sandbox);
         }
-      }
     } // dunk(plan, sandbox)
 
 
+    /*
+     * PLACING: 
+     *   start: I have a thing, probably.  
+     *          If nothing needs to get placed, just rest
+     */
     void start_placing(Dot* plan[], Dot* sandbox[]) {
+        #if defined(TESTING)
+            Log.info("start placing @ (%d,%d)", x, y);
+        #endif
         target_i = pick_closeish_open(plan, sandbox);
         if (target_i != -1) {
-          Log.info("Selected [%d] for placement (%d,%d)", target_i, 
-                   plan[target_i]->x, plan[target_i]->y);
+            #if defined(TESTING)
+            Log.info("Selected [%d] for placement (%d,%d)", target_i, 
+                     plan[target_i]->x, plan[target_i]->y);
+            #endif
         }
         state = PLACING;
     } // place(plan, sandbox)
@@ -163,102 +227,165 @@ class Raccoon: public Turtle {
     // PLACING: put a clean food in the target
     void place(Dot* plan[], Dot* sandbox[]) {
       // no target?  rest
-      if (target_i == -1) {
+      if (target_i == -1 || ! reachable(plan[target_i], sandbox)) {
+        wander(sandbox);
         start_resting(plan, sandbox);
         return;
       }
-      Log.info("placing; target_i = %d (%d,%d)", 
-               target_i, plan[target_i]->x, plan[target_i]->y);
+      #if defined(TESTING)
+          Log.trace("placing; target_i = %d (%d,%d)", 
+                    target_i, plan[target_i]->x, plan[target_i]->y);
+      #endif
 
       Dot* target = plan[target_i];
-      if (adjacent(target)) {
-        place_brick(target, CLEAN_COLOR, sandbox);
-        Log.trace("brick: placed, (%d,%d)", target->x, target->y);
-        start_resting(plan, sandbox);
+      if (adjacent(target) || equals(target)) {
+          place_brick(target, CLEAN_COLOR, sandbox);
+          #if defined(TESTING)
+              Log.trace("brick: placed, (%d,%d)", target->x, target->y);
+          #endif
+          start_resting(plan, sandbox);
       } else {
-        move_toward(target, sandbox);
+          if (!move_djikstra(target, sandbox)) {
+              start_resting(plan, sandbox);
+          }
       }
     } // place(plan, sandbox)
 
 
     void start_cleaning(Dot* plan[], Dot* sandbox[]) {
-      int i = pick_any(sandbox, DIRTY_COLOR);
-      if (i != -1) {
-        Log.info("start cleaning: %d @ (%d,%d)", i, 
-                  sandbox[i]->x, sandbox[i]->y);
-        target_i = i;
-        state = CLEANING;
-        return;
-      }
+        int i = pick_any(sandbox, DIRTY_COLOR);
+        if (i != -1) {
+            #if defined(TESTING)
+                Log.info("start cleaning: %d @ (%d,%d)", i, 
+                          sandbox[i]->x, sandbox[i]->y);
+            #endif
+            target_i = i;
+            state = CLEANING;
+            return;
+        }
     } // start_cleaning(plan, sandbox)
 
 
     void clean(Dot* plan[], Dot* sandbox[]) {
-      // no target?  rest
-      if (target_i == -1) {
-        start_resting(plan, sandbox);
-        return;
-      }
+        // no target?  rest
+        if (target_i == -1 
+            || ! reachable(sandbox[target_i], sandbox)
+            || ! sandbox[target_i]->active) {
+            #if defined(TESTING)
+                Log.info("want to clean, but can't");
+                if (target_i != -1) {
+                    print_distances(_distances, 
+                                    sandbox[target_i]->x, 
+                                    sandbox[target_i]->y);
+                } else {
+                    print_distances(_distances);
+                }
+            #endif
+            wander(sandbox);
+            start_resting(plan, sandbox);
+            return;
+        }
 
-      Log.info("cleaning; target_i = %d (%d,%d)", 
-               target_i, sandbox[target_i]->x, sandbox[target_i]->y);
+        #if defined(TESTING)
+            Log.trace("cleaning; target_i = %d (%d,%d)", 
+                      target_i, sandbox[target_i]->x, sandbox[target_i]->y);
+        #endif
 
-      Dot* target = sandbox[target_i];
-      Log.trace("brick[%d]: (%d,%d)", target_i, target->x, target->y);
-      if (adjacent(target)) {
-        Log.trace("brick (%d,%d): horkt", target->x, target->y);
-        pick_up(target, sandbox);
-        start_washing(plan, sandbox);
-      } else {
-        move_toward(target, sandbox);
-      }
+        Dot* target = sandbox[target_i];
+        #if defined(TESTING)
+            Log.trace("brick[%d]: (%d,%d)", target_i, target->x, target->y);
+        #endif
+        if (adjacent(target)) {
+            #if defined(TESTING)
+                Log.trace("brick (%d,%d): horkt", target->x, target->y);
+            #endif
+            pick_up(target, sandbox);
+            start_washing(plan, sandbox);
+        } else {
+            if (!move_djikstra(target, sandbox)) {
+              start_resting(plan, sandbox);
+            }
+        }
     } // clean(plan, sandbox)
 
 
+    void start_wandering(Dot* plan[], Dot* sandbox[]) {
+        state = RESTING;
+    } // start_wandering(plan, sandbox)
+
     void start_resting(Dot* plan[], Dot* sandbox[]) {
-      state = RESTING;
-    } // rest(plan, sandbox)
+        state = RESTING;
+    } // start_resting(plan, sandbox)
+
+
+    // returns the number of needles[] missing from haystack[]
+    int count_missing(Dot* needles[], Dot* haystack[]) {
+        int n = 0;
+        for (int i = 0; i < MAX_DOTS; i++) {
+          if (needles[i]->active && !in(needles[i], haystack)) {
+              n ++;
+          }
+        }
+        return n;
+    } // int count_missing(needles, haystack)
 
 
     void rest(Dot* plan[], Dot* sandbox[]) {
-      Log.trace("resting");
-      // are there any DIRTY dots
-      int i = pick_any(sandbox, DIRTY_COLOR);
-      if (i != -1) {
-        Log.info("found some dirty; cleaning");
-        start_cleaning(plan, sandbox);
-        return;
-      }
+        #if defined(TESTING)
+            Log.trace("resting");
+        #endif
+        // are there any DIRTY dots
+        int i = pick_any(sandbox, DIRTY_COLOR);
+        if (i != -1) {
+            #if defined(TESTING)
+                Log.info("found some dirty; cleaning");
+            #endif
+            start_cleaning(plan, sandbox);
+            return;
+        }
 
-      // are there any MISSING dots
-      i = pick_closeish_open(plan, sandbox);
-      if (i != -1) {
-        // Log.info("found %d missing; washing\n", i);
-        // start_washing(plan, sandbox);
-        Log.info("found %d missing; refilling trash", i);
-        refill_trash(sandbox);
-        // it will get cleaned on the next loop
-      }
+        // are there any MISSING dots
+        i = pick_closeish_open(plan, sandbox);
+        if (i != -1) {
+            #if defined(TESTING)
+                Log.info("found %d missing; refilling trash", i);
+            #endif
+            refill_trash(sandbox);
+            // it will get cleaned on the next loop
+        } else {
+          i = count_missing(plan, sandbox);
+          if (i > 0) {
+            refill_trash(sandbox);
+          }
+        }
 
-      if (rest_timer->isExpired()
-          && P(25)) {
-        wander(sandbox);
-      } 
-      // "tick"
-      if (millis()/1000 % 2) {
-        color = color/2;
-      }
+        if (rest_timer->isExpired()
+            && P(25)) {
+            wander(sandbox);
+        } 
+        // "tick"
+        if ((millis()/1000 + id%2) % 2) {
+            color = color/2;
+        }
     } // rest(plan, sandbox)
 
 
     // refill the trash "pile" as needed
     void refill_trash(Dot* sandbox[]) {
+      #if defined(TESTING)
+          Log.info("refill trash");
+      #endif
       if (!in(TRASH_X, TRASH_Y, sandbox)) {
-        Dot* trash = activate(sandbox);
-        trash->set_color(DIRTY_COLOR);
-        trash->x = TRASH_X;
-        trash->y = TRASH_Y;
-        Log.trace("Trash(%d,%d): refilled", trash->x, trash->y);
+          #if defined(TESTING)
+              Log.info("trash (%d,%d) not in sandbox", TRASH_X, TRASH_Y);
+          #endif
+          Dot* trash = activate(sandbox);
+          trash->set_color(DIRTY_COLOR);
+          trash->x = TRASH_X;
+          trash->y = TRASH_Y;
+          #if defined(TESTING)
+              Log.info("Trash(%d,%d): refilled", trash->x, trash->y);
+          #endif
       }
     } // refill_trash(sandbox)
 
@@ -299,9 +426,10 @@ class Raccoon: public Turtle {
       Log.info("creating racc at %lu", millis());
       target = nullptr;
       target_i = -1;
+      iq = MATRIX_X + MATRIX_Y;
+      budget = 500; // ms
     } // Raccoon()
 
-    
 
     void report_state() {
       static int prev_state = 9;
@@ -326,7 +454,9 @@ class Raccoon: public Turtle {
           default:
               s = "unknown";
         }
-        Log.trace("new state: %s (%d)", s.c_str(), state);
+        #if defined(TESTING)
+            Log.trace("new state: %s (%d)", s.c_str(), state);
+        #endif
         prev_state = state;
       }
     } // report_state()
@@ -334,7 +464,9 @@ class Raccoon: public Turtle {
 
     void run(Dot* plan[], Dot* sandbox[]) override {
       static int n_runs = 0, n_rests = 0;
-      Log.trace(">>>>>>>>>> R@(%d,%d) <<<<<<<<<<", x, y);
+      #if defined(TESTING)
+          Log.trace(">>>>>>>>>> R@(%d,%d) <<<<<<<<<<", x, y);
+      #endif
       if (! step_timer->isExpired()) {
 	      return;
       }
@@ -367,7 +499,7 @@ class Raccoon: public Turtle {
           rest(plan, sandbox);
       }
 
-      report(n_runs, n_rests);
+      // report(n_runs, n_rests);
     } // run(plan, sandbox)
 }; // class Raccoon
 
@@ -432,9 +564,13 @@ int trash_x = 0;
     dirty_all_the_things(plan, sandbox);
 
     for (int i = 0; i < NRACCOONS; i++) {
-      Log.trace("loop_racoons: %d", i);
+      #if defined(TESTING)
+          Log.trace("loop_racoons: %d", i);
+      #endif
       Raccoon* raccoon = (Raccoon*)sandbox[i];
       raccoon->run(plan, sandbox);
     }
-    Log.trace("loop_racoons: out");
+    #if defined(TESTING)
+        Log.trace("loop_racoons: out");
+    #endif
   } // loop_raccoons()

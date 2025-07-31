@@ -15,6 +15,7 @@
 #undef PRINTF_DEBUGGER
 
 #define NITE_BRIGHTNESS 1
+#define NO_INTERRUPTS
 
 class Display {
     private:
@@ -25,6 +26,7 @@ class Display {
              max_brightness, // max value for LED brightness; 0-255
              rotation;       // # 90* CW rotations to apply; 0-3
         bool alignment_mode;
+        bool meeting_time;
 
         struct save_data_t {
           byte version,
@@ -67,8 +69,9 @@ class Display {
           if (alignment_mode) {
             neopixels->setPixelColor(trans_rotate(0,0), WHITE);
             neopixels->setPixelColor(trans_rotate(0, MATRIX_Y-1), WHITE);
-            neopixels->setPixelColor(trans_rotate(MATRIX_X-1, 0), WHITE);
-            neopixels->setPixelColor(trans_rotate(MATRIX_X-1, MATRIX_Y-1), WHITE);
+            for (byte y = 0; y < MATRIX_Y; y++) {
+              neopixels->setPixelColor(trans_rotate(MATRIX_X-1, y), WHITE);
+            }
           }
         } // maybe_show_alignment()
 
@@ -100,6 +103,12 @@ class Display {
           write_eeprom();
           return rotation;
         } // set_rotation(junk)
+
+
+        int toggle_meetingtime(String data) {
+          meeting_time = !meeting_time;
+          return meeting_time ? 1 : 0;
+        } // int toggle_meetingtime(data)
 
 
         // returns a rotated + translated (x, y) -> [i]
@@ -135,6 +144,7 @@ class Display {
             max_brightness = 64; 
             rotation = 0;
             read_eeprom();
+            meeting_time = false;
         } // Display(neopixels)
 
 
@@ -171,11 +181,25 @@ class Display {
                 &Display::set_max_brightness, this);
             Particle.function("display_rotate", 
                 &Display::set_rotation, this);
+            Particle.function("display_meetingtime", 
+                &Display::toggle_meetingtime, this);
         } // setup()
         
         
         #define HYSTERESIS 2 // just to keep it from 'hunting'
-        int set_brightness(int b) {
+        int set_brightness(int b, int hh, int mm) {
+            if (meeting_time) {
+              if (hh >= 9 && hh <= 17) {
+                if (mm <= 5 
+                    || (mm >= 25 && mm <= 35) 
+                    || mm >= 55) {
+                  return 128;
+                } else {
+                  return 4;
+                }
+              }
+              // FALLTHROUGH
+            } 
             int new_brightness = map(b, 0, 100, min_brightness, max_brightness);
             if (abs(new_brightness - brightness_target) > HYSTERESIS) {
                 brightness_target = new_brightness;
@@ -191,6 +215,11 @@ class Display {
             neopixels->setBrightness(brightness);
             return brightness;
         } // set_brightness(b)
+
+
+        int set_brightness(int b) {
+            return set_brightness(b, 0, 0);
+        }
         
         
         void paint(int i, color_t color) {
@@ -217,7 +246,13 @@ class Display {
                 neopixels->setPixelColor(i, fg[i]);
             }
             maybe_show_alignment();
-            neopixels->show();
+            #if defined(NO_INTERRUPTS)
+                noInterrupts();
+                neopixels->show();
+                interrupts();
+            #else
+                neopixels->show();
+            #endif
         } // show()
         
         
@@ -250,7 +285,13 @@ class Display {
                           REDRAWS_PER_FRAME-w));
                 }
                 maybe_show_alignment();
-                neopixels->show();
+                #if defined(NO_INTERRUPTS)
+                    noInterrupts();
+                    neopixels->show();
+                    interrupts();
+                #else
+                    neopixels->show();
+                #endif
                 // Serial.printf("%d ms elapsed between shows\n", millis() - start);
                 redraw_timer.wait();
             }
@@ -271,7 +312,13 @@ class Display {
                                                    bg[i], n_redraws-w));
             }
             maybe_show_alignment();
-            neopixels->show();
+            #if defined(NO_INTERRUPTS)
+                noInterrupts();
+                neopixels->show();
+                interrupts();
+            #else
+                neopixels->show();
+            #endif
             if (w < n_redraws) {
               redraw_timer.wait();
             }
@@ -303,17 +350,23 @@ class Display {
         // renders dots[] in nitetime mode
         // always takes 1 second
         void nite_render(Dot* dots[]) {
-          static SimpleTimer redraw_timer(1000);
-          neopixels->setBrightness(NITE_BRIGHTNESS);
-          for (int cursor = MAX_DOTS-1; cursor >= 0; cursor--) {
-            if (dots[cursor]->active) {
-              neopixels->setPixelColor(
-                   trans_rotate(dots[cursor]->x, dots[cursor]->y), 
-                   NITE_COLOR);
+            static SimpleTimer redraw_timer(1000);
+            neopixels->setBrightness(NITE_BRIGHTNESS);
+            for (int cursor = MAX_DOTS-1; cursor >= 0; cursor--) {
+                if (dots[cursor]->active) {
+                    neopixels->setPixelColor(
+                         trans_rotate(dots[cursor]->x, dots[cursor]->y), 
+                         NITE_COLOR);
+                }
             }
-          }
-          neopixels->show();
-          redraw_timer.wait();
+            #if defined(NO_INTERRUPTS)
+                noInterrupts();
+                neopixels->show();
+                interrupts();
+            #else
+                neopixels->show();
+            #endif
+            redraw_timer.wait();
         } // nite_render(dots)
 
 

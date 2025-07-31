@@ -2,6 +2,10 @@
 
 #define PHOTON2 32
 
+#ifndef OFFLINE_MODE
+#define OFFLINE_MODE false
+#endif
+
 #ifdef TESTING
   #define HOLDING_PATTERN 15 // seconds before firing up
 #else
@@ -11,7 +15,7 @@
 STARTUP(WiFi.setListenTimeout(HOLDING_PATTERN)); // listening mode timeout
  
 // to enable the watchdog...
-#define WATCHDOG_INTERVAL 180000 // milliseconds
+#define WATCHDOG_INTERVAL 30000 // milliseconds
 
 #define SQUARE     0
 #define WIDESCREEN 1
@@ -34,9 +38,9 @@ STARTUP(WiFi.setListenTimeout(HOLDING_PATTERN)); // listening mode timeout
 
 
 #define PRINTF_DEBUGGER
-#define MAX_DOTS 75
+#define MAX_DOTS 150
 
-#define CORE_ADDY       0     // byte, bool, bool == 3 bytes
+#define CORE_ADDY       0     // byte, byte, bool, int = 7 bytes
 #define LUNA_ADDY       10    // int, int == 8 bytes
 #define DISPLAY_ADDY    20    // 4 bytes
 #define WT_ADDY         30    // int, int == 8 bytes

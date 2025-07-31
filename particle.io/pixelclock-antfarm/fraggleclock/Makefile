@@ -16,6 +16,12 @@ widescreen:
 d1:
 	echo "#define PIXEL_PIN D1" >> src/local-settings.h
 
+offline:
+	echo "#define OFFLINE_MODE true" >> src/local-settings.h
+
+mega:
+	echo "#define MEGA true" >> src/local-settings.h
+
 test:
 	echo "#define TESTING" >> src/local-settings.h
 
@@ -31,6 +37,24 @@ follow:
 roxie_raccoon: square d1
 	particle flash $@
 
+rachel_raccoon: widescreen mega
+	particle flash $@
+
+renee_raccoon: widescreen mega
+	particle flash $@
+
+ranier_raccoon: widescreen mega
+	particle flash $@
+
+remus_raccoon: square offline
+	particle flash $@
+
+rosalyn_raccoon: square mega
+	particle flash $@
+
+roberta_raccoon: square mega
+	particle flash $@
+
 steel_hamster: square
 	particle flash $@
 
@@ -39,13 +63,13 @@ lr_bookcase: rachel
 drew: ronaldo
 jake: ringo
 max: rowan
-dan_singer: ricky
+dan_singer: rosalyn
 brewster: rico
 leslie: steel_hamster renee
 gjab: river
 
 
-SQUARES = rosalyn roberta rowan ricky rico
+SQUARES = rosalyn roberta rowan ricky rico remus
 WIDESCREENS = ronaldo rachel ringo river renee
 
 $(SQUARES) : square
