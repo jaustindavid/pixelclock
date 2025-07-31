@@ -42,3 +42,4 @@ while True:
                    hh=wt.hour(), 
                    mm=wt.minute())
         print(f'{hhmm}: {wt}')
+    time.sleep(1)
