@@ -58,7 +58,7 @@ roberta_raccoon: square mega
 steel_hamster: square
 	particle flash $@
 
-austin: roberta
+austin: roberta_raccoon
 lr_bookcase: rachel
 drew: ronaldo
 jake: ringo
