@@ -1,8 +1,10 @@
+PARTICLE_CLI=/Users/austin/bin/particle
+
 photon:
-	particle compile photon
+	${PARTICLE_CLI} compile photon
 
 photon2:
-	particle compile photon2
+	${PARTICLE_CLI} compile photon2
 
 clean:
 	rm -f photon*bin
@@ -26,37 +28,39 @@ test:
 	echo "#define TESTING" >> src/local-settings.h
 
 local:
-	particle flash --local
+	${PARTICLE_CLI} flash --local
 
 pause:
 	sleep 5
 
 follow:
-	particle serial monitor --follow
+	${PARTICLE_CLI} serial monitor --follow
 
 roxie_raccoon: square d1
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 rachel_raccoon: widescreen mega
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 renee_raccoon: widescreen mega
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 ranier_raccoon: widescreen mega
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 remus_raccoon: square offline
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 rosalyn_raccoon: square mega
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 roberta_raccoon: square mega
-	particle flash $@
+ricky_raccoon: square mega
+	${PARTICLE_CLI} flash $@
+	${PARTICLE_CLI} flash $@
 
 steel_hamster: square
-	particle flash $@
+	${PARTICLE_CLI} flash $@
 
 austin: roberta_raccoon
 lr_bookcase: rachel
@@ -73,15 +77,15 @@ SQUARES = rosalyn roberta rowan ricky rico remus
 WIDESCREENS = ronaldo rachel ringo river renee
 
 $(SQUARES) : square
-	particle flash $@_raccoon
+	${PARTICLE_CLI} flash $@_raccoon
 
 $(WIDESCREENS) : widescreen
-	particle flash $@_raccoon
+	${PARTICLE_CLI} flash $@_raccoon
 
 uptime:
 	@for host in rachel_raccoon ricky_raccoon; \
 	do \
           echo -n "$$host: uptime = "; \
-	  particle get $$host uptime_h; \
-	  particle get $$host statistics; \
+	  ${PARTICLE_CLI} get $$host uptime_h; \
+	  ${PARTICLE_CLI} get $$host statistics; \
 	done
